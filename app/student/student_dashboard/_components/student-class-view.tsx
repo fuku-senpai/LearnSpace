@@ -871,7 +871,7 @@ const StudentClassView = ({
                                   ) : records.length > 0 ? (
                                     <div className="space-y-3">
                                       <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 shadow-sm">
-                                        <div className="mb-3 flex items-start justify-between gap-3">
+                                        <div className="mb-3 flex min-h-14 items-start justify-between gap-3">
                                           <div className="min-w-0">
                                             <div className="truncate text-sm font-semibold text-slate-900">
                                               {activeRecord?.title || "Video buổi học"}
@@ -882,17 +882,18 @@ const StudentClassView = ({
                                                 : ""}
                                             </div>
                                           </div>
-                                         
                                         </div>
 
-                                        {activeRecord ? (
-                                          <video
-                                            key={activeRecord.id}
-                                            src={activeRecord.videoUrl}
-                                            controls
-                                            className="w-full rounded-xl bg-black"
-                                          />
-                                        ) : null}
+                                        <div className="aspect-video overflow-hidden rounded-xl bg-black">
+                                          {activeRecord ? (
+                                            <video
+                                              src={activeRecord.videoUrl}
+                                              controls
+                                              preload="metadata"
+                                              className="h-full w-full"
+                                            />
+                                          ) : null}
+                                        </div>
                                       </div>
 
                                       <div className="space-y-2">
@@ -918,7 +919,7 @@ const StudentClassView = ({
                                                   {formatDate(record.createdAt)}
                                                 </div>
                                               </div>
-                                              <div className="shrink-0 cursor-pointer rounded-full border border-slate-200 px-2.5 py-1 text-[11px] font-semibold text-slate-700">
+                                              <div className="shrink-0 min-w-20 cursor-pointer rounded-full border border-slate-200 px-2.5 py-1 text-center text-[11px] font-semibold text-slate-700">
                                                 {isSelected ? "Đang xem" : "Bấm để xem"}
                                               </div>
                                             </button>
