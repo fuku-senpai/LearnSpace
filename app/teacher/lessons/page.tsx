@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCreateLessonMutation } from "@/app/hooks/lessons/useCreateLesson";
 import { useGetLessonsQuery } from "@/app/hooks/lessons/useGetLessons";
@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/table";
 import { Eye, Video } from "lucide-react";
 
-const LessonManagement = () => {
+const LessonManagementContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const materialId = searchParams.get("materialId") ?? "";
@@ -226,4 +226,16 @@ const LessonManagement = () => {
   );
 };
 
-export default LessonManagement;
+export default function LessonManagement() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-[#f4f6fb] text-sm text-slate-500">
+          Đang tải buổi học...
+        </div>
+      }
+    >
+      <LessonManagementContent />
+    </Suspense>
+  );
+}

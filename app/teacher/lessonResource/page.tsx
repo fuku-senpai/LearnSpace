@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -42,7 +42,7 @@ type FormValues = {
   lessonId: string;
 };
 
-const LessonResource = () => {
+const LessonResourceContent = () => {
   const searchParams = useSearchParams();
 
   const lessonIdFromQuery = searchParams.get("lessonId") ?? "";
@@ -417,4 +417,16 @@ const LessonResource = () => {
   );
 };
 
-export default LessonResource;
+export default function LessonResource() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-[#f4f6fb] text-sm text-slate-500">
+          Đang tải tài liệu buổi học...
+        </div>
+      }
+    >
+      <LessonResourceContent />
+    </Suspense>
+  );
+}

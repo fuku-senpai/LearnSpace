@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useGetClassesQuery } from "@/app/hooks/classes/useGetClasses";
 import { useCreateMaterialMutation } from "@/app/hooks/materials/useCreateMaterial";
@@ -38,7 +38,7 @@ type MaterialManagementProps = {
   classId?: string;
 };
 
-const MaterialManagement = ({ classId }: MaterialManagementProps) => {
+const MaterialManagementContent = ({ classId }: MaterialManagementProps) => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const classLookupFilter = useMemo(
@@ -366,4 +366,16 @@ const MaterialManagement = ({ classId }: MaterialManagementProps) => {
   );
 };
 
-export default MaterialManagement;
+export default function MaterialManagement(props: MaterialManagementProps) {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-[#f4f6fb] text-sm text-slate-500">
+          Đang tải chủ đề...
+        </div>
+      }
+    >
+      <MaterialManagementContent {...props} />
+    </Suspense>
+  );
+}

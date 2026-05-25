@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { Suspense, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useUploadFile } from "@/app/hooks/lessonResource/useUploadAuto";
 import { useGetRecordsByLessonQuery } from "@/app/hooks/records/useGetRecords";
@@ -25,7 +25,7 @@ type UploadedMedia = {
   name: string;
 };
 
-const RecordsManagement = () => {
+const RecordsManagementContent = () => {
   const searchParams = useSearchParams();
 
   const lessonId = searchParams.get("lessonId") ?? "";
@@ -293,4 +293,16 @@ const RecordsManagement = () => {
   );
 };
 
-export default RecordsManagement;
+export default function RecordsManagement() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-[#f4f6fb] text-sm text-slate-500">
+          Đang tải bản ghi...
+        </div>
+      }
+    >
+      <RecordsManagementContent />
+    </Suspense>
+  );
+}

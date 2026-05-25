@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { Suspense, useMemo } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
@@ -58,7 +58,7 @@ const menuGroups: { title: string; items: { key: MenuKey; label: string }[] }[] 
   },
 ]
 
-const Dashboard = () => {
+const DashboardContent = () => {
   const router = useRouter()
   const searchParams = useSearchParams()
   const menuParam = searchParams.get("menu")
@@ -322,4 +322,16 @@ const Dashboard = () => {
   )
 }
 
-export default Dashboard
+export default function Dashboard() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-[#f4f6fb] text-sm text-slate-500">
+          Đang tải dashboard...
+        </div>
+      }
+    >
+      <DashboardContent />
+    </Suspense>
+  )
+}
