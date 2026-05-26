@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { useLogout } from "@/hooks/useLogout"
 import ClassesManagement from "../classes/page"
 import MaterialManagement from "../materials/page"
 import LessonManagement from "../lessons/page"
@@ -28,7 +29,7 @@ type MenuKey =
   | "records"
   | "students"
   | "schedule"
-  | "settings"
+  | "logout"
 
 const menuGroups: { title: string; items: { key: MenuKey; label: string }[] }[] = [
   {
@@ -54,13 +55,14 @@ const menuGroups: { title: string; items: { key: MenuKey; label: string }[] }[] 
   },
   {
     title: "Hệ thống",
-    items: [{ key: "settings", label: "Cài đặt" }],
+    items: [{ key: "logout", label: "Đăng xuất" }],
   },
 ]
 
 const DashboardContent = () => {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const logoutMutation = useLogout()
   const menuParam = searchParams.get("menu")
   const classId = searchParams.get("classId")
   const classTitle = searchParams.get("classTitle")
@@ -77,10 +79,15 @@ const DashboardContent = () => {
   }, [menuParam])
 
   const handleMenuChange = (key: MenuKey) => {
+    if (key === "logout") {
+      logoutMutation.mutate()
+      return
+    }
+
     const params = new URLSearchParams(searchParams.toString())
     params.set("menu", key)
 
-    if (key === "overview" || key === "classes" || key === "schedule" || key === "students" || key === "settings") {
+    if (key === "overview" || key === "classes" || key === "schedule" || key === "students") {
       params.delete("classId")
       params.delete("classTitle")
       params.delete("materialId")

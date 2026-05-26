@@ -899,7 +899,7 @@ const StudentClassView = ({
                                       <div className="space-y-2">
                                         {records.map((record) => {
                                           const isSelected = record.id === activeRecord?.id;
-
+                                          
                                           return (
                                             <button
                                               key={record.id}

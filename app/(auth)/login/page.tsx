@@ -23,6 +23,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useLogin } from "@/hooks/useLogin";
+import { useState } from "react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 type LoginFormValues = {
   role: "STUDENT" | "TEACHER";
@@ -39,7 +41,7 @@ const LoginPage = () => {
     },
     mode: "onTouched",
   });
-
+const [showPassword, setShowPassword] = useState(false);
   const { mutateAsync, isPending } = useLogin();
   const resetValidation = () => form.clearErrors();
 
@@ -208,29 +210,53 @@ const LoginPage = () => {
                         return "Mật khẩu phải có ít nhất 6 ký tự, bao gồm in hoa, số và ký tự đặc biệt.";
                       },
                     }}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Mật khẩu</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            type="password"
-                            placeholder="••••••••"
-                            autoComplete="current-password"
-                            className="h-10 border-slate-200/70 bg-white text-slate-900 placeholder:text-slate-300/70 shadow-sm hover:border-slate-300/70 focus-visible:border-slate-300 focus-visible:ring-0 focus-visible:ring-transparent focus-visible:outline-none"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                   render={({ field }) => (
+  <FormItem>
+    <FormLabel>Mật khẩu</FormLabel>
+
+    <FormControl>
+      <div className="relative">
+        <Input
+          {...field}
+          type={showPassword ? "text" : "password"}
+          placeholder="••••••••"
+          autoComplete="current-password"
+          className="h-10 border-slate-200/70 bg-white pr-10 text-slate-900 placeholder:text-slate-300/70 shadow-sm hover:border-slate-300/70 focus-visible:border-slate-300 focus-visible:ring-0 focus-visible:outline-none"
+        />
+
+        <button
+          type="button"
+          onClick={() => setShowPassword((prev) => !prev)}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-600"
+        >
+          {showPassword ? (
+            <EyeOff className="h-4 w-4 cursor-pointer" />
+          ) : (
+            <Eye className="h-4 w-4 cursor-pointer" />
+          )}
+        </button>
+      </div>
+    </FormControl>    
+
+    <FormMessage />
+  </FormItem>
+)}
                   />
 
                   <Button
                     type="submit"
                     disabled={isPending}
-                    className="w-full h-11 font-bold rounded-2xl cursor-pointer bg-slate-900 text-white hover:bg-slate-800"
+                    aria-busy={isPending}
+                    className="h-11 w-full rounded-2xl bg-slate-900 font-bold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-80"
                   >
-                    Đăng nhập
+                    {isPending ? (
+                      <span className="inline-flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Đang đăng nhập...
+                      </span>
+                    ) : (
+                      "Đăng nhập"
+                    )}
                   </Button>
                   {form.formState.errors.root?.message ? (
                     <p className="text-xs text-red-500">
@@ -248,16 +274,7 @@ const LoginPage = () => {
               >
                 Quên mật khẩu?
               </Link>
-              <div>
-                Chưa có tài khoản?{" "}
-                <Link
-                  className="font-medium text-slate-900"
-                  href="/register"
-                  onClick={resetValidation}
-                >
-                  Đăng ký
-                </Link>
-              </div>
+            
             </CardFooter>
           </Card>
         </div>

@@ -19,13 +19,12 @@ export async function POST(req: Request) {
     return NextResponse.json(data, { status: backendRes.status });
   }
   const res = NextResponse.json(data);
-
   res.cookies.set("accessToken", data.accessToken, {
     httpOnly: true,
     secure: true,
     path: "/",
     sameSite: "lax",
-    maxAge: 15*60,
+    maxAge: 2*60,
   });
 
   res.cookies.set("refreshToken", data.refreshToken, {
@@ -33,7 +32,7 @@ export async function POST(req: Request) {
     secure: true,
     path: "/",
     sameSite: "lax",
-    maxAge: 2*60, 
+    maxAge: 4*60, 
   });
 
   if (data?.userInfo?.role) {
@@ -42,7 +41,7 @@ export async function POST(req: Request) {
       secure: true,
       path: "/",
       sameSite: "lax",
-      maxAge: 2 * 60,
+      maxAge: 4 * 60,
     });
   }
 

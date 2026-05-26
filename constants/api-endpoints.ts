@@ -1,6 +1,8 @@
 export const AUTH_API = {
   LOGIN: "/auth/login",
-  CUSTOMER_REGISTER: "/auth/register"
+  CUSTOMER_REGISTER: "/auth/register",
+  REFRESH_TOKEN: "/auth/refresh-token",
+  LOGOUT: "/auth/logout",
 };
 export const CLASS_API = {
   CREATE_CLASS: "/class",

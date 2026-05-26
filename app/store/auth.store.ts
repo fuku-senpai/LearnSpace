@@ -49,6 +49,7 @@ export const useAuthStore = create<AuthState>()(
             {
               user: null,
               isAuthenticated: false,
+              isHydrated: false
             },
             false,
             "clearAuth"

@@ -55,7 +55,7 @@ axiosClient.interceptors.response.use(
       isRefreshing = true;
       try {
         // refresh token bằng client riêng (KHÔNG interceptor)
-        await refreshClient.post("/auth/refresh-token");
+        await refreshClient.post("/auth/refresh");
 
         processQueue(null);
 
