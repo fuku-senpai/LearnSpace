@@ -95,14 +95,7 @@ const StudentDashboard = () => {
         </p>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-        <p className="text-xs text-slate-500">
-          Học viên
-        </p>
-        <p className="text-sm font-medium text-slate-900">
-          {currentCourse.totalStudent}
-        </p>
-      </div>
+ 
     </div>
   </div>
 </div>

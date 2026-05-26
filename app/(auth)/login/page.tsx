@@ -41,7 +41,7 @@ const LoginPage = () => {
     },
     mode: "onTouched",
   });
-const [showPassword, setShowPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const { mutateAsync, isPending } = useLogin();
   const resetValidation = () => form.clearErrors();
 
@@ -210,37 +210,37 @@ const [showPassword, setShowPassword] = useState(false);
                         return "Mật khẩu phải có ít nhất 6 ký tự, bao gồm in hoa, số và ký tự đặc biệt.";
                       },
                     }}
-                   render={({ field }) => (
-  <FormItem>
-    <FormLabel>Mật khẩu</FormLabel>
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Mật khẩu</FormLabel>
 
-    <FormControl>
-      <div className="relative">
-        <Input
-          {...field}
-          type={showPassword ? "text" : "password"}
-          placeholder="••••••••"
-          autoComplete="current-password"
-          className="h-10 border-slate-200/70 bg-white pr-10 text-slate-900 placeholder:text-slate-300/70 shadow-sm hover:border-slate-300/70 focus-visible:border-slate-300 focus-visible:ring-0 focus-visible:outline-none"
-        />
+                        <FormControl>
+                          <div className="relative">
+                            <Input
+                              {...field}
+                              type={showPassword ? "text" : "password"}
+                              placeholder="••••••••"
+                              autoComplete="current-password"
+                              className="h-10 border-slate-200/70 bg-white pr-10 text-slate-900 placeholder:text-slate-300/70 shadow-sm hover:border-slate-300/70 focus-visible:border-slate-300 focus-visible:ring-0 focus-visible:outline-none"
+                            />
 
-        <button
-          type="button"
-          onClick={() => setShowPassword((prev) => !prev)}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-600"
-        >
-          {showPassword ? (
-            <EyeOff className="h-4 w-4 cursor-pointer" />
-          ) : (
-            <Eye className="h-4 w-4 cursor-pointer" />
-          )}
-        </button>
-      </div>
-    </FormControl>    
+                            <button
+                              type="button"
+                              onClick={() => setShowPassword((prev) => !prev)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-600"
+                            >
+                              {showPassword ? (
+                                <EyeOff className="h-4 w-4 cursor-pointer" />
+                              ) : (
+                                <Eye className="h-4 w-4 cursor-pointer" />
+                              )}
+                            </button>
+                          </div>
+                        </FormControl>
 
-    <FormMessage />
-  </FormItem>
-)}
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
 
                   <Button
@@ -274,7 +274,6 @@ const [showPassword, setShowPassword] = useState(false);
               >
                 Quên mật khẩu?
               </Link>
-            
             </CardFooter>
           </Card>
         </div>
