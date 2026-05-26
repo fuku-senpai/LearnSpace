@@ -183,14 +183,14 @@ export default function LandingPage() {
                     position: "top-0 left-0",
                     className: "float-video",
                   },
-                  {
-                    title: "Dành cho Phương Dung 💙",
-                    desc: "Mỗi bài giảng, mỗi dòng code và từng điều nhỏ bé đều mang theo sự yêu thương dành cho em.",
-                    icon: <Heart className="h-5 w-5" />,
-                    color: "bg-pink-100 text-pink-600",
-                    position: "top-0 left-0",
-                    className: "float-video",
-                  },
+                    //   {
+                    //     title: "Dành cho Phương Dung 💙",
+                    //     desc: "Mỗi bài giảng, mỗi dòng code và từng điều nhỏ bé đều mang theo sự yêu thương dành cho em.",
+                    //     icon: <Heart className="h-5 w-5" />,
+                    //     color: "bg-pink-100 text-pink-600",
+                    //     position: "top-0 left-0",
+                    //     className: "float-video",
+                    //   },
                   {
                     title: "Video xem lại",
                     desc: "Recording sau mỗi buổi học",
