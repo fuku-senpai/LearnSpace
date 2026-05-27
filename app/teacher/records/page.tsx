@@ -34,7 +34,7 @@ const RecordsManagementContent = () => {
   const materialTitle = searchParams.get("materialTitle") ?? "";
   const classTitle = searchParams.get("classTitle") ?? "";
   const { mutateAsync: createRecord } = useCreateNewRecord();
-  const { upload, isUploading } = useUploadFile();
+  const { upload, isUploading } = useUploadFile("video");
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   const [uploadedFiles, setUploadedFiles] = useState<UploadedMedia[]>([]);

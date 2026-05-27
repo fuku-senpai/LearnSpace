@@ -56,7 +56,7 @@ const LessonResourceContent = () => {
 
   const { mutateAsync, isPending, error } = useCreateLessonResourceMutation();
 
-  const { upload, isUploading } = useUploadFile();
+  const { upload, isUploading } = useUploadFile("document");
 
   const { register, handleSubmit, setValue, watch, reset } =
     useForm<FormValues>({
