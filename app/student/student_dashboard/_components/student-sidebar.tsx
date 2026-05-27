@@ -67,7 +67,7 @@ const StudentSidebar = ({ items, activeItem, onChange }: StudentSidebarProps) =>
         <Button
           type="button"
           variant="ghost"
-          className="w-full justify-start"
+          className="w-full cursor-pointer justify-start"
           onClick={() => logoutMutation.mutate()}
           disabled={logoutMutation.isPending}
         >
