@@ -26,6 +26,18 @@ type UploadedMedia = {
   name: string;
 };
 
+const toPlayableCloudinaryVideoUrl = (url: string) => {
+  if (!url.includes("cloudinary.com")) {
+    return url;
+  }
+
+  if (url.includes("f_mp4,q_auto")) {
+    return url;
+  }
+
+  return url.replace("/upload/", "/upload/f_mp4,q_auto/");
+};
+
 const RecordsManagementContent = () => {
   const searchParams = useSearchParams();
 
@@ -151,9 +163,13 @@ const RecordsManagementContent = () => {
                 <div className="rounded-xl border bg-slate-50 p-6 text-center text-sm text-slate-500">
                   Chọn buổi học để xem dữ liệu
                 </div>
-              ) : isLoading || isFetching ? (
+              ) : isLoading && !recordItems.length ? (
                 <div className="rounded-xl border bg-slate-50 p-6 text-center text-sm text-slate-500">
                   Đang tải danh sách bản ghi...
+                </div>
+              ) : isFetching && !recordItems.length ? (
+                <div className="rounded-xl border bg-slate-50 p-6 text-center text-sm text-slate-500">
+                  Đang làm mới danh sách bản ghi...
                 </div>
               ) : recordItems.length === 0 ? (
                 <div className="rounded-xl border bg-slate-50 p-6 text-center text-sm text-slate-500">
@@ -171,7 +187,7 @@ const RecordsManagementContent = () => {
                       <div className="mt-3 space-y-3">
                         <div className="aspect-video overflow-hidden rounded-lg bg-black">
                           <video
-                            src={r.videoUrl}
+                            src={toPlayableCloudinaryVideoUrl(r.videoUrl)}
                             controls
                             preload="metadata"
                             playsInline
@@ -265,24 +281,9 @@ const RecordsManagementContent = () => {
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1">
-                            <div className="mb-2 text-xs text-slate-500">
+                            <div className="text-xs font-medium text-slate-700">
                               {f.name}
                             </div>
-
-                            {f.type === "video" ? (
-                              <div className="aspect-video overflow-hidden rounded-md bg-black">
-                                <video
-                                  src={f.previewUrl}
-                                  controls
-                                  preload="metadata"
-                                  playsInline
-                                  crossOrigin="anonymous"
-                                  className="h-full w-full"
-                                />
-                              </div>
-                            ) : (
-                              <audio src={f.previewUrl} controls className="w-full" />
-                            )}
                           </div>
 
                           <div className="ml-3 shrink-0">
