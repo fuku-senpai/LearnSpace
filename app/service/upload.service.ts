@@ -90,14 +90,14 @@ export const uploadFileToCloudinary = async (
 
   const data = await response.json();
 
-  if (!data?.secure_url) {
+  if (!data?.playback_url) {
     throw new Error("Không lấy được URL file");
   }
 
   // =========================
   // RETURN CLEAN URL
   // =========================
-  return data.secure_url;
+  return data.playback_url;
 };
 
 
