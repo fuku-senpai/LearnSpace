@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useUploadFile } from "@/app/hooks/lessonResource/useUploadAuto";
 import { useGetRecordsByLessonQuery } from "@/app/hooks/records/useGetRecords";
@@ -20,7 +20,8 @@ import { RecordItem as RecordApiItem } from "@/app/service/record.service";
 type MediaType = "audio" | "video";
 
 type UploadedMedia = {
-  url: string;
+  previewUrl: string;
+  uploadUrl?: string;
   type: MediaType;
   name: string;
 };
@@ -45,30 +46,46 @@ const RecordsManagementContent = () => {
 
   const recordItems = records as RecordApiItem[];
 
+  useEffect(() => {
+    return () => {
+      uploadedFiles.forEach((file) => {
+        if (file.previewUrl.startsWith("blob:")) {
+          URL.revokeObjectURL(file.previewUrl);
+        }
+      });
+    };
+  }, [uploadedFiles]);
+
   // upload file
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
+    const file = files[0];
+    const mediaType: MediaType = file.type.startsWith("video")
+      ? "video"
+      : "audio";
+    const previewUrl = URL.createObjectURL(file);
+
+    setUploadedFiles([
+      {
+        previewUrl,
+        type: mediaType,
+        name: file.name,
+      },
+    ]);
+
     try {
-      const uploaded = await Promise.all(
-        Array.from(files).map(async (file) => {
-          const url = await upload(file);
+      const url = await upload(file);
 
-          const mediaType: MediaType = file.type.startsWith("video")
-            ? "video"
-            : "audio";
-
-          return {
-            url,
-            type: mediaType,
-            name: file.name,
-          };
-        }),
-      );
-
-      // Only keep a single uploaded media for each record (replace existing)
-      setUploadedFiles(() => [uploaded[0]]);
+      setUploadedFiles([
+        {
+          previewUrl,
+          uploadUrl: url,
+          type: mediaType,
+          name: file.name,
+        },
+      ]);
     } catch (err) {
       console.error("Upload error:", err);
     } finally {
@@ -81,6 +98,7 @@ const RecordsManagementContent = () => {
       lessonId.length > 0 &&
       title.trim().length > 0 &&
       uploadedFiles.length === 1 &&
+      Boolean(uploadedFiles[0]?.uploadUrl) &&
       !isUploading
     );
   }, [lessonId, title, uploadedFiles, isUploading]);
@@ -90,7 +108,7 @@ const RecordsManagementContent = () => {
   if (!canCreate) return;
 
   try {
-    const videoUrl = uploadedFiles[0]?.url;
+     const videoUrl = uploadedFiles[0]?.uploadUrl;
 
     const payload = {
       title: title.trim(),
@@ -254,7 +272,7 @@ const RecordsManagementContent = () => {
                             {f.type === "video" ? (
                               <div className="aspect-video overflow-hidden rounded-md bg-black">
                                 <video
-                                  src={f.url}
+                                  src={f.previewUrl}
                                   controls
                                   preload="metadata"
                                   playsInline
@@ -263,7 +281,7 @@ const RecordsManagementContent = () => {
                                 />
                               </div>
                             ) : (
-                              <audio src={f.url} controls className="w-full" />
+                              <audio src={f.previewUrl} controls className="w-full" />
                             )}
                           </div>
 
@@ -272,6 +290,11 @@ const RecordsManagementContent = () => {
                               className="cursor-pointer"
                               variant="ghost"
                               onClick={() => {
+                                uploadedFiles.forEach((file) => {
+                                  if (file.previewUrl.startsWith("blob:")) {
+                                    URL.revokeObjectURL(file.previewUrl);
+                                  }
+                                });
                                 setUploadedFiles([]);
                                 if (fileRef.current) fileRef.current.value = "";
                               }}
