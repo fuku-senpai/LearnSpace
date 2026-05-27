@@ -30,6 +30,8 @@ const isDocument = (file: File) => {
   );
 };
 
+const isVideoFile = (file: File) => file.type.startsWith("video/");
+
 export const uploadFileToCloudinary = async (
   file: File,
 ): Promise<string> => {
@@ -90,13 +92,17 @@ export const uploadFileToCloudinary = async (
 
   const data = await response.json();
 
-  if (!data?.playback_url) {
+  const mediaUrl = isVideoFile(file)
+    ? data?.playback_url || data?.secure_url || data?.url
+    : data?.secure_url || data?.url || data?.playback_url;
+
+  if (!mediaUrl) {
     throw new Error("Không lấy được URL file");
   }
   // =========================
   // RETURN CLEAN URL
   // =========================
-  return data.playback_url;
+  return mediaUrl;
 };
 
 
