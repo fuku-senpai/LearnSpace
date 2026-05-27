@@ -6,7 +6,11 @@ type StudentSidebarProps = {
   onChange: (item: string) => void
 }
 
+import { Button } from "@/components/ui/button";
+import { useLogout } from "@/hooks/useLogout";
+
 const StudentSidebar = ({ items, activeItem, onChange }: StudentSidebarProps) => {
+  const logoutMutation = useLogout();
   return (
     <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white px-4 py-6 shadow-sm lg:block">
       <div className="mb-8 space-y-1 px-2">
@@ -59,6 +63,17 @@ const StudentSidebar = ({ items, activeItem, onChange }: StudentSidebarProps) =>
     );
   })}
 </nav>
+      <div className="mt-6 px-2">
+        <Button
+          type="button"
+          variant="ghost"
+          className="w-full justify-start"
+          onClick={() => logoutMutation.mutate()}
+          disabled={logoutMutation.isPending}
+        >
+          Đăng xuất
+        </Button>
+      </div>
     </aside>
   )
 }
