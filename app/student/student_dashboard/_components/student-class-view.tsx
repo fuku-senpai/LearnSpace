@@ -890,6 +890,8 @@ const StudentClassView = ({
                                               src={activeRecord.videoUrl}
                                               controls
                                               preload="metadata"
+                                              playsInline
+                                              crossOrigin="anonymous"
                                               className="h-full w-full"
                                             />
                                           ) : null}
