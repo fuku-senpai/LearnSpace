@@ -151,11 +151,16 @@ const RecordsManagementContent = () => {
                       <div className="font-semibold">{r.title}</div>
 
                       <div className="mt-3 space-y-3">
-                        <video
-                          src={r.videoUrl}
-                          controls
-                          className="w-full rounded-lg"
-                        />
+                        <div className="aspect-video overflow-hidden rounded-lg bg-black">
+                          <video
+                            src={r.videoUrl}
+                            controls
+                            preload="metadata"
+                            playsInline
+                            crossOrigin="anonymous"
+                            className="h-full w-full"
+                          />
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -247,11 +252,16 @@ const RecordsManagementContent = () => {
                             </div>
 
                             {f.type === "video" ? (
-                              <video
-                                src={f.url}
-                                controls
-                                className="w-full rounded-md"
-                              />
+                              <div className="aspect-video overflow-hidden rounded-md bg-black">
+                                <video
+                                  src={f.url}
+                                  controls
+                                  preload="metadata"
+                                  playsInline
+                                  crossOrigin="anonymous"
+                                  className="h-full w-full"
+                                />
+                              </div>
                             ) : (
                               <audio src={f.url} controls className="w-full" />
                             )}
