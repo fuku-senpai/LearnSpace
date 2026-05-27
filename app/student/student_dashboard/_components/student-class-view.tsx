@@ -138,6 +138,7 @@ const StudentClassView = ({
     () => records.find((record) => record.id === activeRecordId) ?? records[0] ?? null,
     [activeRecordId, records],
   );
+  const [videoError, setVideoError] = useState<string | null>(null);
 
   useEffect(() => {
     if (courses.length === 0) {
@@ -893,7 +894,34 @@ const StudentClassView = ({
                                               playsInline
                                               crossOrigin="anonymous"
                                               className="h-full w-full"
+                                              onError={() => {
+                                                console.error("Video failed to play:", activeRecord.videoUrl);
+                                                setVideoError("Trình duyệt không thể phát video này. Thử mở trong tab mới.");
+                                              }}
                                             />
+                                          ) : null}
+
+                                          {videoError ? (
+                                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/60 p-4 text-center text-sm text-white">
+                                              <div>{videoError}</div>
+                                              <div className="flex gap-2">
+                                                <a
+                                                  href={activeRecord?.videoUrl}
+                                                  target="_blank"
+                                                  rel="noreferrer noopener"
+                                                  className="rounded-md bg-white/10 px-3 py-2 text-xs font-semibold text-white hover:bg-white/20"
+                                                >
+                                                  Mở trong tab mới
+                                                </a>
+                                                <button
+                                                  type="button"
+                                                  className="rounded-md bg-white/10 px-3 py-2 text-xs font-semibold text-white hover:bg-white/20"
+                                                  onClick={() => setVideoError(null)}
+                                                >
+                                                  Thử lại
+                                                </button>
+                                              </div>
+                                            </div>
                                           ) : null}
                                         </div>
                                       </div>
