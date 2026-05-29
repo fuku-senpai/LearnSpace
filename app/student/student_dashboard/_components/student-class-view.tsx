@@ -135,7 +135,10 @@ const StudentClassView = ({
   const { data: records = [], isLoading: isLoadingRecords } =
     useGetRecordsByLessonQuery(activeLesson?.id);
   const activeRecord = useMemo(
-    () => records.find((record) => record.id === activeRecordId) ?? records[0] ?? null,
+    () =>
+      records.find((record) => record.id === activeRecordId) ??
+      records[0] ??
+      null,
     [activeRecordId, records],
   );
   const [videoError, setVideoError] = useState<string | null>(null);
@@ -209,7 +212,10 @@ const StudentClassView = ({
     onCourseChange?.(course);
   };
 
-  const handleSelectMaterial = (materialId: string, nextTab = "Tài liệu và bài tập") => {
+  const handleSelectMaterial = (
+    materialId: string,
+    nextTab = "Tài liệu và bài tập",
+  ) => {
     setActiveMaterialId(materialId);
     setActiveLessonId("");
     if (activeTab !== nextTab) {
@@ -674,8 +680,14 @@ const StudentClassView = ({
 
                     <div className="overflow-x-auto pb-1">
                       <div
-                        className="grid grid-cols-7 gap-3"
-                        style={{ minWidth: "980px" }}
+                        className="
+      grid
+      grid-cols-1
+      sm:grid-cols-2
+      md:grid-cols-3
+      xl:grid-cols-7
+      gap-3
+    "
                       >
                         {[
                           "MONDAY",
@@ -693,7 +705,20 @@ const StudentClassView = ({
                           return (
                             <div
                               key={day}
-                              className="flex cursor-pointer min-h-44 flex-col rounded-2xl border border-slate-200 bg-slate-50 p-3 shadow-sm transition hover:border-slate-300 hover:shadow-md"
+                              className="
+            flex
+            min-h-44
+            flex-col
+            rounded-2xl
+            border
+            border-slate-200
+            bg-slate-50
+            p-3
+            shadow-sm
+            transition
+            hover:border-slate-300
+            hover:shadow-md
+          "
                             >
                               <div className="mb-3 flex items-center gap-2 border-b border-slate-200 pb-2">
                                 <div className="text-xs font-semibold uppercase tracking-wide text-slate-600">
@@ -710,11 +735,11 @@ const StudentClassView = ({
                                   schedules.map((schedule) => (
                                     <div
                                       key={schedule.id}
-                                      className="rounded-xl border border-slate-200 bg-white px-3 py-3"
+                                      className="rounded-xl border border-slate-200 bg-white p-3"
                                     >
                                       <div className="flex items-start justify-between gap-2">
-                                        <div className="min-w-0">
-                                          <div className="text-[12px] font-semibold text-slate-700">
+                                        <div className="min-w-0 flex-1">
+                                          <div className="text-[12px] font-semibold text-slate-700 break-words">
                                             {formatTimeWithAmPm(
                                               schedule.startTime,
                                             )}{" "}
@@ -723,16 +748,19 @@ const StudentClassView = ({
                                               schedule.endTime,
                                             )}
                                           </div>
+
                                           <div className="mt-1 text-xs text-slate-500">
                                             {studyModeLabels[
                                               schedule.studyMode
                                             ] || schedule.studyMode}
                                           </div>
                                         </div>
-                                        <div className="mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full bg-slate-300 shadow-sm" />
+
+                                        <div className="mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full bg-slate-300" />
                                       </div>
+
                                       {schedule.location ? (
-                                        <div className="mt-2 truncate text-[11px] text-slate-400">
+                                        <div className="mt-2 text-[11px] text-slate-400 break-words">
                                           {schedule.location}
                                         </div>
                                       ) : null}
@@ -875,11 +903,14 @@ const StudentClassView = ({
                                         <div className="mb-3 flex min-h-14 items-start justify-between gap-3">
                                           <div className="min-w-0">
                                             <div className="truncate text-sm font-semibold text-slate-900">
-                                              {activeRecord?.title || "Video buổi học"}
+                                              {activeRecord?.title ||
+                                                "Video buổi học"}
                                             </div>
                                             <div className="mt-1 text-xs text-slate-500">
                                               {activeRecord
-                                                ? formatDate(activeRecord.createdAt)
+                                                ? formatDate(
+                                                    activeRecord.createdAt,
+                                                  )
                                                 : ""}
                                             </div>
                                           </div>
@@ -895,8 +926,13 @@ const StudentClassView = ({
                                               crossOrigin="anonymous"
                                               className="h-full w-full"
                                               onError={() => {
-                                                console.error("Video failed to play:", activeRecord.videoUrl);
-                                                setVideoError("Trình duyệt không thể phát video này. Thử mở trong tab mới.");
+                                                console.error(
+                                                  "Video failed to play:",
+                                                  activeRecord.videoUrl,
+                                                );
+                                                setVideoError(
+                                                  "Trình duyệt không thể phát video này. Thử mở trong tab mới.",
+                                                );
                                               }}
                                             />
                                           ) : null}
@@ -916,7 +952,9 @@ const StudentClassView = ({
                                                 <button
                                                   type="button"
                                                   className="rounded-md bg-white/10 px-3 py-2 text-xs font-semibold text-white hover:bg-white/20"
-                                                  onClick={() => setVideoError(null)}
+                                                  onClick={() =>
+                                                    setVideoError(null)
+                                                  }
                                                 >
                                                   Thử lại
                                                 </button>
@@ -928,13 +966,16 @@ const StudentClassView = ({
 
                                       <div className="space-y-2">
                                         {records.map((record) => {
-                                          const isSelected = record.id === activeRecord?.id;
-                                          
+                                          const isSelected =
+                                            record.id === activeRecord?.id;
+
                                           return (
                                             <button
                                               key={record.id}
                                               type="button"
-                                              onClick={() => handleSelectRecord(record.id)}
+                                              onClick={() =>
+                                                handleSelectRecord(record.id)
+                                              }
                                               className={`flex w-full items-center justify-between gap-3 rounded-xl border px-3 py-3 text-left shadow-sm transition ${
                                                 isSelected
                                                   ? "border-slate-300 bg-white"
@@ -950,7 +991,9 @@ const StudentClassView = ({
                                                 </div>
                                               </div>
                                               <div className="shrink-0 min-w-20 cursor-pointer rounded-full border border-slate-200 px-2.5 py-1 text-center text-[11px] font-semibold text-slate-700">
-                                                {isSelected ? "Đang xem" : "Bấm để xem"}
+                                                {isSelected
+                                                  ? "Đang xem"
+                                                  : "Bấm để xem"}
                                               </div>
                                             </button>
                                           );
