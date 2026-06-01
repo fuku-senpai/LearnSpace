@@ -1,10 +1,8 @@
 import { env } from "@/config/env";
 import { AUTH_API } from "@/constants/api-endpoints";
 import { NextResponse, type NextRequest } from "next/server";
-
 export async function POST(req: NextRequest) {
   let refreshToken = req.cookies.get("refreshToken")?.value;
-
   if (!refreshToken) {
     try {
       const body = await req.json();
@@ -33,9 +31,7 @@ export async function POST(req: NextRequest) {
   if (!backendRes.ok) {
     return NextResponse.json(data, { status: backendRes.status });
   }
-
   const res = NextResponse.json(data);
-
   if (data?.newAccessToken) {
     res.cookies.set("accessToken", data.newAccessToken, {
       httpOnly: true,
@@ -45,8 +41,5 @@ export async function POST(req: NextRequest) {
       maxAge: 15*60, // 15 minutes
     });
   }
-
-
-
   return res;
 }
