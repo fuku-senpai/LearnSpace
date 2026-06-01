@@ -81,12 +81,7 @@ const LessonManagementContent = () => {
             <p className="text-sm text-slate-600">
               Thêm buổi học mới cho đề tài đã chọn.
             </p>
-            <p className="text-sm font-medium text-slate-900">
-              Lớp học: {classTitle || "Chưa chọn lớp"}
-            </p>
-            <p className="text-sm font-medium text-slate-900">
-              Chủ đề: {materialTitle || materialId || "Chưa chọn chủ đề"}
-            </p>
+           
           </div>
         </div>
 

@@ -247,7 +247,7 @@ const LoginPage = () => {
                     type="submit"
                     disabled={isPending}
                     aria-busy={isPending}
-                    className="h-11 w-full rounded-2xl bg-slate-900 font-bold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-80"
+                    className="h-11 w-full cursor-pointer rounded-2xl bg-slate-900 font-bold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-80"
                   >
                     {isPending ? (
                       <span className="inline-flex items-center gap-2">

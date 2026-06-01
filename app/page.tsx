@@ -15,8 +15,6 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-
 export const metadata = {
   title: "Course Learning Platform",
   description: "Nền tảng quản lý lớp học, video bài giảng và tài liệu học tập.",

@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     secure: true,
     path: "/",
     sameSite: "lax",
-    maxAge: 15*60, // 15 minutes
+    maxAge: 2*60, // 15 minutes
   });
 
   res.cookies.set("refreshToken", data.refreshToken, {
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
     secure: true,
     path: "/",
     sameSite: "lax",
-    maxAge: 7 * 24 * 60 * 60, // 7 days
+    maxAge: 4 * 60, // 7 days
   });
 
   if (data?.userInfo?.role) {
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
       secure: true,
       path: "/",
       sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60, // 7 days
+      maxAge: 4* 60, // 7 days
     });
   }
 

@@ -9,7 +9,7 @@ const accessTokenCookieOptions = {
   secure: true,
   path: "/",
   sameSite: "lax" as const,
-  maxAge: 15 * 60, // 15 minutes
+  maxAge: 2 * 60, // 15 minutes
 };
 
 async function refreshAccessToken(refreshToken: string) {

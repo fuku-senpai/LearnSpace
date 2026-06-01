@@ -2,14 +2,12 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useGetClassesQuery } from "@/app/hooks/classes/useGetClasses";
 import { useCreateMaterialMutation } from "@/app/hooks/materials/useCreateMaterial";
 import { useGetMaterialsQuery } from "@/app/hooks/materials/useGetMaterials";
 import type {
   MaterialItem,
   MaterialsFilter,
 } from "@/app/service/material.service";
-import type { Class } from "@/app/service/classroom.service";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -28,23 +26,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
 type MaterialFormItem = {
   title: string;
   description: string;
 };
-
 type MaterialManagementProps = {
   classId?: string;
 };
-
 const MaterialManagementContent = ({ classId }: MaterialManagementProps) => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const classLookupFilter = useMemo(
-    () => ({ page: 0, size: 500, name: "", code: "" }),
-    [],
-  );
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [items, setItems] = useState<MaterialFormItem[]>([]);
@@ -53,7 +44,6 @@ const MaterialManagementContent = ({ classId }: MaterialManagementProps) => {
     size: 5,
   });
   const { mutateAsync, isPending, error } = useCreateMaterialMutation();
-  const { data: classesResponse } = useGetClassesQuery(classLookupFilter);
   const {
     data: materialsResponse,
     isLoading: isMaterialsLoading,
@@ -66,13 +56,6 @@ const MaterialManagementContent = ({ classId }: MaterialManagementProps) => {
   const isLastPage = totalPages
     ? currentPage >= totalPages - 1
     : materials.length < materialsFilter.size;
-  const className = useMemo(() => {
-    if (!classId) return "";
-
-    const classes = classesResponse?.items ?? [];
-    const matchedClass = classes.find((item: Class) => item.id === classId);
-    return matchedClass?.name ?? "";
-  }, [classId, classesResponse?.items]);
 
   const canSubmit = useMemo(() => {
     if (!classId) return false;
@@ -117,9 +100,6 @@ const MaterialManagementContent = ({ classId }: MaterialManagementProps) => {
     if (selectedMaterial?.title) {
       params.set("materialTitle", selectedMaterial.title);
     }
-    if (className) {
-      params.set("classTitle", className);
-    }
     if (classId) params.set("classId", classId);
     router.push(`/teacher/dashboard_layout?${params.toString()}`);
   };
@@ -130,7 +110,6 @@ const MaterialManagementContent = ({ classId }: MaterialManagementProps) => {
       page: nextPage,
     }));
   };
-
   useEffect(() => {
     setMaterialsFilter((prev) => ({
       ...prev,
@@ -144,21 +123,15 @@ const MaterialManagementContent = ({ classId }: MaterialManagementProps) => {
         <div className="flex flex-wrap items-start justify-between gap-4 rounded-2xl border border-slate-200/70 bg-white px-6 py-5 shadow-sm">
           <div className="space-y-2">
             <h1 className="text-2xl font-semibold text-slate-900">
-              Quản lý chủ đề    
+              Quản lý chủ đề
             </h1>
             <p className="text-sm text-slate-600">
               Thêm đề tài cho lớp học đã chọn.
             </p>
-            <p className="text-sm font-medium text-slate-900">
-              Lớp học: {className || classId || "Chưa chọn lớp"}
-            </p>
           </div>
-
         </div>
-
         <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
           <Card className="border-slate-200/80 bg-white shadow-sm">
-            
             <CardContent className="space-y-3">
               <div className="space-y-1 w-[80%]">
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
@@ -257,7 +230,9 @@ const MaterialManagementContent = ({ classId }: MaterialManagementProps) => {
                                 <Button
                                   className="h-7 cursor-pointer rounded-md border border-slate-200 bg-white px-2 text-xs text-slate-700 hover:bg-slate-100"
                                   type="button"
-                                  onClick={() => handleGoToSessions(material.id)}
+                                  onClick={() =>
+                                    handleGoToSessions(material.id)
+                                  }
                                 >
                                   Xem tài liệu từng buổi
                                 </Button>
@@ -308,9 +283,7 @@ const MaterialManagementContent = ({ classId }: MaterialManagementProps) => {
           <Card className="border-slate-200/80 bg-white shadow-sm">
             <CardHeader>
               <CardTitle>Thêm chủ đề</CardTitle>
-              <CardDescription>
-                Điền tên chủ đề và mô tả ngắn.
-              </CardDescription>
+              <CardDescription>Điền tên chủ đề và mô tả ngắn.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-2">

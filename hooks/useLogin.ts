@@ -16,7 +16,7 @@ export const useLogin = () => {
         refreshToken: data.refreshToken
       });
       if (data.userInfo.role === "TEACHER") {
-        router.replace("/teacher/dashboard_layout");
+        router.replace(`/teacher/dashboard_layout?menu=classes  `);
       } else if (data.userInfo.role === "STUDENT") {
         router.replace("/student/student_dashboard");
       }

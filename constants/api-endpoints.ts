@@ -8,8 +8,8 @@ export const CLASS_API = {
   CREATE_CLASS: "/class",
   GET_CLASSES: "/classes",
   GET_CLASS_DETAIL: (classId: string) => `/classes/${classId}`,
-  UPDATE_CLASS: (classId: string) => `/classes/${classId}`,
-  DELETE_CLASS: (classId: string) => `/classes/${classId}`,
+  UPDATE_CLASS: (classId: string) => `/class/${classId}`,
+  DELETE_CLASS: (classId: string) => `/class/${classId}`,
   GET_MY_CLASSES: "/my-classes",
   ENROLL_CLASSROOM: "/enrolling-classroom",
 };

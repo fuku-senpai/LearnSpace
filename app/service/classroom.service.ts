@@ -41,6 +41,28 @@ export type CreateClassResponse = {
   message?: string; 
 }
 
+export type UpdateClassPayload = {
+  name: string;
+  description: string;
+  status: string;
+  startDate: string;
+  endDate: string;
+};
+
+export type UpdateClassVariables = {
+	classroomId: string;
+	payload: UpdateClassPayload;
+};
+export type UpdateClassResponse = {
+  message?: string;
+};
+
+export type DeleteClassVariables = {
+  classroomId: string;
+};
+export type DeleteClassResponse = {
+  message?: string;
+};
 export type EnrollClassroomPayload = {
   code: string;
 };
@@ -89,6 +111,25 @@ export const ClassService = {
     return res.data;
   },
 
+  updateClass: async (
+    variables: UpdateClassVariables
+  ): Promise<UpdateClassResponse> => {
+    const { classroomId, payload } = variables;
+    const res: AxiosResponse<UpdateClassResponse> = await axiosClient.put(
+      `/class/${classroomId}`,
+      payload,
+    );
+    return res.data;
+  },
+  deleteClass: async (
+    variables: DeleteClassVariables
+  ): Promise<DeleteClassResponse> => {
+    const { classroomId } = variables;
+    const res: AxiosResponse<DeleteClassResponse> = await axiosClient.delete(
+      `/class/${classroomId}`,
+    );
+    return res.data;
+  },
   getAllClasses: async (
     filter: GetAllClassesFilter,
   ): Promise<PaginatedResponse<Class>> => {
