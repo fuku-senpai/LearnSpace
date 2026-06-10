@@ -177,7 +177,7 @@ const LoginPage = () => {
           {/* RIGHT — login card */}
           <div className="w-full motion-safe:animate-[fade-up_700ms_ease-out_both] motion-safe:[animation-delay:120ms] lg:min-w-0">
             <div className="float-bob-slow relative w-full overflow-hidden rounded-3xl border border-white/[0.06] bg-white/[0.03] shadow-[0_20px_50px_rgba(0,0,0,0.35)] backdrop-blur-2xl">
-              <div className="h-px w-full bg-gradient-to-r from-amber-400/30 via-amber-300/20 to-sky-400/30" />
+            <div className="h-0.5 w-full bg-gradient-to-r from-amber-400 via-amber-300 to-sky-400 shadow-[0_0_12px_rgba(251,191,36,0.5)]" />
 
               <div className="space-y-4 px-6 py-6">
                 <div className="flex items-center gap-3">
