@@ -1,10 +1,10 @@
 import { LessonResourceService } from "@/app/service/lessonResource.service";
 import { useQuery } from "@tanstack/react-query";
 
-export const useGetLessonResourcesQuery = (lessonId: string) => {
+export const useGetLessonResourcesQuery = (snapLessonId?: string) => {
   return useQuery({
-    queryKey: ["lessonResources", lessonId],
-    queryFn: () => LessonResourceService.getLessonResources(lessonId),
-    enabled: !!lessonId,
+    queryKey: ["lessonResources", snapLessonId],
+    queryFn: () => LessonResourceService.getLessonResources(snapLessonId as string),
+    enabled: Boolean(snapLessonId),
   });
-}
+};

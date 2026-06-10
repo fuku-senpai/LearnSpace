@@ -60,7 +60,7 @@ const LessonManagementContent = () => {
   const handleGoToLessonResources = (lessonId: string) => {
     const params = new URLSearchParams(searchParams);
     params.set("menu", "lessonResources");
-    params.set("lessonId", lessonId);
+    params.set("snapLessonId", lessonId);
     const selectedLesson = lessons?.find((item) => item.id === lessonId);
     if (selectedLesson?.title) {
       params.set("lessonTitle", selectedLesson.title);

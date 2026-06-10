@@ -79,6 +79,7 @@ export default function LandingPage() {
 
                   <p className="text-xs text-slate-400">Student Learning Hub</p>
                 </div>
+
               </Link>
 
               {/* Right action */}

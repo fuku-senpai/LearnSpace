@@ -1,1028 +1,545 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useGetLessonsQuery } from "@/app/hooks/lessons/useGetLessons";
-import { useGetMaterialsQuery } from "@/app/hooks/materials/useGetMaterials";
+import { useMemo, useState } from "react";
+import {
+  FileText,
+  Loader2,
+  MonitorPlay,
+  PlayCircle,
+  Video,
+} from "lucide-react";
+import { useGetMyClassesQuery } from "@/app/hooks/classes/useGetMyClasses";
+import { useGetSnapMaterials } from "@/app/hooks/materials/useGetSnapMaterials";
 import { useGetLessonResourcesQuery } from "@/app/hooks/lessonResource/useGetLessonResources";
 import { useGetRecordsByLessonQuery } from "@/app/hooks/records/useGetRecords";
+import { useGetVideoQuery } from "@/app/hooks/videos/useGetVideoQuery";
 import { useEnrollClassroomMutation } from "@/app/hooks/classes/useEnrollClassroom";
 import { type MyClass } from "@/app/service/classroom.service";
+import { RecordItem } from "@/app/service/record.service";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ChevronDown, ExternalLink, LayoutGrid } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-const dashboardTabs = [
-  "Tài liệu và bài tập",
-  "Video xem lại theo buổi",
-  "Thông tin lịch học của lớp",
-];
+type TabKey = "videos" | "materials";
 
-const dayLabels: Record<string, string> = {
-  MONDAY: "Thứ 2",
-  TUESDAY: "Thứ 3",
-  WEDNESDAY: "Thứ 4",
-  THURSDAY: "Thứ 5",
-  FRIDAY: "Thứ 6",
-  SATURDAY: "Thứ 7",
-  SUNDAY: "Chủ nhật",
+type Session = {
+  id: string;
+  title: string;
+  hasVideo: boolean;
 };
 
-const studyModeLabels: Record<string, string> = {
-  ONLINE: "Online",
-  OFFLINE: "Offline",
+type Module = {
+  id: string;
+  title: string;
+  sessions: Session[];
 };
 
-type StudentClassViewProps = {
-  courses: MyClass[];
-  isLoading?: boolean;
-  onCourseChange?: (course: MyClass | null) => void;
+type ActiveSessionState = {
+  module: Module;
+  session: Session;
 };
 
-const formatDate = (value?: string) => {
-  if (!value) return "-";
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-
-  return new Intl.DateTimeFormat("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(date);
+const emptyActiveSession: ActiveSessionState = {
+  module: { id: "", title: "", sessions: [] },
+  session: { id: "", title: "", hasVideo: false },
 };
 
-const formatTimeWithAmPm = (value?: string) => {
-  if (!value) return "-";
-  const [hoursStr = "00", minutes = "00"] = value.split(":");
-  let hours = parseInt(hoursStr, 10);
-  const ampm = hours >= 12 ? "PM" : "AM";
-  hours = hours % 12;
-  if (hours === 0) hours = 12;
-  return `${hours}:${minutes} ${ampm}`;
-};
-
-const getResourceLabel = (url: string, index: number) => {
-  try {
-    const pathname = new URL(url).pathname;
-    const fileName = pathname.split("/").filter(Boolean).pop();
-
-    if (fileName) {
-      return decodeURIComponent(fileName);
+function findActiveSession(
+  modules: Module[],
+  sessionId: string,
+): ActiveSessionState {
+  for (const courseModule of modules) {
+    const session = courseModule.sessions.find((item) => item.id === sessionId);
+    if (session) {
+      return { module: courseModule, session };
     }
-  } catch {
-    // Fall back to a generic label when the URL cannot be parsed.
   }
 
-  return `Tài liệu ${index + 1}`;
-};
+  if (modules.length > 0 && modules[0].sessions.length > 0) {
+    return { module: modules[0], session: modules[0].sessions[0] };
+  }
 
-const getInitials = (value: string) =>
-  value
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("") || "L";
+  return emptyActiveSession;
+}
 
-const StudentClassView = ({
-  courses,
-  isLoading = false,
-  onCourseChange,
-}: StudentClassViewProps) => {
-  const [activeTab, setActiveTab] = useState(dashboardTabs[0]);
+function LessonMaterialsList({
+  snapLessonId,
+  lessonTitle,
+}: {
+  snapLessonId: string;
+  lessonTitle: string;
+}) {
+  const { data: resources = [], isLoading } =
+    useGetLessonResourcesQuery(snapLessonId);
+
+  if (!snapLessonId) {
+    return (
+      <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
+        Chọn buổi học để xem tài liệu
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center gap-2 rounded-xl border bg-slate-50 p-8 text-sm text-slate-500">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        Đang tải tài liệu...
+      </div>
+    );
+  }
+
+  if (resources.length === 0) {
+    return (
+      <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
+        Chưa có tài liệu cho buổi học này
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-slate-500">Buổi: {lessonTitle}</p>
+      {resources.map((resource) => (
+        <div
+          key={resource.id}
+          className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+        >
+          <div className="flex items-start gap-3">
+            <FileText className="mt-0.5 h-5 w-5 shrink-0 text-red-500" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-slate-900">
+                {resource.title}
+              </p>
+              <p className="mt-1 text-xs text-slate-500">
+                {resource.note || "Không có ghi chú"}
+              </p>
+              <span className="mt-2 inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
+                {resource.type}
+              </span>
+            </div>
+          </div>
+
+          {resource.urls?.length > 0 ? (
+            <div className="mt-3 space-y-2 border-t border-slate-100 pt-3">
+              {resource.urls.map((resourceUrl, index) => (
+                <a
+                  key={index}
+                  href={resourceUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm transition hover:bg-slate-50"
+                >
+                  <span className="truncate text-slate-700">
+                    {resource.type === "LINK"
+                      ? resourceUrl
+                      : `File ${index + 1}`}
+                  </span>
+                  <span className="text-slate-500">Mở →</span>
+                </a>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const StudentClassView = () => {
+  const [activeTab, setActiveTab] = useState<TabKey>("materials");
+  const [activeSessionId, setActiveSessionId] = useState("");
+  const [selectedCourseId, setSelectedCourseId] = useState<string | undefined>(
+    undefined,
+  );
   const [enrollCode, setEnrollCode] = useState("");
-  const [activeCourseId, setActiveCourseId] = useState(courses[0]?.id ?? "");
-  const [activeMaterialId, setActiveMaterialId] = useState("");
-  const [activeLessonId, setActiveLessonId] = useState("");
-  const [activeRecordId, setActiveRecordId] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
+  const [enrollMessage, setEnrollMessage] = useState<string | null>(null);
+
+  const { data: myClasses = [], isLoading: isLoadingClasses } =
+    useGetMyClassesQuery();
   const { mutateAsync: enrollClassroom, isPending: isEnrolling } =
     useEnrollClassroomMutation();
-  const activeCourse = useMemo(
-    () =>
-      courses.find((course) => course.id === activeCourseId) ??
-      courses[0] ??
-      null,
-    [activeCourseId, courses],
-  );
-  const { data: materialsResponse, isLoading: isLoadingMaterials } =
-    useGetMaterialsQuery(activeCourse?.id, { page: 0, size: 100 });
 
-  const materials = materialsResponse?.content ?? [];
-  const activeMaterial = useMemo(
-    () =>
-      materials.find((material) => material.id === activeMaterialId) ??
-      materials[0] ??
-      null,
-    [activeMaterialId, materials],
-  );
-  const { data: lessons = [], isLoading: isLoadingLessons } =
-    useGetLessonsQuery(activeMaterial?.id);
-  const activeLesson = useMemo(
-    () => lessons.find((lesson) => lesson.id === activeLessonId) ?? null,
-    [activeLessonId, lessons],
-  );
-  const { data: lessonResources = [], isLoading: isLoadingLessonResources } =
-    useGetLessonResourcesQuery(activeLesson?.id ?? "");
-  const { data: records = [], isLoading: isLoadingRecords } =
-    useGetRecordsByLessonQuery(activeLesson?.id);
-  const activeRecord = useMemo(
-    () =>
-      records.find((record) => record.id === activeRecordId) ??
-      records[0] ??
-      null,
-    [activeRecordId, records],
-  );
-  const [videoError, setVideoError] = useState<string | null>(null);
+  const effectiveCourseId =
+    selectedCourseId ?? myClasses[0]?.id ?? undefined;
 
-  useEffect(() => {
-    if (courses.length === 0) {
-      setActiveCourseId("");
-      return;
-    }
+  const {
+    data: snapMaterials,
+    isLoading: isLoadingMaterials,
+    error: materialsError,
+  } = useGetSnapMaterials(effectiveCourseId);
 
-    setActiveCourseId((current) =>
-      courses.some((course) => course.id === current) ? current : courses[0].id,
+  const modules: Module[] = useMemo(() => {
+    if (!Array.isArray(snapMaterials)) return [];
+    return snapMaterials.map((material) => ({
+      id: material.materialId,
+      title: material.title,
+      sessions: (material.lessons || []).map((lesson) => ({
+        id: lesson.lessonId,
+        title: lesson.title,
+        hasVideo:
+          Array.isArray(lesson.lessonVideos) && lesson.lessonVideos.length > 0,
+      })),
+    }));
+  }, [snapMaterials]);
+
+  const resolvedSessionId = useMemo(() => {
+    const allSessions = modules.flatMap(
+      (courseModule) => courseModule.sessions,
     );
-  }, [courses]);
-
-  useEffect(() => {
-    setActiveMaterialId("");
-    setActiveLessonId("");
-    setActiveRecordId("");
-  }, [activeCourseId]);
-
-  useEffect(() => {
-    if (materials.length === 0) {
-      setActiveMaterialId("");
-      return;
+    if (
+      activeSessionId &&
+      allSessions.some((session) => session.id === activeSessionId)
+    ) {
+      return activeSessionId;
     }
+    return modules[0]?.sessions[0]?.id ?? "";
+  }, [activeSessionId, modules]);
 
-    setActiveMaterialId((current) =>
-      materials.some((material) => material.id === current)
-        ? current
-        : materials[0].id,
-    );
-  }, [materials]);
+  const activeSession = useMemo(
+    () => findActiveSession(modules, resolvedSessionId),
+    [modules, resolvedSessionId],
+  );
 
-  useEffect(() => {
-    if (records.length === 0) {
-      setActiveRecordId("");
-      return;
-    }
+  const { data: records = [], isFetching: isFetchingRecords } =
+    useGetRecordsByLessonQuery(resolvedSessionId || undefined);
+  const recordItems = records as RecordItem[];
 
-    setActiveRecordId((current) =>
-      records.some((record) => record.id === current) ? current : records[0].id,
-    );
-  }, [records]);
+  const shouldFetchPlayUrl =
+    activeTab === "videos" &&
+    Boolean(resolvedSessionId) &&
+    activeSession.session.hasVideo;
 
-  useEffect(() => {
-    onCourseChange?.(activeCourse);
-  }, [activeCourse, onCourseChange]);
+  const {
+    data: playVideo,
+    isLoading: isLoadingPlayUrl,
+    isFetching: isFetchingPlayUrl,
+  } = useGetVideoQuery(shouldFetchPlayUrl ? resolvedSessionId : undefined);
+
+  const { data: lessonResources = [] } = useGetLessonResourcesQuery(
+    resolvedSessionId || undefined,
+  );
+
+  const selectSession = (sessionId: string) => {
+    setActiveSessionId(sessionId);
+    setActiveTab("materials");
+  };
 
   const handleEnroll = async () => {
     const normalizedCode = enrollCode.trim().toUpperCase();
-
     if (!normalizedCode) {
-      setMessage("Vui lòng nhập mã lớp.");
+      setEnrollMessage("Vui lòng nhập mã lớp.");
       return;
     }
 
     try {
       const response = await enrollClassroom({ code: normalizedCode });
-      setMessage(response.message || "Đã tham gia lớp thành công.");
+      setEnrollMessage(response.message || "Tham gia lớp học thành công.");
       setEnrollCode("");
-    } catch (error: any) {
-      setMessage(
-        error?.response?.data?.message || "Không thể tham gia lớp học.",
-      );
+    } catch {
+      setEnrollMessage("Không thể tham gia lớp học. Vui lòng kiểm tra mã lớp.");
     }
   };
 
-  const handleSelectCourse = (course: MyClass) => {
-    setActiveCourseId(course.id);
-    onCourseChange?.(course);
-  };
-
-  const handleSelectMaterial = (
-    materialId: string,
-    nextTab = "Tài liệu và bài tập",
-  ) => {
-    setActiveMaterialId(materialId);
-    setActiveLessonId("");
-    if (activeTab !== nextTab) {
-      setActiveTab(nextTab);
-    }
-  };
-
-  const handleSelectLesson = (lessonId: string) => {
-    setActiveLessonId((current) => (current === lessonId ? "" : lessonId));
-  };
-
-  const handleSelectRecord = (recordId: string) => {
-    setActiveRecordId(recordId);
-  };
-
-  if (isLoading) {
+  if (isLoadingClasses) {
     return (
-      <Card className="border-slate-200/80 bg-white shadow-sm">
-        <CardHeader className="space-y-2">
-          <CardTitle className="text-3xl font-semibold text-slate-900">
-            Đang tải danh sách lớp học
-          </CardTitle>
-          <CardDescription className="text-base text-slate-600">
-            Vui lòng chờ trong giây lát.
-          </CardDescription>
-        </CardHeader>
-      </Card>
-    );
-  }
-
-  if (courses.length === 0) {
-    return (
-      <Card className="overflow-hidden border border-slate-200/70 bg-white shadow-sm rounded-3xl">
-        <CardContent className="p-8">
-          <div className="flex flex-col items-center text-center">
-            {/* Icon */}
-            <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-amber-100">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-10 w-10 text-amber-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422A12.083 12.083 0 0118 14.5C18 17.538 15.314 20 12 20s-6-2.462-6-5.5c0-1.324.36-2.57.84-3.922L12 14z"
-                />
-              </svg>
-            </div>
-
-            {/* Heading */}
-            <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
-              Bạn chưa tham gia lớp học nào
-            </h2>
-
-            <p className="mt-2 max-w-md text-sm md:text-base text-slate-500 leading-relaxed">
-              Nhập mã lớp để tham gia lớp học đầu tiên và bắt đầu hành trình học
-              tập của bạn.
-            </p>
-
-            {/* Form */}
-            <div className="mt-8 w-full max-w-xl">
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <Input
-                  placeholder="Nhập mã lớp (VD: 38BBFA02)"
-                  className="h-12 rounded-2xl border-slate-200 bg-slate-50 px-4 text-slate-900 placeholder:text-slate-400 focus-visible:ring-amber-500"
-                  value={enrollCode}
-                  onChange={(event) =>
-                    setEnrollCode(event.target.value.toUpperCase())
-                  }
-                />
-
-                <Button
-                  className="h-12 rounded-2xl cursor-pointer bg-amber-600 px-6 text-white hover:bg-amber-700 sm:w-auto"
-                  onClick={handleEnroll}
-                  type="button"
-                  disabled={isEnrolling}
-                >
-                  {isEnrolling ? "Đang tham gia..." : "Tham gia lớp"}
-                </Button>
-              </div>
-
-              {message && (
-                <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                  {message}
-                </div>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!activeCourse) {
-    return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600 shadow-sm">
-        Chưa chọn lớp học nào.
+      <div className="flex flex-1 items-center justify-center p-8 text-sm text-slate-500">
+        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        Đang tải lớp học...
       </div>
     );
   }
-  return (
-    <div>
-      <div className="mb-3 flex flex-col gap-2 border-b border-slate-100 pb-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-2">
-          {/* Badge */}
-          <div className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-            <span className="h-2 w-2 rounded-full bg-emerald-500" />
-            <span className="ml-2 text-[11px] font-semibold uppercase tracking-wider text-slate-600">
-              Lớp học của bạn
-            </span>
-          </div>
 
-          {/* Heading */}
-          <div>
-            <h2 className="text-xl font-semibold tracking-tight text-slate-900">
-              Danh sách lớp học đã đăng ký
-            </h2>
-
-            <p className="mt-1 text-sm text-slate-500">
-              Chọn một lớp học bên dưới để truy cập menu lớp, tài liệu và lịch
-              học.
-            </p>
-          </div>
-        </div>
-        <div className="text-xs text-slate-400">{courses.length} lớp học</div>
-      </div>
-
-      <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
-        {courses.map((course) => {
-          const isActive = course.id === activeCourseId;
-          const initials = getInitials(
-            course.name || course.teacherName || "Lớp",
-          );
-          const subtitle =
-            course.teacherName || course.code || "Chưa có thông tin thêm";
-
-          return (
-            <button
-              key={course.id}
-              className={`group cursor-pointer overflow-hidden rounded-2xl border text-left transition-all duration-200 ${
-                isActive
-                  ? "border-slate-900 bg-white shadow-lg shadow-slate-900/10"
-                  : "border-slate-200 bg-white hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
-              }`}
-              onClick={() => handleSelectCourse(course)}
-              type="button"
+  if (myClasses.length === 0) {
+    return (
+      <div className="flex min-w-0 flex-1 flex-col p-6">
+        <Card className="mx-auto w-full max-w-md border-slate-200 p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-slate-900">
+            Chưa có lớp học
+          </h2>
+          <p className="mt-2 text-sm text-slate-500">
+            Nhập mã lớp để tham gia và xem tài liệu, video bài giảng.
+          </p>
+          <div className="mt-4 space-y-3">
+            <Input
+              placeholder="Mã lớp học"
+              value={enrollCode}
+              onChange={(e) => setEnrollCode(e.target.value.toUpperCase())}
+            />
+            {enrollMessage ? (
+              <p className="text-sm text-slate-600">{enrollMessage}</p>
+            ) : null}
+            <Button
+              className="w-full cursor-pointer"
+              disabled={isEnrolling}
+              onClick={handleEnroll}
             >
-              <div className="p-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-amber-600 text-[10px] font-semibold text-white ring-4 ring-slate-100">
-                      {initials}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-slate-900">
-                        {course.name}
-                      </div>
-                      <div className="truncate text-[11px] text-slate-500">
-                        {subtitle}
-                      </div>
-                    </div>
-                  </div>
-                  <div
-                    className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold transition ${
-                      isActive
-                        ? "bg-amber-600 text-white"
-                        : "bg-slate-100 text-slate-500 group-hover:bg-amber-600 group-hover:text-white"
-                    }`}
-                  >
-                    {isActive ? "Đang chọn" : "Xem lớp"}
-                  </div>
-                </div>
-
-                <div className="mt-2.5 rounded-2xl border border-slate-200 bg-slate-100 px-2.5 py-4">
-                  <div className="mx-auto flex h-14 w-full max-w-55 items-center justify-center rounded-xl bg-linear-to-br from-slate-200 via-slate-100 to-white text-slate-400 shadow-inner">
-                    <LayoutGrid className="h-5 w-5" />
-                  </div>
-                  <div className="mt-2 text-center text-[11px] text-slate-500">
-                    {course.description || "No attachments"}
-                  </div>
-                </div>
-
-                <div className="mt-2.5 flex items-center justify-between border-t border-slate-100 pt-2.5">
-                  <div
-                    className={`text-[11px] font-semibold ${isActive ? "text-emerald-600" : "text-slate-400"}`}
-                  >
-                    {isActive ? "Đang chọn" : "Assigned"}
-                  </div>
-                  <div className="text-xs text-slate-400">
-                    {course.totalStudent} học viên
-                  </div>
-                </div>
-              </div>
-            </button>
-          );
-        })}
-      </div>
-
-      <Card className="border-slate-200/80 bg-white mt-4 shadow-sm">
-        <CardContent className="space-y-6">
-          <div className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 ">
-            <div>
-              <div className="mb-4 flex flex-wrap gap-6 border-b border-slate-100 pb-3 text-sm">
-                {dashboardTabs.map((tab) => (
-                  <button
-                    key={tab}
-                    className={`pb-3 transition ${
-                      activeTab === tab
-                        ? "border-b-2 cursor-pointer border-slate-300 font-semibold text-slate-900"
-                        : "text-slate-700 cursor-pointer hover:text-slate-900"
-                    }`}
-                    onClick={() => setActiveTab(tab)}
-                    type="button"
-                  >
-                    {tab}
-                  </button>
-                ))}
-              </div>
-
-              <div className="p-4">
-                {activeTab === "Tài liệu và bài tập" && (
-                  <div className="grid gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
-                    <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                      {/* Enroll card - only visible within this tab */}
-                      <div className="mb-3">
-                        <Card className="border-slate-200 bg-white shadow-sm">
-                          <CardContent className="p-3">
-                            <div className="text-sm font-semibold text-slate-900 mb-2">
-                              Enrol lớp bằng mã
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Input
-                                placeholder="VD: 38BBFA02"
-                                className="h-9 border-slate-200 bg-white text-slate-900 placeholder:text-slate-300"
-                                value={enrollCode}
-                                onChange={(event) =>
-                                  setEnrollCode(event.target.value)
-                                }
-                              />
-                              <Button
-                                className="h-9 cursor-pointer rounded-md bg-amber-600 text-white hover:bg-amber-700 px-3"
-                                onClick={handleEnroll}
-                                type="button"
-                                disabled={isEnrolling}
-                              >
-                                {isEnrolling ? "..." : "Tham gia"}
-                              </Button>
-                            </div>
-                            {message ? (
-                              <div className="mt-2 text-sm text-slate-700">
-                                {message}
-                              </div>
-                            ) : null}
-                          </CardContent>
-                        </Card>
-                      </div>
-
-                      <div className="mb-3">
-                        <div className="text-sm font-semibold text-slate-900">
-                          Chủ đề
-                        </div>
-                        <div className="text-xs text-slate-500">
-                          Chọn chủ đề để xem danh sách buổi bên phải
-                        </div>
-                      </div>
-
-                      {isLoadingMaterials ? (
-                        <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6 text-sm text-slate-500">
-                          Đang tải chủ đề...
-                        </div>
-                      ) : materials.length > 0 ? (
-                        <div className="space-y-2">
-                          {materials.map((material) => {
-                            const isActive = material.id === activeMaterialId;
-                            return (
-                              <button
-                                key={material.id}
-                                type="button"
-                                onClick={() =>
-                                  handleSelectMaterial(material.id)
-                                }
-                                className={`w-full cursor-pointer  rounded-xl border px-4 py-3 text-left transition ${
-                                  isActive
-                                    ? "border-slate-200 bg-slate-50"
-                                    : "border-slate-200 bg-white hover:bg-slate-50"
-                                }`}
-                              >
-                                <div className="flex  items-start justify-between gap-3">
-                                  <div>
-                                    <div className="font-medium text-slate-900">
-                                      {material.title}
-                                    </div>
-                                    {material.description ? (
-                                      <div className="mt-1 text-xs text-slate-500">
-                                        {material.description}
-                                      </div>
-                                    ) : null}
-                                  </div>
-                                  {typeof material.totalLessons === "number" ? (
-                                    <div className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-700">
-                                      {material.totalLessons} buổi
-                                    </div>
-                                  ) : null}
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6 text-sm text-slate-500">
-                          Chưa có chủ đề nào cho lớp này.
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                      <div className="flex  items-center justify-between gap-3 border-b border-slate-200 pb-3">
-                        <div>
-                          <div className="text-sm font-semibold text-slate-900">
-                            {activeMaterial?.title || "Chọn một chủ đề"}
-                          </div>
-                        </div>
-                        {activeMaterial?.totalLessons ? (
-                          <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-                            {activeMaterial.totalLessons} buổi
-                          </div>
-                        ) : null}
-                      </div>
-
-                      {isLoadingLessons ? (
-                        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500">
-                          Đang tải danh sách buổi...
-                        </div>
-                      ) : lessons.length > 0 ? (
-                        <div className="space-y-2">
-                          {lessons.map((lesson) => (
-                            <div
-                              key={lesson.id}
-                              className={`overflow-hidden rounded-xl border transition ${
-                                lesson.id === activeLessonId
-                                  ? "border-slate-200 bg-slate-50"
-                                  : "border-slate-200 bg-slate-50"
-                              }`}
-                            >
-                              <button
-                                type="button"
-                                onClick={() => handleSelectLesson(lesson.id)}
-                                className="flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-3 text-left hover:bg-white/70"
-                              >
-                                <div className="flex min-w-0 items-center gap-2">
-                                  <ChevronDown
-                                    className={`h-4 w-4 shrink-0 text-slate-500 transition-transform ${
-                                      lesson.id === activeLessonId
-                                        ? "rotate-180"
-                                        : "rotate-0"
-                                    }`}
-                                  />
-                                  <div className="min-w-0 truncate font-medium text-slate-900">
-                                    {lesson.title}
-                                  </div>
-                                </div>
-                              </button>
-
-                              {lesson.id === activeLessonId ? (
-                                <div className="border-t border-slate-200 bg-white px-4 py-4">
-                                  {isLoadingLessonResources ? (
-                                    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500">
-                                      Đang tải tài nguyên buổi học...
-                                    </div>
-                                  ) : lessonResources.length > 0 ? (
-                                    <div className="space-y-2">
-                                      {lessonResources.map((resource) => (
-                                        <div
-                                          key={resource.id}
-                                          className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
-                                        >
-                                          <div className="flex items-start justify-between gap-3">
-                                            <div>
-                                              <div className="font-medium text-slate-900">
-                                                {resource.title}
-                                              </div>
-                                              {resource.note ? (
-                                                <div className="mt-1 text-xs text-slate-500">
-                                                  {resource.note}
-                                                </div>
-                                              ) : null}
-                                            </div>
-                                          </div>
-
-                                          {resource.urls.length > 0 ? (
-                                            <div className="mt-3 space-y-2 text-xs text-slate-600">
-                                              {resource.urls.map(
-                                                (url, index) => (
-                                                  <a
-                                                    key={`${resource.id}-${index}`}
-                                                    href={url}
-                                                    target="_blank"
-                                                    rel="noreferrer noopener"
-                                                    className="group flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-3 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 hover:shadow-md"
-                                                  >
-                                                    <div className="min-w-0">
-                                                      <div className="truncate font-semibold text-slate-900">
-                                                        {getResourceLabel(
-                                                          url,
-                                                          index,
-                                                        )}
-                                                      </div>
-                                                      <div className="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-slate-500">
-                                                        Tài liệu đính kèm
-                                                      </div>
-                                                    </div>
-                                                    <div className="flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold text-slate-700 border border-slate-200 transition group-hover:bg-slate-100">
-                                                      Mở
-                                                      <ExternalLink className="h-3 w-3" />
-                                                    </div>
-                                                  </a>
-                                                ),
-                                              )}
-                                            </div>
-                                          ) : null}
-                                        </div>
-                                      ))}
-                                    </div>
-                                  ) : (
-                                    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500">
-                                      Chưa có tài nguyên cho buổi này.
-                                    </div>
-                                  )}
-                                </div>
-                              ) : null}
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500">
-                          Chưa có buổi nào cho chủ đề này.
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-                {activeTab === "Thông tin lịch học của lớp" && (
-                  <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                    <div className="mb-4 flex flex-col gap-2 border-b border-slate-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <div className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-700">
-                          Thời khóa biểu
-                        </div>
-                        <div className="mt-2 text-sm text-slate-500">
-                          Lịch học được trình bày theo từng ngày trong tuần.
-                        </div>
-                      </div>
-                      <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm">
-                        {formatDate(activeCourse?.startDate)} -{" "}
-                        {formatDate(activeCourse?.endDate)}
-                      </div>
-                    </div>
-
-                    <div className="overflow-x-auto pb-1">
-                      <div
-                        className="
-      grid
-      grid-cols-1
-      sm:grid-cols-2
-      md:grid-cols-3
-      xl:grid-cols-7
-      gap-3
-    "
-                      >
-                        {[
-                          "MONDAY",
-                          "TUESDAY",
-                          "WEDNESDAY",
-                          "THURSDAY",
-                          "FRIDAY",
-                          "SATURDAY",
-                          "SUNDAY",
-                        ].map((day) => {
-                          const schedules = (
-                            activeCourse?.schedules || []
-                          ).filter((s) => s.dayOfWeek === day);
-
-                          return (
-                            <div
-                              key={day}
-                              className="
-            flex
-            min-h-44
-            flex-col
-            rounded-2xl
-            border
-            border-slate-200
-            bg-slate-50
-            p-3
-            shadow-sm
-            transition
-            hover:border-slate-300
-            hover:shadow-md
-          "
-                            >
-                              <div className="mb-3 flex items-center gap-2 border-b border-slate-200 pb-2">
-                                <div className="text-xs font-semibold uppercase tracking-wide text-slate-600">
-                                  {dayLabels[day] || day}
-                                </div>
-                              </div>
-
-                              <div className="space-y-2">
-                                {schedules.length === 0 ? (
-                                  <div className="rounded-xl border border-dashed border-slate-200 bg-white px-3 py-5 text-center text-xs text-slate-400">
-                                    Chưa có lịch
-                                  </div>
-                                ) : (
-                                  schedules.map((schedule) => (
-                                    <div
-                                      key={schedule.id}
-                                      className="rounded-xl border border-slate-200 bg-white p-3"
-                                    >
-                                      <div className="flex items-start justify-between gap-2">
-                                        <div className="min-w-0 flex-1">
-                                          <div className="text-[12px] font-semibold text-slate-700 break-words">
-                                            {formatTimeWithAmPm(
-                                              schedule.startTime,
-                                            )}{" "}
-                                            -{" "}
-                                            {formatTimeWithAmPm(
-                                              schedule.endTime,
-                                            )}
-                                          </div>
-
-                                          <div className="mt-1 text-xs text-slate-500">
-                                            {studyModeLabels[
-                                              schedule.studyMode
-                                            ] || schedule.studyMode}
-                                          </div>
-                                        </div>
-
-                                        <div className="mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full bg-slate-300" />
-                                      </div>
-
-                                      {schedule.location ? (
-                                        <div className="mt-2 text-[11px] text-slate-400 break-words">
-                                          {schedule.location}
-                                        </div>
-                                      ) : null}
-                                    </div>
-                                  ))
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                )}
-                {activeTab === "Video xem lại theo buổi" && (
-                  <div className="grid gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
-                    <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                      <div className="mb-3">
-                        <div className="text-sm font-semibold text-slate-900">
-                          Chủ đề
-                        </div>
-                        <div className="text-xs text-slate-500">
-                          Chọn chủ đề để xem video theo từng buổi
-                        </div>
-                      </div>
-
-                      {isLoadingMaterials ? (
-                        <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6 text-sm text-slate-500">
-                          Đang tải chủ đề...
-                        </div>
-                      ) : materials.length > 0 ? (
-                        <div className="space-y-2">
-                          {materials.map((material) => {
-                            const isActive = material.id === activeMaterialId;
-
-                            return (
-                              <button
-                                key={material.id}
-                                type="button"
-                                onClick={() =>
-                                  handleSelectMaterial(
-                                    material.id,
-                                    "Video xem lại theo buổi",
-                                  )
-                                }
-                                className={`w-full cursor-pointer rounded-xl border px-4 py-3 text-left transition ${
-                                  isActive
-                                    ? "border-slate-200 bg-slate-50"
-                                    : "border-slate-200 bg-white hover:bg-slate-50"
-                                }`}
-                              >
-                                <div className="flex items-start justify-between gap-3">
-                                  <div>
-                                    <div className="font-medium text-slate-900">
-                                      {material.title}
-                                    </div>
-                                    {material.description ? (
-                                      <div className="mt-1 text-xs text-slate-500">
-                                        {material.description}
-                                      </div>
-                                    ) : null}
-                                  </div>
-                                  {typeof material.totalLessons === "number" ? (
-                                    <div className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-700">
-                                      {material.totalLessons} buổi
-                                    </div>
-                                  ) : null}
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6 text-sm text-slate-500">
-                          Chưa có chủ đề nào cho lớp này.
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                      <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-3">
-                        <div>
-                          <div className="text-sm font-semibold text-slate-900">
-                            {activeMaterial?.title || "Chọn một chủ đề"}
-                          </div>
-                          <div className="mt-1 text-xs text-slate-500">
-                            Các video được nhóm theo buổi học của chủ đề.
-                          </div>
-                        </div>
-                        {activeMaterial?.totalLessons ? (
-                          <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-                            {activeMaterial.totalLessons} buổi
-                          </div>
-                        ) : null}
-                      </div>
-
-                      {isLoadingLessons ? (
-                        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500">
-                          Đang tải danh sách buổi...
-                        </div>
-                      ) : lessons.length > 0 ? (
-                        <div className="space-y-2">
-                          {lessons.map((lesson) => (
-                            <div
-                              key={lesson.id}
-                              className={`overflow-hidden rounded-xl border transition ${
-                                lesson.id === activeLessonId
-                                  ? "border-slate-200 bg-slate-50"
-                                  : "border-slate-200 bg-slate-50"
-                              }`}
-                            >
-                              <button
-                                type="button"
-                                onClick={() => handleSelectLesson(lesson.id)}
-                                className="flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-3 text-left hover:bg-white/70"
-                              >
-                                <div className="flex min-w-0 items-center gap-2">
-                                  <ChevronDown
-                                    className={`h-4 w-4 shrink-0 text-slate-500 transition-transform ${
-                                      lesson.id === activeLessonId
-                                        ? "rotate-180"
-                                        : "rotate-0"
-                                    }`}
-                                  />
-                                  <div className="min-w-0 truncate font-medium text-slate-900">
-                                    {lesson.title}
-                                  </div>
-                                </div>
-                              </button>
-
-                              {lesson.id === activeLessonId ? (
-                                <div className="border-t border-slate-200 bg-white px-4 py-4">
-                                  {isLoadingRecords ? (
-                                    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500">
-                                      Đang tải video buổi học...
-                                    </div>
-                                  ) : records.length > 0 ? (
-                                    <div className="space-y-3">
-                                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 shadow-sm">
-                                        <div className="mb-3 flex min-h-14 items-start justify-between gap-3">
-                                          <div className="min-w-0">
-                                            <div className="truncate text-sm font-semibold text-slate-900">
-                                              {activeRecord?.title ||
-                                                "Video buổi học"}
-                                            </div>
-                                            <div className="mt-1 text-xs text-slate-500">
-                                              {activeRecord
-                                                ? formatDate(
-                                                    activeRecord.createdAt,
-                                                  )
-                                                : ""}
-                                            </div>
-                                          </div>
-                                        </div>
-
-                                        <div className="aspect-video overflow-hidden rounded-xl bg-black">
-                                          {activeRecord ? (
-                                            <video
-                                              src={activeRecord.videoUrl}
-                                              controls
-                                              preload="metadata"
-                                              playsInline
-                                              crossOrigin="anonymous"
-                                              className="h-full w-full"
-                                              onError={() => {
-                                                console.error(
-                                                  "Video failed to play:",
-                                                  activeRecord.videoUrl,
-                                                );
-                                                setVideoError(
-                                                  "Trình duyệt không thể phát video này. Thử mở trong tab mới.",
-                                                );
-                                              }}
-                                            />
-                                          ) : null}
-
-                                          {videoError ? (
-                                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/60 p-4 text-center text-sm text-white">
-                                              <div>{videoError}</div>
-                                              <div className="flex gap-2">
-                                                <a
-                                                  href={activeRecord?.videoUrl}
-                                                  target="_blank"
-                                                  rel="noreferrer noopener"
-                                                  className="rounded-md bg-white/10 px-3 py-2 text-xs font-semibold text-white hover:bg-white/20"
-                                                >
-                                                  Mở trong tab mới
-                                                </a>
-                                                <button
-                                                  type="button"
-                                                  className="rounded-md bg-white/10 px-3 py-2 text-xs font-semibold text-white hover:bg-white/20"
-                                                  onClick={() =>
-                                                    setVideoError(null)
-                                                  }
-                                                >
-                                                  Thử lại
-                                                </button>
-                                              </div>
-                                            </div>
-                                          ) : null}
-                                        </div>
-                                      </div>
-
-                                      <div className="space-y-2">
-                                        {records.map((record) => {
-                                          const isSelected =
-                                            record.id === activeRecord?.id;
-
-                                          return (
-                                            <button
-                                              key={record.id}
-                                              type="button"
-                                              onClick={() =>
-                                                handleSelectRecord(record.id)
-                                              }
-                                              className={`flex w-full items-center justify-between gap-3 rounded-xl border px-3 py-3 text-left shadow-sm transition ${
-                                                isSelected
-                                                  ? "border-slate-300 bg-white"
-                                                  : "border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white"
-                                              }`}
-                                            >
-                                              <div className="min-w-0">
-                                                <div className="truncate font-semibold text-slate-900">
-                                                  {record.title}
-                                                </div>
-                                                <div className="mt-0.5 text-[11px] text-slate-500">
-                                                  {formatDate(record.createdAt)}
-                                                </div>
-                                              </div>
-                                              <div className="shrink-0 min-w-20 cursor-pointer rounded-full border border-slate-200 px-2.5 py-1 text-center text-[11px] font-semibold text-slate-700">
-                                                {isSelected
-                                                  ? "Đang xem"
-                                                  : "Bấm để xem"}
-                                              </div>
-                                            </button>
-                                          );
-                                        })}
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500">
-                                      Chưa có video cho buổi này.
-                                    </div>
-                                  )}
-                                </div>
-                              ) : null}
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500">
-                          Chưa có buổi nào cho chủ đề này.
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
+              {isEnrolling ? "Đang tham gia..." : "Tham gia lớp"}
+            </Button>
           </div>
-        </CardContent>
-      </Card>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-w-0 flex-1 flex-col">
+      <header className="flex items-center justify-between gap-4 border-b border-slate-200 bg-white px-4 py-2">
+        <Select
+          value={effectiveCourseId ?? ""}
+          onValueChange={(val) => {
+            setSelectedCourseId(val);
+            setActiveSessionId("");
+          }}
+        >
+          <SelectTrigger className="h-10 min-w-60 cursor-pointer rounded-xl border-slate-200 bg-background px-4 text-sm font-medium shadow-sm">
+            <SelectValue placeholder="Chọn lớp học" />
+          </SelectTrigger>
+          <SelectContent
+            position="popper"
+            side="bottom"
+            align="start"
+            sideOffset={6}
+            className="rounded-xl border-slate-200 shadow-lg"
+          >
+            {myClasses.map((classroom: MyClass) => (
+              <SelectItem
+                key={classroom.id}
+                value={classroom.id}
+                className="cursor-pointer"
+              >
+                {classroom.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <div className="hidden items-center gap-3 text-sm text-slate-500 md:flex">
+          <MonitorPlay className="h-4 w-4" />
+          Student dashboard
+        </div>
+      </header>
+
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-0 lg:grid-cols-[311px_minmax(0,1fr)]">
+        <section className="min-h-0 overflow-y-auto border-r border-slate-200 bg-white px-4 py-4">
+          {isLoadingMaterials ? (
+            <div className="flex items-center justify-center py-8 text-sm text-slate-500">
+              Đang tải dữ liệu...
+            </div>
+          ) : null}
+          {materialsError ? (
+            <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">
+              Lỗi:{" "}
+              {materialsError instanceof Error
+                ? materialsError.message
+                : "Không thể tải dữ liệu"}
+            </div>
+          ) : null}
+          {!isLoadingMaterials && modules.length === 0 && !materialsError ? (
+            <div className="text-sm text-slate-500">
+              Chưa có nội dung cho lớp học này.
+            </div>
+          ) : null}
+
+          <div className="relative space-y-0">
+            {modules.map((courseModule, moduleIdx) => {
+              const isLastModule = moduleIdx === modules.length - 1;
+              const allSessionsHaveVideo =
+                courseModule.sessions.length > 0 &&
+                courseModule.sessions.every((session) => session.hasVideo);
+
+              return (
+                <div key={courseModule.id} className="relative pl-12 pb-6">
+                  {!isLastModule ? (
+                    <div
+                      className={`absolute left-4 top-8 bottom-0 w-0.5 transition-colors duration-300 ${
+                        allSessionsHaveVideo
+                          ? "bg-linear-to-b from-amber-400 to-amber-300 shadow-[0_0_10px_rgba(251,191,36,0.55)]"
+                          : "bg-slate-200"
+                      }`}
+                    />
+                  ) : null}
+
+                  <div
+                    className={`absolute left-0 top-0 z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 bg-white shadow-sm transition-colors duration-300 ${
+                      allSessionsHaveVideo
+                        ? "border-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.45)]"
+                        : "border-slate-200"
+                    }`}
+                  >
+                    <div
+                      className={`h-3 w-3 rounded-full transition-colors duration-300 ${
+                        allSessionsHaveVideo ? "bg-amber-500" : "bg-slate-300"
+                      }`}
+                    />
+                  </div>
+
+                  <div className="pb-3">
+                    <div className="text-sm font-semibold text-slate-700">
+                      {courseModule.title}
+                    </div>
+                    <div className="text-xs text-slate-400">
+                      ({courseModule.sessions.length} buổi)
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    {courseModule.sessions.map((session) => {
+                      const isActive = session.id === resolvedSessionId;
+
+                      return (
+                        <button
+                          key={session.id}
+                          type="button"
+                          onClick={() => selectSession(session.id)}
+                          className={`flex w-full cursor-pointer items-center rounded-md px-2.5 py-1.5 text-left text-sm transition ${
+                            isActive
+                              ? "border-l-2 border-blue-600 bg-blue-50 font-semibold text-blue-700"
+                              : "text-slate-600 hover:bg-slate-50"
+                          }`}
+                        >
+                          <div className="relative flex flex-1 items-center gap-2">
+                            {isActive ? (
+                              <div className="h-2 w-2 rounded-full bg-blue-600" />
+                            ) : (
+                              <div className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+                            )}
+                            <span className="flex-1">{session.title}</span>
+                            {session.hasVideo ? (
+                              <Video
+                                className="h-4 w-4 text-red-600"
+                                strokeWidth={3}
+                              />
+                            ) : null}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        <main className="min-w-0 bg-white">
+          <div className="flex items-center justify-end gap-4 border-b border-slate-200 px-4 py-2 text-sm font-medium">
+            <button
+              type="button"
+              onClick={() => setActiveTab("videos")}
+              className={`flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 ${
+                activeTab === "videos" ? "text-slate-900" : "text-slate-500"
+              }`}
+            >
+              <PlayCircle className="h-4 w-4" />
+              Video Xem Lại
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("materials")}
+              className={`flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 ${
+                activeTab === "materials"
+                  ? "border-b-2 border-blue-600 text-blue-600"
+                  : "text-slate-500"
+              }`}
+            >
+              <FileText className="h-4 w-4" />
+              Tài Liệu Buổi Học ({lessonResources.length})
+            </button>
+          </div>
+
+          <div className="p-4">
+            {activeTab === "materials" ? (
+              <LessonMaterialsList
+                snapLessonId={activeSession.session.id}
+                lessonTitle={activeSession.session.title}
+              />
+            ) : (
+              <Card className="border-slate-200 shadow-sm">
+                <div className="space-y-4 p-6">
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900">
+                      Video xem lại
+                    </h3>
+                    <p className="text-sm text-slate-500">
+                      Buổi học:{" "}
+                      <span className="font-medium">
+                        {activeSession.session.title}
+                      </span>
+                    </p>
+                  </div>
+
+                  {!activeSession.session.id ? (
+                    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
+                      Chọn buổi học để xem video
+                    </div>
+                  ) : !activeSession.session.hasVideo ? (
+                    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
+                      Chưa có video cho buổi học này
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                        <div className="aspect-video bg-black">
+                          {isLoadingPlayUrl || isFetchingPlayUrl ? (
+                            <div className="flex h-full items-center justify-center gap-2 text-sm text-slate-300">
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Đang tải video...
+                            </div>
+                          ) : playVideo?.url ? (
+                            <video
+                              key={playVideo.url}
+                              src={playVideo.url}
+                              controls
+                              preload="metadata"
+                              playsInline
+                              className="h-full w-full"
+                            />
+                          ) : (
+                            <div className="flex h-full items-center justify-center p-4 text-center text-sm text-slate-300">
+                              Không thể tải URL phát video
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {recordItems.map((record) => (
+                        <div
+                          key={record.id}
+                          className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm"
+                        >
+                          <p className="text-sm font-semibold text-slate-900">
+                            {record.title}
+                          </p>
+                          {record.createdAt ? (
+                            <p className="mt-0.5 text-xs text-slate-500">
+                              {new Date(record.createdAt).toLocaleString(
+                                "vi-VN",
+                              )}
+                            </p>
+                          ) : null}
+                        </div>
+                      ))}
+
+                      {isFetchingRecords ? (
+                        <p className="text-center text-xs text-slate-400">
+                          Đang cập nhật danh sách...
+                        </p>
+                      ) : null}
+                    </div>
+                  )}
+                </div>
+              </Card>
+            )}
+          </div>
+        </main>
+      </div>
     </div>
   );
 };

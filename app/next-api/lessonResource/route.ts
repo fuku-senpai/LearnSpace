@@ -6,7 +6,7 @@ import { LessonResource_API } from "@/constants/api-endpoints";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { title, note, type, urls, lessonId } = body;
+    const { title, note, type, urls, snapLessonId } = body;
 
     const cookieStore = await cookies();
     const accessToken = cookieStore.get("accessToken")?.value;
@@ -26,7 +26,7 @@ export async function POST(req: Request) {
         note,
         type,
         urls,
-        lessonId,
+        snapLessonId,
       }),
     });
 
@@ -52,11 +52,11 @@ export async function POST(req: Request) {
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const lessonId = searchParams.get("lessonId");
+    const snapLessonId = searchParams.get("snapLessonId");
 
-    if (!lessonId) {
+    if (!snapLessonId) {
       return NextResponse.json(
-        { message: "lessonId is required" },
+        { message: "snapLessonId is required" },
         { status: 400 },
       );
     }
@@ -69,7 +69,7 @@ export async function GET(req: Request) {
     }
 
     const res = await fetch(
-      `${env.API_URL}${LessonResource_API.GET_BY_LESSON(lessonId)}`,
+      `${env.API_URL}${LessonResource_API.GET_BY_LESSON(snapLessonId)}`,
       {
         method: "GET",
         headers: {

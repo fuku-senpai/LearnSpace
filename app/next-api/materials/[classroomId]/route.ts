@@ -18,18 +18,7 @@ export async function GET(req: Request, { params }: Params) {
     if (!accessToken) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
-
-    const { searchParams } = new URL(req.url);
-    const page = searchParams.get("page");
-    const size = searchParams.get("size");
-    const queryParams = new URLSearchParams();
-    if (page) queryParams.set("page", page);
-    if (size) queryParams.set("size", size);
-    const queryString = queryParams.toString();
-    const url = `${env.API_URL}${MATERIALS_API.GET_MATERIALS(classroomId)}${
-      queryString ? `?${queryString}` : ""
-    }`;
-
+    const url = `${env.API_URL}${MATERIALS_API.GET_MATERIALS(classroomId)}`;
     const res = await fetch(url, {
       method: "GET",
       headers: {
@@ -50,8 +39,6 @@ export async function GET(req: Request, { params }: Params) {
 
     return NextResponse.json(data, { status: 200 });
   } catch (error) {
-    console.error("GET MATERIALS ERROR:", error);
-
     return NextResponse.json(
       {
         message: "Internal server error",
@@ -106,6 +93,91 @@ export async function POST(req: Request, { params }: Params) {
       {
         message: "Internal server error",
       },
+      { status: 500 },
+    );
+  }
+}
+
+export async function DELETE(req: Request, { params }: Params) {
+  try {
+    const { classroomId: materialId } = await params;
+    const cookieStore = await cookies();
+    const accessToken = cookieStore.get("accessToken")?.value;
+
+    if (!accessToken) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    const res = await fetch(
+      `${env.API_URL}${MATERIALS_API.DELETE_MATERIAL(materialId)}`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      },
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      return NextResponse.json(
+        { message: data?.message || "Delete material failed" },
+        { status: res.status },
+      );
+    }
+
+    return NextResponse.json(data, { status: 200 });
+  } catch (error) {
+    console.error("DELETE MATERIAL ERROR:", error);
+    return NextResponse.json(
+      { message: "Internal server error" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function PUT(req: Request, { params }: Params) {
+  try {
+    const { classroomId: materialId } = await params;
+    const body = await req.json();
+    const { title, description } = body;
+    const cookieStore = await cookies();
+    const accessToken = cookieStore.get("accessToken")?.value;
+
+    if (!accessToken) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    const res = await fetch(
+      `${env.API_URL}${MATERIALS_API.UPDATE_MATERIAL(materialId)}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          title,
+          description,
+        }),
+      },
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      return NextResponse.json(
+        { message: data?.message || "Update material failed" },
+        { status: res.status },
+      );
+    }
+
+    return NextResponse.json(data, { status: 200 });
+  } catch (error) {
+    console.error("UPDATE MATERIAL ERROR:", error);
+    return NextResponse.json(
+      { message: "Internal server error" },
       { status: 500 },
     );
   }

@@ -12,6 +12,7 @@ import {
   Monitor,
   MapPin,
   Video,
+  MoreHorizontal,
 } from "lucide-react";
 
 import { useRouter } from "next/navigation";
@@ -45,10 +46,13 @@ import {
 } from "@/components/ui/table";
 import { useGetClassesQuery } from "@/app/hooks/classes/useGetClasses";
 import { useGetClassSchedulesQuery } from "@/app/hooks/schedules/useGetClassSchedules";
+import { useUpdateClassScheduleMutation } from "@/app/hooks/schedules/useUpdateClassSchedule";
+import { useDeleteClassScheduleMutation } from "@/app/hooks/schedules/useDeleteClassSchedule";
 import type {
   Class,
   GetAllClassesFilter,
 } from "@/app/service/classroom.service";
+import type { ClassScheduleItem } from "@/app/service/classSchedule.service";
 import {
   Dialog,
   DialogContent,
@@ -72,6 +76,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "react-toastify";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const dayOptions = [
   { label: "Thứ 2", value: "MONDAY" },
@@ -211,6 +221,13 @@ const ClassesManagement = () => {
     error: scheduleError,
   } = useCreateClassScheduleMutation();
   const {
+    mutateAsync: updateSchedule,
+    isPending: isUpdatingSchedule,
+    error: updateScheduleError,
+  } = useUpdateClassScheduleMutation();
+  const { mutateAsync: deleteSchedule, isPending: isDeletingSchedule } =
+    useDeleteClassScheduleMutation();
+  const {
     control,
     register,
     handleSubmit: handleScheduleSubmit,
@@ -228,6 +245,21 @@ const ClassesManagement = () => {
     },
   });
   const selectedClassroomId = useWatch({ control, name: "classroomId" });
+
+  const [isEditScheduleOpen, setIsEditScheduleOpen] = useState(false);
+  const [editingSchedule, setEditingSchedule] =
+    useState<ClassScheduleItem | null>(null);
+  const [isDeleteScheduleOpen, setIsDeleteScheduleOpen] = useState(false);
+  const [scheduleToDelete, setScheduleToDelete] =
+    useState<ClassScheduleItem | null>(null);
+  const [editScheduleDayOfWeek, setEditScheduleDayOfWeek] =
+    useState("MONDAY");
+  const [editScheduleStartTime, setEditScheduleStartTime] = useState("");
+  const [editScheduleEndTime, setEditScheduleEndTime] = useState("");
+  const [editScheduleStudyMode, setEditScheduleStudyMode] =
+    useState("ONLINE");
+  const [editScheduleLocation, setEditScheduleLocation] = useState("");
+  const [editScheduleMeetingUrl, setEditScheduleMeetingUrl] = useState("");
 
   const classes = data?.items ?? [];
   useEffect(() => {
@@ -272,8 +304,7 @@ const ClassesManagement = () => {
   const [loadingMore, setLoadingMore] = useState(false);
 
   const loadMoreClasses = () => {
-
-    console.log("Load more")
+    console.log("Load more");
     if (isFetchingClasses || loadingMore || !hasMoreClasses) return;
 
     setLoadingMore(true);
@@ -320,6 +351,47 @@ const ClassesManagement = () => {
     const value = text?.trim() || "Không có mô tả";
     setDescriptionPreview(value);
     setIsDescriptionOpen(true);
+  };
+
+  const handleEditSchedule = (schedule: ClassScheduleItem) => {
+    setEditingSchedule(schedule);
+    setEditScheduleDayOfWeek(schedule.dayOfWeek || "MONDAY");
+    setEditScheduleStartTime(schedule.startTime || "");
+    setEditScheduleEndTime(schedule.endTime || "");
+    setEditScheduleStudyMode(schedule.studyMode || "ONLINE");
+    setEditScheduleLocation(schedule.location || "");
+    setEditScheduleMeetingUrl(schedule.meetingUrl || "");
+    setIsEditScheduleOpen(true);
+  };
+
+  const handleUpdateSchedule = async () => {
+    if (!editingSchedule?.id || !selectedClassroomId) return;
+
+    await updateSchedule({
+      classroomId: selectedClassroomId,
+      scheduleId: editingSchedule.id,
+      dayOfWeek: editScheduleDayOfWeek,
+      startTime: editScheduleStartTime,
+      endTime: editScheduleEndTime,
+      studyMode: editScheduleStudyMode,
+      location: editScheduleLocation.trim() || undefined,
+      meetingUrl: editScheduleMeetingUrl.trim() || undefined,
+    });
+
+    setIsEditScheduleOpen(false);
+    setEditingSchedule(null);
+  };
+
+  const handleOpenDeleteSchedule = (schedule: ClassScheduleItem) => {
+    setScheduleToDelete(schedule);
+    setIsDeleteScheduleOpen(true);
+  };
+
+  const handleConfirmDeleteSchedule = async () => {
+    if (!scheduleToDelete?.id) return;
+    await handleDeleteSchedule(scheduleToDelete.id);
+    setIsDeleteScheduleOpen(false);
+    setScheduleToDelete(null);
   };
 
   const handleUpdate = async () => {
@@ -380,7 +452,7 @@ const ClassesManagement = () => {
   const handleGoToMaterials = (classId?: string) => {
     if (!classId) return;
     router.push(
-      `/teacher/dashboard_layout?menu=materials&classId=${encodeURIComponent(classId)}`,
+      `/admin/dashboard_layout?menu=materials&classId=${encodeURIComponent(classId)}`,
     );
   };
   const handleDeleteClassroom = async (classroomId: string) => {
@@ -396,6 +468,16 @@ const ClassesManagement = () => {
               ?.data?.message
           : undefined;
       toast.error(message || "Xóa lớp học thất bại. Vui lòng thử lại.");
+    }
+  };
+  const handleDeleteSchedule = async (scheduleId: string) => {
+    if (!scheduleId || !selectedClassroomId) return;
+    try {
+      await deleteSchedule({ classroomId: selectedClassroomId, scheduleId });
+      toast.success("Xóa lịch học thành công.");
+    } catch (error) {
+      const message = getErrorMessage(error);
+      toast.error(message || "Xóa lịch học thất bại. Vui lòng thử lại.");
     }
   };
   return (
@@ -526,6 +608,171 @@ const ClassesManagement = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        <Dialog
+          open={isEditScheduleOpen}
+          onOpenChange={(open) => {
+            setIsEditScheduleOpen(open);
+            if (!open) setEditingSchedule(null);
+          }}
+        >
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Cập nhật lịch học</DialogTitle>
+              <DialogDescription>
+                Chỉnh sửa ngày học, giờ học, hình thức và địa điểm.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid gap-4">
+              <div className="grid gap-2">
+                <label className="text-xs font-medium text-slate-600">
+                  Ngày học
+                </label>
+                <select
+                  className="h-10 rounded-lg border border-slate-200/70 bg-white px-3 text-sm text-slate-900 outline-none"
+                  value={editScheduleDayOfWeek}
+                  onChange={(event) =>
+                    setEditScheduleDayOfWeek(event.target.value)
+                  }
+                >
+                  {dayOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-2">
+                  <label className="text-xs font-medium text-slate-600">
+                    Giờ bắt đầu
+                  </label>
+                  <Input
+                    type="time"
+                    step={1}
+                    className="h-10 border-slate-200/70 bg-white text-slate-900"
+                    value={editScheduleStartTime}
+                    onChange={(event) =>
+                      setEditScheduleStartTime(event.target.value)
+                    }
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <label className="text-xs font-medium text-slate-600">
+                    Giờ kết thúc
+                  </label>
+                  <Input
+                    type="time"
+                    step={1}
+                    className="h-10 border-slate-200/70 bg-white text-slate-900"
+                    value={editScheduleEndTime}
+                    onChange={(event) =>
+                      setEditScheduleEndTime(event.target.value)
+                    }
+                  />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <label className="text-xs font-medium text-slate-600">
+                  Hình thức học
+                </label>
+                <select
+                  className="h-10 rounded-lg border border-slate-200/70 bg-white px-3 text-sm text-slate-900 outline-none"
+                  value={editScheduleStudyMode}
+                  onChange={(event) =>
+                    setEditScheduleStudyMode(event.target.value)
+                  }
+                >
+                  {studyModeOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid gap-2">
+                <label className="text-xs font-medium text-slate-600">
+                  Địa điểm
+                </label>
+                <Input
+                  placeholder="Phòng học 201 hoặc để trống nếu online"
+                  className="h-10 border-slate-200/70 bg-white text-slate-900 placeholder:text-slate-300/70"
+                  value={editScheduleLocation}
+                  onChange={(event) =>
+                    setEditScheduleLocation(event.target.value)
+                  }
+                />
+              </div>
+              <div className="grid gap-2">
+                <label className="text-xs font-medium text-slate-600">
+                  Link học online
+                </label>
+                <Input
+                  placeholder="https://meet.google.com/..."
+                  className="h-10 border-slate-200/70 bg-white text-slate-900 placeholder:text-slate-300/70"
+                  value={editScheduleMeetingUrl}
+                  onChange={(event) =>
+                    setEditScheduleMeetingUrl(event.target.value)
+                  }
+                />
+              </div>
+              {getErrorMessage(updateScheduleError) ? (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+                  {getErrorMessage(updateScheduleError)}
+                </div>
+              ) : null}
+            </div>
+
+            <DialogFooter className="gap-2">
+              <Button
+                variant="outline"
+                className="rounded-lg cursor-pointer border-slate-200 text-slate-700"
+                onClick={() => setIsEditScheduleOpen(false)}
+                type="button"
+              >
+                Huỷ
+              </Button>
+              <Button
+                className="rounded-lg cursor-pointer bg-slate-900 text-white hover:bg-slate-800"
+                onClick={handleUpdateSchedule}
+                disabled={isUpdatingSchedule}
+              >
+                {isUpdatingSchedule ? "Đang lưu..." : "Lưu thay đổi"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        <AlertDialog
+          open={isDeleteScheduleOpen}
+          onOpenChange={(open) => {
+            setIsDeleteScheduleOpen(open);
+            if (!open) setScheduleToDelete(null);
+          }}
+        >
+          <AlertDialogContent className="rounded-2xl">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Xác nhận xoá lịch học</AlertDialogTitle>
+              <AlertDialogDescription>
+                Bạn có chắc muốn xoá lịch học này? Hành động này không thể hoàn
+                tác.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+
+            <AlertDialogFooter>
+              <AlertDialogCancel className="cursor-pointer rounded-xl">
+                Huỷ
+              </AlertDialogCancel>
+
+              <AlertDialogAction
+                className="cursor-pointer rounded-xl bg-red-500 hover:bg-red-600"
+                disabled={isDeletingSchedule}
+                onClick={handleConfirmDeleteSchedule}
+              >
+                {isDeletingSchedule ? "Đang xoá..." : "Xoá"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
         <div className="rounded-3xl border border-slate-200/70 bg-gradient-to-br from-white to-slate-50 p-6 shadow-sm">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             {/* Left content */}
@@ -698,7 +945,7 @@ const ClassesManagement = () => {
                             >
                               <Pencil className="h-4 w-4 text-slate-600" />
                             </Button>
-
+{/* 
                             <Button
                               variant="ghost"
                               size="icon"
@@ -706,7 +953,7 @@ const ClassesManagement = () => {
                               className="rounded-xl cursor-pointer hover:bg-blue-50"
                             >
                               <BookOpen className="h-4 w-4 text-blue-600" />
-                            </Button>
+                            </Button> */}
 
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
@@ -820,7 +1067,7 @@ const ClassesManagement = () => {
                       {schedules.map((schedule) => (
                         <TableRow
                           key={schedule.id}
-                          className="border-slate-100 transition-colors hover:bg-slate-50"
+                          className="transition-colors hover:bg-slate-50"
                         >
                           {/* Day */}
                           <TableCell className="font-medium text-slate-900">
@@ -839,7 +1086,7 @@ const ClassesManagement = () => {
 
                           {/* Study mode */}
                           <TableCell>
-                            <div className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700">
+                            <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700">
                               <Monitor className="h-4 w-4 text-slate-500" />
                               {schedule.studyMode}
                             </div>
@@ -860,13 +1107,52 @@ const ClassesManagement = () => {
                                   href={schedule.meetingUrl}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="inline-flex items-center gap-2 text-sm font-medium text-slate-900 transition hover:text-slate-700"
+                                  className="inline-flex items-center gap-2 text-sm font-medium text-slate-900 hover:text-slate-700"
                                 >
                                   <Video className="h-4 w-4" />
                                   Join meeting
                                 </a>
                               )}
                             </div>
+                          </TableCell>
+
+                          {/* Action */}
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-9 w-9 cursor-pointer rounded-lg border border-slate-200 hover:bg-slate-100"
+                                >
+                                  <MoreHorizontal className="h-4 w-4 text-slate-600" />
+                                </Button>
+                              </DropdownMenuTrigger>
+
+                              <DropdownMenuContent
+                                align="end"
+                                className="w-44 rounded-xl"
+                              >
+                                <DropdownMenuItem
+                                  onClick={() => handleEditSchedule(schedule)}
+                                  className="cursor-pointer"
+                                >
+                                  <Pencil className="mr-2 h-4 w-4 text-blue-500" />
+                                  Sửa lịch học
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onSelect={(event) => {
+                                    event.preventDefault();
+                                    handleOpenDeleteSchedule(schedule);
+                                  }}
+                                  disabled={isDeletingSchedule}
+                                  className="cursor-pointer text-red-600 focus:text-red-600"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Xoá lịch học
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -992,7 +1278,10 @@ const ClassesManagement = () => {
                           <SelectTrigger className="h-10 cursor-pointer border-slate-200/70 bg-white text-slate-900">
                             <SelectValue placeholder="Chọn lớp học" />
                           </SelectTrigger>
-                          <SelectContent position="popper" className="w-full p-0">
+                          <SelectContent
+                            position="popper"
+                            className="w-full p-0"
+                          >
                             <ScrollArea
                               className="h-[180px]"
                               viewportClassName="h-[180px] overflow-y-auto"
@@ -1143,9 +1432,7 @@ const ClassesManagement = () => {
                     className="h-10 cursor-pointer w-full rounded-xl bg-slate-900 text-white hover:bg-slate-800"
                     disabled={isSchedulePending || isScheduleSubmitting}
                   >
-                    {isSchedulePending
-                      ? "Đang lưu lịch..."
-                      : "Lưu classSchedule"}
+                    {isSchedulePending ? "Đang tạo lịch..." : "Tạo lịch học"}
                   </Button>
                 </CardFooter>
               </form>

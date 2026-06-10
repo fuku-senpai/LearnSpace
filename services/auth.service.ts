@@ -1,7 +1,7 @@
 import { axiosClient } from "@/app/lib/axiosClient";
 
 export type LoginPayload = {
-role: "STUDENT" | "TEACHER";
+role: "STUDENT" | "TEACHER" | "ADMIN";
   email: string;
   password: string;
   deviceId: string;

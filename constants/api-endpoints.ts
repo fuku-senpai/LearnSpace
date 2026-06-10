@@ -12,6 +12,9 @@ export const CLASS_API = {
   DELETE_CLASS: (classId: string) => `/class/${classId}`,
   GET_MY_CLASSES: "/my-classes",
   ENROLL_CLASSROOM: "/enrolling-classroom",
+  ASSIGN_TEACHER: (classId: string) => `/class/${classId}/assign-teacher`,
+  REMOVE_TEACHER: (classId: string) => `/class/${classId}/remove-teacher`,
+  SNAP_MATERIALS: (classId: string) => `/class/${classId}/snap-materials`,
 };
 export const MATERIALS_API = {
  CREATE_MATERIAL: (classroomId: string) => `/${classroomId}/materials`,  
@@ -19,6 +22,8 @@ export const MATERIALS_API = {
   GET_MATERIAL_DETAIL: (materialId: string) => `/materials/${materialId}`,
   UPDATE_MATERIAL: (materialId: string) => `/materials/${materialId}`,
   DELETE_MATERIAL: (materialId: string) => `/materials/${materialId}`,
+  GET_ALL_MATERIALS: "/materials",
+  CREATE_NEW_MATERIAL: "/materials",
 };  
 export const Lesson_API = {
   CREATE_LESSON: "/lesson",
@@ -30,14 +35,36 @@ export const Lesson_API = {
 
 export const LessonResource_API = {
   CREATE: "/lessonResource",
-  GET_BY_LESSON: (lessonId: string) => `/${lessonId}/lessonResources`,
+  GET_BY_LESSON: (snapLessonId: string) => `/${snapLessonId}/lessonResources`,
 };
 
 export const Record_API = {
   CREATE: "/lessonVideo",
-  GET_BY_LESSON: (lessonId: string) => `/${lessonId}/lessonVideos`,
+  GET_BY_LESSON: (snapLessonId: string) => `/${snapLessonId}/lessonVideos`,
 };
 
 export const SCHEDULE_API = {
   CREATE: (classroomId: string) => `/${classroomId}/schedules`,
+  UPDATE: (classroomId: string, scheduleId: string) =>
+    `/${classroomId}/schedules/${scheduleId}`,
+  DELETE: (classroomId: string, scheduleId: string) =>
+    `/${classroomId}/schedules/${scheduleId}`,
+};
+
+export const CLASSROOM_MATERIAL_API = {
+  UPDATE: (classroomMaterialId: string) =>
+    `/classroomMaterial/${classroomMaterialId}`,
+  DELETE: (classroomMaterialId: string) =>
+    `/classroomMaterial/${classroomMaterialId}`,
+};
+
+export const TEACHER_API = {
+  GET_ALL: "/teachers",
+  GET_CLASSROOMS: (teacherId: string) => `/teacher/${teacherId}/classrooms`,
+  GET_MY_CLASSROOMS: "/teacher/classrooms",
+};
+export const VIDEO_API = {
+  UPLOAD: "/videos/upload",
+  PRESIGN: "/videos/presign",
+  PLAY: (snapLessonId: string) => `/videos/play/${snapLessonId}`,
 };

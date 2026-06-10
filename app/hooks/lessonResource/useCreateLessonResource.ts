@@ -21,7 +21,7 @@ export const useCreateLessonResourceMutation = () =>useMutation<
     mutationFn: (payload) => LessonResourceService.createLessonResource(payload),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: ["lessonResources", variables.lessonId],
+        queryKey: ["lessonResources", variables.snapLessonId],
       });
     },
   });

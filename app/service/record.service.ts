@@ -3,8 +3,8 @@ import { axiosClient } from "../lib/axiosClient";
 
 export type CreateRecordPayload = {
   title: string;
-  videoUrl: string;
-  lessonId: string;
+  fileKey: string;
+  snapLessonId: string;
 };
 
 export type CreateRecordResponse = {
@@ -14,7 +14,7 @@ export type CreateRecordResponse = {
 export type RecordItem = {
   id: string;
   title: string;
-  videoUrl: string;
+  fileKey: string;
   createdAt: string;
 };
 
@@ -29,9 +29,9 @@ export const RecordService = {
     return res.data;
   },
 
-  getRecordsByLesson: async (lessonId: string): Promise<RecordItem[]> => {
+  getRecordsByLesson: async (snapLessonId: string): Promise<RecordItem[]> => {
     const res: AxiosResponse<RecordItem[]> = await axiosClient.get(
-      `/records?lessonId=${encodeURIComponent(lessonId)}`,
+      `/records?snapLessonId=${encodeURIComponent(snapLessonId)}`,
     );
     return res.data;
   },

@@ -2,8 +2,9 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { useUploadFile } from "@/app/hooks/lessonResource/useUploadAuto";
 import { useGetRecordsByLessonQuery } from "@/app/hooks/records/useGetRecords";
+import { usePresignVideo } from "@/app/hooks/videos/usePresignVideoMutation";
+import { useGetVideoQuery } from "@/app/hooks/videos/useGetVideoQuery";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -21,39 +22,28 @@ type MediaType = "audio" | "video";
 
 type UploadedMedia = {
   previewUrl: string;
-  uploadUrl?: string;
+  fileKey?: string;
   type: MediaType;
   name: string;
-};
-
-const toPlayableCloudinaryVideoUrl = (url: string) => {
-  if (!url.includes("cloudinary.com")) {
-    return url;
-  }
-
-  if (url.includes("f_mp4,q_auto")) {
-    return url;
-  }
-
-  return url.replace("/upload/", "/upload/f_mp4,q_auto/");
 };
 
 const RecordsManagementContent = () => {
   const searchParams = useSearchParams();
 
-  const lessonId = searchParams.get("lessonId") ?? "";
-  const lessonTitle = searchParams.get("lessonTitle") ?? "";
-  const materialTitle = searchParams.get("materialTitle") ?? "";
-  const classTitle = searchParams.get("classTitle") ?? "";
+  const snapLessonId =
+    searchParams.get("snapLessonId") ?? searchParams.get("lessonId") ?? "";
   const { mutateAsync: createRecord } = useCreateNewRecord();
-  const { upload, isUploading } = useUploadFile("video");
+  const { mutateAsync: getPresign } = usePresignVideo();
+  const [isUploading, setIsUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   const [uploadedFiles, setUploadedFiles] = useState<UploadedMedia[]>([]);
 
   const [title, setTitle] = useState("");
-  const { data: records = [], isLoading, isFetching } = useGetRecordsByLessonQuery(
-    lessonId,
+  const { data: records = [], isLoading, isFetching } =
+    useGetRecordsByLessonQuery(snapLessonId);
+  const { data: playVideo, isLoading: isLoadingPlayUrl } = useGetVideoQuery(
+    snapLessonId || undefined,
   );
 
   const recordItems = records as RecordApiItem[];
@@ -88,12 +78,24 @@ const RecordsManagementContent = () => {
     ]);
 
     try {
-      const url = await upload(file);
+      setIsUploading(true);
+      const { uploadUrl, fileKey } = await getPresign({
+        fileName: file.name,
+        fileType: file.type,
+      });
+
+      await fetch(uploadUrl, {
+        method: "PUT",
+        body: file,
+        headers: {
+          "Content-Type": file.type,
+        },
+      });
 
       setUploadedFiles([
         {
           previewUrl,
-          uploadUrl: url,
+          fileKey,
           type: mediaType,
           name: file.name,
         },
@@ -101,34 +103,33 @@ const RecordsManagementContent = () => {
     } catch (err) {
       console.error("Upload error:", err);
     } finally {
+      setIsUploading(false);
       if (fileRef.current) fileRef.current.value = "";
     }
   };
   //  validate
   const canCreate = useMemo(() => {
     return (
-      lessonId.length > 0 &&
+      snapLessonId.length > 0 &&
       title.trim().length > 0 &&
       uploadedFiles.length === 1 &&
-      Boolean(uploadedFiles[0]?.uploadUrl) &&
+      Boolean(uploadedFiles[0]?.fileKey) &&
       !isUploading
     );
-  }, [lessonId, title, uploadedFiles, isUploading]);
+  }, [snapLessonId, title, uploadedFiles, isUploading]);
 
   //  create record
  const handleCreate = async () => {
   if (!canCreate) return;
 
   try {
-     const videoUrl = uploadedFiles[0]?.uploadUrl;
+    const fileKey = uploadedFiles[0]?.fileKey;
 
-    const payload = {
+    await createRecord({
       title: title.trim(),
-      videoUrl: videoUrl || "",
-      lessonId,
-    };
-   console.log("Payload:", payload)
-    await createRecord(payload);
+      fileKey: fileKey || "",
+      snapLessonId,
+    });
 
     // reset
     setTitle("");
@@ -159,7 +160,7 @@ const RecordsManagementContent = () => {
             </CardHeader>
 
             <CardContent>
-              {!lessonId ? (
+              {!snapLessonId ? (
                 <div className="rounded-xl border bg-slate-50 p-6 text-center text-sm text-slate-500">
                   Chọn buổi học để xem dữ liệu
                 </div>
@@ -177,25 +178,34 @@ const RecordsManagementContent = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
+                  {recordItems.length > 0 ? (
+                    <div className="aspect-video overflow-hidden rounded-lg bg-black">
+                      {isLoadingPlayUrl ? (
+                        <div className="flex h-full items-center justify-center text-sm text-slate-300">
+                          Đang tải video...
+                        </div>
+                      ) : playVideo?.url ? (
+                        <video
+                          key={playVideo.url}
+                          src={playVideo.url}
+                          controls
+                          preload="metadata"
+                          playsInline
+                          className="h-full w-full"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-sm text-slate-300">
+                          Không thể tải video
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
                   {recordItems.map((r) => (
                     <div
                       key={r.id}
                       className="rounded-xl border bg-white p-4 shadow-sm"
                     >
                       <div className="font-semibold">{r.title}</div>
-
-                      <div className="mt-3 space-y-3">
-                        <div className="aspect-video overflow-hidden rounded-lg bg-black">
-                          <video
-                            src={toPlayableCloudinaryVideoUrl(r.videoUrl)}
-                            controls
-                            preload="metadata"
-                            playsInline
-                            crossOrigin="anonymous"
-                            className="h-full w-full"
-                          />
-                        </div>
-                      </div>
                     </div>
                   ))}
                 </div>

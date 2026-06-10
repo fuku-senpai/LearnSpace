@@ -39,13 +39,13 @@ type FormValues = {
   note: string;
   type: string;
   url: string;
-  lessonId: string;
+  snapLessonId: string;
 };
 
 const LessonResourceContent = () => {
   const searchParams = useSearchParams();
 
-  const lessonIdFromQuery = searchParams.get("lessonId") ?? "";
+  const snapLessonIdFromQuery = searchParams.get("snapLessonId") ?? "";
   const lessonTitleFromQuery = searchParams.get("lessonTitle") ?? "";
   const classTitleFromQuery = searchParams.get("classTitle") ?? "";
   const materialTitleFromQuery = searchParams.get("materialTitle") ?? "";
@@ -65,21 +65,21 @@ const LessonResourceContent = () => {
         note: "",
         type: "FILE",
         url: "",
-        lessonId: lessonIdFromQuery,
+        snapLessonId: snapLessonIdFromQuery,
       },
     });
 
   const type = watch("type");
   const title = watch("title");
   const url = watch("url");
-  const lessonId = watch("lessonId");
+  const snapLessonId = watch("snapLessonId");
 
   const { data: resources, isLoading: isLoadingResources } =
-    useGetLessonResourcesQuery(lessonId);
+    useGetLessonResourcesQuery(snapLessonId);
 
   useEffect(() => {
-    setValue("lessonId", lessonIdFromQuery);
-  }, [lessonIdFromQuery, setValue]);
+    setValue("snapLessonId", snapLessonIdFromQuery);
+  }, [snapLessonIdFromQuery, setValue]);
 
   const handleUploadFiles = async (files: FileList | null) => {
     if (!files?.length) return;
@@ -135,9 +135,11 @@ const LessonResourceContent = () => {
       type === "FILE" ? uploadedFiles.length > 0 : url?.trim().length > 0;
 
     return (
-      title?.trim().length > 0 && lessonId?.trim().length > 0 && hasResource
+      title?.trim().length > 0 &&
+      snapLessonId?.trim().length > 0 &&
+      hasResource
     );
-  }, [title, lessonId, type, uploadedFiles, url, isPending, isUploading]);
+  }, [title, snapLessonId, type, uploadedFiles, url, isPending, isUploading]);
 
   const onSubmit = async (data: FormValues) => {
     if (!canSubmit) return;
@@ -153,7 +155,7 @@ const LessonResourceContent = () => {
         note: data.note.trim(),
         type: data.type,
         urls,
-        lessonId: data.lessonId.trim(),
+        snapLessonId: data.snapLessonId.trim(),
       };
 
       await mutateAsync(payload);
@@ -163,7 +165,7 @@ const LessonResourceContent = () => {
         note: "",
         type: "FILE",
         url: "",
-        lessonId: lessonIdFromQuery,
+        snapLessonId: snapLessonIdFromQuery,
       });
 
       setUploadedFiles([]);
@@ -190,7 +192,7 @@ const LessonResourceContent = () => {
             Chủ đề: {materialTitleFromQuery || "Chưa chọn chủ đề"}
           </p>
           <p className="mt-2 text-sm font-medium text-slate-900">
-            Buổi học: {lessonTitleFromQuery || lessonIdFromQuery || "Chưa chọn buổi học"}
+            Buổi học: {lessonTitleFromQuery || snapLessonIdFromQuery || "Chưa chọn buổi học"}
           </p> */}
         </div>
 
@@ -205,7 +207,7 @@ const LessonResourceContent = () => {
             </CardHeader>
 
            <CardContent>
-  {!lessonId ? (
+  {!snapLessonId ? (
     <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">
       Chọn buổi học để xem tài liệu.
     </div>
@@ -390,7 +392,7 @@ const LessonResourceContent = () => {
                 <Input
                   hidden
                   placeholder="Lesson ID"
-                  {...register("lessonId")}
+                  {...register("snapLessonId")}
                 />
 
                 {error?.response?.data?.message && (

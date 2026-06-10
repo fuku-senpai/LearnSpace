@@ -9,122 +9,171 @@ const accessTokenCookieOptions = {
   secure: true,
   path: "/",
   sameSite: "lax" as const,
-  maxAge: 15 * 60, // 15 minutes
+  maxAge: 15 * 60, // 15 phút
 };
 
-async function refreshAccessToken(refreshToken: string) {
-  const backendRes = await fetch(`${env.API_URL}${AUTH_API.REFRESH_TOKEN}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ refreshToken }),
-  });
+const DASHBOARD_PATH = {
+  ADMIN: "/admin/dashboard_layout?menu=classes",
+  TEACHER: "/teacher/dashboard_layout",
+  STUDENT: "/student/student_dashboard",
+} as const;
 
-  if (!backendRes.ok) {
+async function refreshAccessToken(
+  refreshToken: string,
+): Promise<string | null> {
+  try {
+    const response = await fetch(`${env.API_URL}${AUTH_API.REFRESH_TOKEN}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        refreshToken,
+      }),
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json();
+
+    return typeof data?.newAccessToken === "string"
+      ? data.newAccessToken
+      : null;
+  } catch {
     return null;
   }
-
-  const data = await backendRes.json();
-  return typeof data?.newAccessToken === "string" ? data.newAccessToken : null;
 }
 
-function redirectWithAccessToken(url: URL, accessToken: string) {
-  const response = NextResponse.redirect(url);
+function setAccessTokenCookie(response: NextResponse, accessToken: string) {
   response.cookies.set("accessToken", accessToken, accessTokenCookieOptions);
+
   return response;
 }
 
-function nextWithAccessToken(accessToken: string) {
-  const response = NextResponse.next();
-  response.cookies.set("accessToken", accessToken, accessTokenCookieOptions);
+function getDashboardPath(role?: string) {
+  switch (role) {
+    case "ADMIN":
+      return DASHBOARD_PATH.ADMIN;
+
+    case "TEACHER":
+      return DASHBOARD_PATH.TEACHER;
+
+    case "STUDENT":
+      return DASHBOARD_PATH.STUDENT;
+
+    default:
+      return "/login";
+  }
+}
+
+function redirectByRole(
+  req: NextRequest,
+  role?: string,
+  newAccessToken?: string,
+) {
+  const response = NextResponse.redirect(
+    new URL(getDashboardPath(role), req.url),
+  );
+
+  if (newAccessToken) {
+    setAccessTokenCookie(response, newAccessToken);
+  }
+
   return response;
 }
 
 export async function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
+
   const accessToken = req.cookies.get("accessToken")?.value;
+
   const refreshToken = req.cookies.get("refreshToken")?.value;
+
   const role = req.cookies.get("role")?.value;
-  const pathname = req.nextUrl.pathname;
-  const isAuthPage = pathname.startsWith("/login") || pathname.startsWith("/register");
+
+  const isAuthPage =
+    pathname.startsWith("/login") || pathname.startsWith("/register");
+
   const isLandingPage = pathname === "/";
+
+  const isAdminRoute = pathname.startsWith("/admin");
+
   const isTeacherRoute = pathname.startsWith("/teacher");
+
   const isStudentRoute = pathname.startsWith("/student");
 
-  const teacherDashboardUrl = new URL("/teacher/dashboard_layout", req.url);
-  const studentDashboardUrl = new URL("/student/student_dashboard", req.url);
+  const isProtectedRoute = isAdminRoute || isTeacherRoute || isStudentRoute;
 
-  const canRefreshSession = !accessToken && Boolean(refreshToken);
-  let refreshedAccessToken: string | null = null;
+  let activeAccessToken: string | undefined = accessToken;
 
-  if (canRefreshSession && refreshToken) {
-    refreshedAccessToken = await refreshAccessToken(refreshToken);
+  // Refresh access token
+  if (!activeAccessToken && refreshToken) {
+    const refreshedToken = await refreshAccessToken(refreshToken);
+
+    activeAccessToken = refreshedToken ?? undefined;
   }
 
-  if (!accessToken && !refreshedAccessToken && (isTeacherRoute || isStudentRoute)) {
+  // Chưa login -> chặn protected route
+  if (!activeAccessToken && isProtectedRoute) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  if (!accessToken && !refreshedAccessToken && isLandingPage) {
+  // Guest được vào trang "/"
+  if (!activeAccessToken && isLandingPage) {
     return NextResponse.next();
   }
 
-  const activeAccessToken = accessToken ?? refreshedAccessToken;
-
-  if (!activeAccessToken) {
-    return NextResponse.next();
-  }
-  if (accessToken && isAuthPage) {
-    if (role === "TEACHER") {
-      return NextResponse.redirect(teacherDashboardUrl);
-    }
-
-    if (role === "STUDENT") {
-      return NextResponse.redirect(studentDashboardUrl);
-    }
-
-    return NextResponse.next();
+  // Đã login -> chặn login/register
+  if (activeAccessToken && isAuthPage) {
+    return redirectByRole(
+      req,
+      role,
+      activeAccessToken !== accessToken ? activeAccessToken : undefined,
+    );
   }
 
+  // "/" -> redirect dashboard
   if (activeAccessToken && isLandingPage) {
-    if (role === "STUDENT") {
-      return refreshedAccessToken
-        ? redirectWithAccessToken(studentDashboardUrl, refreshedAccessToken)
-        : NextResponse.redirect(studentDashboardUrl);
-    }
-
-    return refreshedAccessToken
-      ? redirectWithAccessToken(teacherDashboardUrl, refreshedAccessToken)
-      : NextResponse.redirect(teacherDashboardUrl);
+    return redirectByRole(
+      req,
+      role,
+      activeAccessToken !== accessToken ? activeAccessToken : undefined,
+    );
   }
 
-  if (!accessToken && refreshedAccessToken && isAuthPage) {
-    if (role === "STUDENT") {
-      return redirectWithAccessToken(studentDashboardUrl, refreshedAccessToken);
-    }
-
-    return redirectWithAccessToken(teacherDashboardUrl, refreshedAccessToken);
+  // Role guard - ADMIN
+  if (role !== "ADMIN" && isAdminRoute) {
+    return NextResponse.redirect(new URL(getDashboardPath(role), req.url));
   }
 
-  if (isTeacherRoute && role === "STUDENT") {
-    return NextResponse.redirect(studentDashboardUrl);
+  // Role guard - TEACHER
+  if (role !== "TEACHER" && isTeacherRoute) {
+    return NextResponse.redirect(new URL(getDashboardPath(role), req.url));
   }
 
-  if (isStudentRoute && role === "TEACHER") {
-    return NextResponse.redirect(teacherDashboardUrl);
+  // Role guard - STUDENT
+  if (role !== "STUDENT" && isStudentRoute) {
+    return NextResponse.redirect(new URL(getDashboardPath(role), req.url));
   }
 
-  return refreshedAccessToken
-    ? nextWithAccessToken(refreshedAccessToken)
-    : NextResponse.next();
+  const response = NextResponse.next();
+
+  // Nếu refresh token thành công
+  // thì update cookie accessToken mới
+  if (activeAccessToken && activeAccessToken !== accessToken) {
+    setAccessTokenCookie(response, activeAccessToken);
+  }
+
+  return response;
 }
 
 export const config = {
   matcher: [
     "/",
-    "/teacher",
+    "/admin/:path*",
     "/teacher/:path*",
-    "/student",
     "/student/:path*",
     "/login",
     "/register",

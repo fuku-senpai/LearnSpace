@@ -5,12 +5,14 @@ export type CreateLessonResourcePayload = {
   title: string;
   type: string;
   urls: string[];
-  lessonId: string;
+  note?: string;
+  snapLessonId: string;
 };
 
 export type CreateLessonResourceResponse = {
   message?: string;
 };
+
 export type LessonResourceItem = {
   id: string;
   title: string;
@@ -27,9 +29,13 @@ export const LessonResourceService = {
       await axiosClient.post("/lessonResource", payload);
     return res.data;
   },
-  getLessonResources: async (lessonId: string): Promise<LessonResourceItem[]> => { 
+
+  getLessonResources: async (
+    snapLessonId: string,
+  ): Promise<LessonResourceItem[]> => {
     const res: AxiosResponse<LessonResourceItem[]> = await axiosClient.get(
-        `/lessonResource?lessonId=${encodeURIComponent(lessonId)}`);
+      `/lessonResource?snapLessonId=${encodeURIComponent(snapLessonId)}`,
+    );
     return res.data;
-  }
+  },
 };

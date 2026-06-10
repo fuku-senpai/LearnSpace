@@ -6,7 +6,7 @@ import { Record_API } from "@/constants/api-endpoints";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { title, videoUrl, lessonId } = body;
+    const { title, fileKey, snapLessonId } = body;
 
     const cookieStore = await cookies();
     const accessToken = cookieStore.get("accessToken")?.value;
@@ -21,7 +21,7 @@ export async function POST(req: Request) {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
       },
-      body: JSON.stringify({ title, videoUrl, lessonId }),
+      body: JSON.stringify({ title, fileKey, snapLessonId }),
     });
 
     const data = await res.json();
@@ -43,10 +43,10 @@ export async function POST(req: Request) {
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const lessonId = searchParams.get("lessonId");
+    const snapLessonId = searchParams.get("snapLessonId");
 
-    if (!lessonId) {
-      return NextResponse.json({ message: "lessonId is required" }, { status: 400 });
+    if (!snapLessonId) {
+      return NextResponse.json({ message: "snapLessonId is required" }, { status: 400 });
     }
 
     const cookieStore = await cookies();
@@ -56,7 +56,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const res = await fetch(`${env.API_URL}${Record_API.GET_BY_LESSON(lessonId)}`, {
+    const res = await fetch(`${env.API_URL}${Record_API.GET_BY_LESSON(snapLessonId)}`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${accessToken}`,

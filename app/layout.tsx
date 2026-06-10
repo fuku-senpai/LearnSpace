@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { Geist_Mono, Roboto } from "next/font/google";
 import "./globals.css";
 import ReactQueryProvider from "@/components/commo/ReactQueryProvider";
-import { ToastContainer} from 'react-toastify';
+import { ToastContainer } from "react-toastify";
+import { Toaster } from "@/components/ui/sonner";
 const roboto = Roboto({
   variable: "--font-sans",
   subsets: ["latin"],
@@ -32,7 +33,11 @@ export default function RootLayout({
       lang="en"
       className={`${roboto.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col"><ReactQueryProvider>{children}</ReactQueryProvider> <ToastContainer/></body>
+      <body className="min-h-full flex flex-col">
+        <ReactQueryProvider>{children}</ReactQueryProvider>
+        <ToastContainer />
+        <Toaster />
+      </body>
     </html>
   );
 }

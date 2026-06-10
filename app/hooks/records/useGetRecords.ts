@@ -1,9 +1,9 @@
 import { RecordService } from "@/app/service/record.service";
 import { useQuery } from "@tanstack/react-query";
 
-export const useGetRecordsByLessonQuery = (lessonId?: string) =>
+export const useGetRecordsByLessonQuery = (snapLessonId?: string) =>
   useQuery({
-    queryKey: ["records", lessonId],
-    queryFn: () => RecordService.getRecordsByLesson(lessonId as string),
-    enabled: Boolean(lessonId),
+    queryKey: ["records", snapLessonId],
+    queryFn: () => RecordService.getRecordsByLesson(snapLessonId as string),
+    enabled: Boolean(snapLessonId),
   });

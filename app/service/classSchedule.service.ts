@@ -15,6 +15,30 @@ export type CreateClassScheduleResponse = {
   message?: string;
 };
 
+export type UpdateClassSchedulePayload = {
+  classroomId: string;
+  scheduleId: string;
+  dayOfWeek: string;
+  startTime: string;
+  endTime: string;
+  studyMode: string;
+  location?: string;
+  meetingUrl?: string;
+};
+
+export type UpdateClassScheduleResponse = {
+  message?: string;
+};
+
+export type DeleteClassSchedulePayload = {
+  classroomId: string;
+  scheduleId: string;
+};
+
+export type DeleteClassScheduleResponse = {
+  message?: string;
+};
+
 export type ClassScheduleItem = {
   id: string;
   dayOfWeek: string;
@@ -44,6 +68,26 @@ export const ClassScheduleService = {
     const res: AxiosResponse<ClassScheduleItem[]> = await axiosClient.get(
       `/schedules/${classroomId}`,
     );
+
+    return res.data;
+  },
+
+  updateClassSchedule: async (
+    payload: UpdateClassSchedulePayload,
+  ): Promise<UpdateClassScheduleResponse> => {
+    const { classroomId, scheduleId, ...body } = payload;
+    const res: AxiosResponse<UpdateClassScheduleResponse> =
+      await axiosClient.put(`/schedules/${classroomId}/${scheduleId}`, body);
+
+    return res.data;
+  },
+
+  deleteClassSchedule: async (
+    payload: DeleteClassSchedulePayload,
+  ): Promise<DeleteClassScheduleResponse> => {
+    const { classroomId, scheduleId } = payload;
+    const res: AxiosResponse<DeleteClassScheduleResponse> =
+      await axiosClient.delete(`/schedules/${classroomId}/${scheduleId}`);
 
     return res.data;
   },

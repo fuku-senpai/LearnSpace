@@ -71,6 +71,47 @@ export type EnrollClassroomResponse = {
   message?: string;
 };
 
+export type AssignTeacherPayload = {
+  teacherId: string;
+};
+
+export type AssignTeacherResponse = {
+  message?: string;
+};
+
+export type RemoveTeacherResponse = {
+  message?: string;
+};
+
+export type ClassroomWithTeacher = {
+  classroomId: string;
+  classroomName: string;
+  code: string;
+  description: string;
+  status: string;
+  totalStudent: number;
+  startDate: string;
+  endDate: string;
+  teacher: {
+    teacherId: string;
+    fullName: string;
+    email: string;
+    avatar: string | null;
+    specialization: string | null;
+    yearsExperience: number | null;
+  } | null;
+};
+
+export type ClassroomsWithTeacherResponse = {
+  content: ClassroomWithTeacher[];
+  page: {
+    size: number;
+    number: number;
+    totalElements: number;
+    totalPages: number;
+  };
+};
+
 export type GetAllClassesFilter = {
   page: number;
   size: number;
@@ -160,6 +201,47 @@ export const ClassService = {
     const res: AxiosResponse<EnrollClassroomResponse> = await axiosClient.post(
       "/enrolling-classroom",
       payload,
+    );
+
+    return res.data;
+  },
+
+  getClassroomsWithTeacher: async (
+    page = 0,
+    size = 10,
+    hasTeacher?: boolean,
+  ): Promise<ClassroomsWithTeacherResponse> => {
+    const res: AxiosResponse<ClassroomsWithTeacherResponse> = await axiosClient.get(
+      "/classrooms-with-teacher",
+      {
+        params: {
+          page,
+          size,
+          hasTeacher: hasTeacher === undefined ? undefined : hasTeacher,
+        },
+      },
+    );
+
+    return res.data;
+  },
+
+  assignTeacher: async (
+    classroomId: string,
+    payload: AssignTeacherPayload,
+  ): Promise<AssignTeacherResponse> => {
+    const res: AxiosResponse<AssignTeacherResponse> = await axiosClient.post(
+      `/class/${classroomId}/assign-teacher`,
+      payload,
+    );
+
+    return res.data;
+  },
+
+  removeTeacher: async (
+    classroomId: string,
+  ): Promise<RemoveTeacherResponse> => {
+    const res: AxiosResponse<RemoveTeacherResponse> = await axiosClient.delete(
+      `/class/${classroomId}/remove-teacher`,
     );
 
     return res.data;
