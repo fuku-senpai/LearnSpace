@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState, useRef } from "react";
+import { Suspense, useEffect, useMemo, useState, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { FileText, MonitorPlay, PlayCircle, Video } from "lucide-react";
 import { useGetTeacherClassrooms } from "@/app/hooks/teacher/useGetTeacherClassrooms";
 import { useGetSnapMaterials } from "@/app/hooks/materials/useGetSnapMaterials";
@@ -377,7 +378,8 @@ function LessonMaterialsPanel({
   );
 }
 
-export default function VideoDocumentManagement() {
+function VideoDocumentManagementContent() {
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<TabKey>("materials");
   const [activeSessionId, setActiveSessionId] = useState("");
   const [selectedVideo, setSelectedVideo] = useState<File | null>(null);
@@ -385,6 +387,27 @@ export default function VideoDocumentManagement() {
     undefined,
   );
   const [isUploading, setIsUploading] = useState(false);
+
+  useEffect(() => {
+    const menu = searchParams.get("menu");
+    const lessonId =
+      searchParams.get("lessonId") ?? searchParams.get("snapLessonId") ?? "";
+    const classId = searchParams.get("classId") ?? "";
+
+    if (classId) {
+      setSelectedCourseId(classId);
+    }
+
+    if (lessonId) {
+      setActiveSessionId(lessonId);
+    }
+
+    if (menu === "records") {
+      setActiveTab("videos");
+    } else if (menu === "lessonResources") {
+      setActiveTab("materials");
+    }
+  }, [searchParams]);
   const { data: teacherClassrooms } = useGetTeacherClassrooms();
   const classrooms: TeacherClassroom[] = teacherClassrooms ?? [];
   const effectiveCourseId =
@@ -497,8 +520,8 @@ export default function VideoDocumentManagement() {
     }
   };
   return (
-    <div className="flex min-w-0 flex-1 flex-col">
-      <header className="flex items-center justify-between gap-4 border-b border-slate-200 bg-white px-4 py-2">
+    <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
+      <header className="flex items-center justify-between gap-4 border-b border-slate-200/70 bg-white px-5 py-3">
         <Select
           value={effectiveCourseId ?? ""}
           onValueChange={(val) => {
@@ -545,9 +568,9 @@ export default function VideoDocumentManagement() {
             ))}
           </SelectContent>
         </Select>
-        <div className="hidden items-center gap-3 text-sm text-slate-500 md:flex">
-          <MonitorPlay className="h-4 w-4" />
-          Teacher dashboard
+        <div className="hidden items-center gap-2 rounded-xl border border-slate-200/80 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-500 md:flex">
+          <MonitorPlay className="h-3.5 w-3.5 text-sky-500" />
+          Quản lý buổi học
         </div>
       </header>
 
@@ -878,5 +901,19 @@ export default function VideoDocumentManagement() {
         </main>
       </div>
     </div>
+  );
+}
+
+export default function VideoDocumentManagement() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-full items-center justify-center text-sm text-slate-500">
+          Đang tải nội dung lớp học...
+        </div>
+      }
+    >
+      <VideoDocumentManagementContent />
+    </Suspense>
   );
 }

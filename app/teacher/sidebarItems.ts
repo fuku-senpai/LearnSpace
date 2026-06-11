@@ -1,38 +1,33 @@
-"use client";
-
 import type { LucideIcon } from "lucide-react";
-import {
-  Home,
-  Menu,
-  FileText,
-  Link2,
-  LogOut,
-  NotebookText,
-  Settings,
-  Tag,
-  User,
-} from "lucide-react";
+import { LayoutDashboard, MonitorPlay } from "lucide-react";
 
-export type TeacherSidebarItem = {
-  key: string;
-  Icon: LucideIcon;
-  path?: string;
-  label?: string;
+export type TeacherMenuKey = "overview" | "content";
+
+export type TeacherMenuItem = {
+  key: TeacherMenuKey;
+  label: string;
+  icon: LucideIcon;
 };
 
-export const sidebarItems: TeacherSidebarItem[] = [
-  { key: "home", Icon: Home, path: "/teacher" },
-  { key: "menu", Icon: Menu, path: "/teacher/video-document" },
-  { key: "file", Icon: FileText },
-  { key: "link", Icon: Link2 },
-  { key: "notebook", Icon: NotebookText },
-  { key: "tag", Icon: Tag },
-  { key: "settings", Icon: Settings },
-  { key: "user", Icon: User },
+export const teacherMenuGroups: {
+  title: string;
+  items: TeacherMenuItem[];
+}[] = [
+  {
+    title: "Tổng quan",
+    items: [
+      { key: "overview", label: "Bảng điều khiển", icon: LayoutDashboard },
+    ],
+  },
+  {
+    title: "Giảng dạy",
+    items: [
+      { key: "content", label: "Video & Tài liệu", icon: MonitorPlay },
+    ],
+  },
 ];
 
-export const logoutSidebarItem: TeacherSidebarItem = {
-  key: "logout",
-  Icon: LogOut,
-  label: "Đăng xuất",
+export const teacherMenuLabels: Record<TeacherMenuKey, string> = {
+  overview: "Bảng điều khiển",
+  content: "Video & Tài liệu",
 };

@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState, type UIEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useGetClassesQuery } from "@/app/hooks/classes/useGetClasses";
-import { useDeleteClassroomMaterials } from "@/app/hooks/classroom-materials/useDeleteClassroomMaterials";
+import { useRemoveSnapClassroomMaterials } from "@/app/hooks/snapClassroom_materials/useDeleteSnap";
 import { useUpdateClassroomMaterials } from "@/app/hooks/classroom-materials/useUpdateClassroomMaterials";
 import { useAssignMaterialsToClassroom } from "@/app/hooks/materials/useAssignMaterialsToClassroom";
 import { useDeleteMaterialMutation } from "@/app/hooks/materials/useDeleteMaterial";
@@ -21,14 +21,6 @@ import type {
   Item,
 } from "@/app/service/material.service";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -47,7 +39,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { FileText, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import {
+  BookOpen,
+  FileText,
+  GraduationCap,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Search,
+  Sparkles,
+  Trash2,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -129,9 +131,11 @@ const MaterialManagementContent = ({ classId }: MaterialManagementProps) => {
     reset: resetUpdateClassroomMaterialError,
   } = useUpdateClassroomMaterials();
   const {
-    mutateAsync: deleteClassroomMaterial,
-    isPending: isDeletingClassroomMaterial,
-  } = useDeleteClassroomMaterials();
+    mutateAsync: removeSnapClassroomMaterial,
+    isPending: isRemovingSnapClassroomMaterial,
+    error: removeSnapClassroomMaterialError,
+    reset: resetRemoveSnapClassroomMaterialError,
+  } = useRemoveSnapClassroomMaterials();
   const {
     mutateAsync: deleteMaterial,
     isPending: isDeletingMaterial,
@@ -279,16 +283,17 @@ const MaterialManagementContent = ({ classId }: MaterialManagementProps) => {
     await refetchClassMaterials();
   };
 
-  const handleDeleteClassroomMaterial = (classroomMaterialId: string) => {
-    if (!classroomMaterialId) return;
-    setDeletingClassroomMaterialId(classroomMaterialId);
+  const handleDeleteClassroomMaterial = (snapClassroomMaterialId: string) => {
+    if (!snapClassroomMaterialId) return;
+    setDeletingClassroomMaterialId(snapClassroomMaterialId);
+    resetRemoveSnapClassroomMaterialError();
     setIsDeleteClassroomMaterialOpen(true);
   };
 
   const handleConfirmDeleteClassroomMaterial = async () => {
-    if (!deletingClassroomMaterialId || isDeletingClassroomMaterial) return;
-    await deleteClassroomMaterial({
-      classroomMaterialId: deletingClassroomMaterialId,
+    if (!deletingClassroomMaterialId || isRemovingSnapClassroomMaterial) return;
+    await removeSnapClassroomMaterial({
+      snapClassroomMaterialId: deletingClassroomMaterialId,
     });
     setIsDeleteClassroomMaterialOpen(false);
     setDeletingClassroomMaterialId(null);
@@ -426,36 +431,57 @@ const MaterialManagementContent = ({ classId }: MaterialManagementProps) => {
     });
   }, [classResponse, classFilter.page]);
   return (
-    <div className="min-h-screen bg-[#f4f6fb]">
-      <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-8">
-        <div className="flex flex-wrap items-start justify-between gap-4 rounded-2xl border border-slate-200/70 bg-white px-6 py-5 shadow-sm">
-          <div className="space-y-2">
-            <h1 className="text-2xl font-semibold text-slate-900">
-              Quản lý chủ đề
-            </h1>
-            <p className="text-sm text-slate-600">
-              Thêm đề tài cho các lớp học.
-            </p>
-          </div>
-        </div>
-        <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
-          <Card className="border-slate-200/80 bg-white shadow-sm">
-            <CardContent className="space-y-3">
-              <div className="space-y-2 pt-1">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Đề tài hiện có
+    <div>
+      <div className="mx-auto max-w-7xl space-y-8">
+        <section className="space-y-4 border-b border-slate-200 pb-6">
+          <span className="inline-flex items-center gap-2 text-xs font-semibold tracking-[0.14em] text-amber-600 uppercase">
+            <Sparkles className="h-3.5 w-3.5" />
+            Quản lý nội dung
+          </span>
+          <div className="h-px w-full max-w-[100px] bg-gradient-to-r from-amber-400 to-transparent" />
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div className="space-y-1">
+              <h2 className="text-2xl font-bold tracking-tight text-slate-900">
+                Quản lý chủ đề
+              </h2>
+              <p className="max-w-2xl text-sm text-slate-500">
+                Tạo chủ đề, gán vào lớp học và quản lý thứ tự hiển thị.
+              </p>
+            </div>
+            <div className="flex items-center gap-6 border-l border-slate-200 pl-6 text-sm">
+              <div>
+                <p className="text-xs text-slate-400 uppercase">Thư viện</p>
+                <p className="font-semibold text-slate-900">
+                  {materialsResponse?.totalElements ?? materials.length}
                 </p>
-                <div className="rounded-xl border border-slate-200/70 bg-white px-4 py-3">
-                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                      {/* Left */}
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                        {/* Select */}
-                        <div className="flex flex-col gap-2">
-                          <label className="text-sm font-semibold text-slate-700">
-                            Chọn lớp học
-                          </label>
-                          <Select
+              </div>
+              <div>
+                <p className="text-xs text-slate-400 uppercase">Đã gán lớp</p>
+                <p className="font-semibold text-slate-900">
+                  {classMaterials.length}
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="min-w-0 space-y-8">
+            <section className="space-y-4">
+              <div className="space-y-1 border-b border-slate-200 pb-4">
+                <h3 className="text-lg font-semibold text-slate-900">
+                  Gán chủ đề cho lớp
+                </h3>
+                <div className="h-px w-14 bg-gradient-to-r from-slate-300 to-transparent" />
+              </div>
+
+              <div className="flex flex-col gap-4 border-b border-slate-100 pb-5 sm:flex-row sm:items-end sm:justify-between">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                  <div className="grid gap-2">
+                    <label className="text-xs font-medium tracking-wide text-slate-500 uppercase">
+                      Chọn lớp học
+                    </label>
+                    <Select
                             value={selectedClassId}
                             onValueChange={(value) => {
                               setSelectedClassId(value);
@@ -478,7 +504,7 @@ const MaterialManagementContent = ({ classId }: MaterialManagementProps) => {
                               refetchClasses();
                             }}
                           >
-                            <SelectTrigger className="h-11 cursor-pointer min-w-[280px] rounded-xl border-slate-200 bg-slate-50 px-4 shadow-sm transition focus:ring-2 focus:ring-slate-300">
+                            <SelectTrigger className="h-10 min-w-[260px] cursor-pointer rounded-xl border-slate-200/80 bg-white">
                               <SelectValue placeholder="Chọn lớp học" />
                             </SelectTrigger>
 
@@ -513,31 +539,26 @@ const MaterialManagementContent = ({ classId }: MaterialManagementProps) => {
                               </ScrollArea>
                             </SelectContent>
                           </Select>
-                        </div>
-
-                        {/* Button */}
-                        <Button
-                          onClick={handleAssignMaterials}
-                          disabled={!canAssign}
-                          className="mt-[28px] cursor-pointer h-7 rounded-xl bg-slate-900 px-6 font-medium text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-slate-800 disabled:opacity-50"
-                        >
-                          {isAssigning ? "Đang gán..." : "Gán đề tài"}
-                        </Button>
-                      </div>
-
-                      {/* Counter */}
-                      <div className="flex items-center gap-2 rounded-xl bg-slate-100 px-4 py-2">
-                        <span className="text-sm text-slate-600">Đã chọn</span>
-
-                        <div className="flex h-7 min-w-[32px] items-center justify-center rounded-full bg-slate-900 px-2 text-sm font-semibold text-white">
-                          {selectedMaterialIds.length}
-                        </div>
-                      </div>
-                    </div>
                   </div>
-              
+
+                  <Button
+                    onClick={handleAssignMaterials}
+                    disabled={!canAssign}
+                    className="h-10 cursor-pointer rounded-xl bg-slate-900 px-5 text-white hover:bg-slate-800 disabled:opacity-50"
+                  >
+                    {isAssigning ? "Đang gán..." : "Gán đề tài"}
+                  </Button>
                 </div>
-                <Dialog
+
+                <div className="flex items-center gap-2 text-sm text-slate-600">
+                  <span>Đã chọn</span>
+                  <span className="flex h-7 min-w-7 items-center justify-center rounded-full bg-slate-900 px-2 text-xs font-semibold text-white">
+                    {selectedMaterialIds.length}
+                  </span>
+                </div>
+              </div>
+
+              <Dialog
                   open={isOrderDialogOpen}
                   onOpenChange={(open) => {
                     setIsOrderDialogOpen(open);
@@ -745,8 +766,14 @@ const MaterialManagementContent = ({ classId }: MaterialManagementProps) => {
                       </div>
                     </div>
 
-                    <div className="px-6 py-6 text-sm text-slate-600">
-                      Bạn chắc chắn muốn xóa đề tài này khỏi lớp?
+                    <div className="space-y-3 px-6 py-6 text-sm text-slate-600">
+                      <p>Bạn chắc chắn muốn xóa đề tài này khỏi lớp?</p>
+                      {removeSnapClassroomMaterialError?.response?.data
+                        ?.message ? (
+                        <p className="text-xs text-rose-600">
+                          {removeSnapClassroomMaterialError.response.data.message}
+                        </p>
+                      ) : null}
                     </div>
 
                     <div className="flex items-center justify-end gap-3 border-t border-slate-200/70 px-6 py-4">
@@ -761,10 +788,12 @@ const MaterialManagementContent = ({ classId }: MaterialManagementProps) => {
                       <Button
                         className="cursor-pointer bg-rose-600 text-white hover:bg-rose-700"
                         onClick={handleConfirmDeleteClassroomMaterial}
-                        disabled={isDeletingClassroomMaterial}
+                        disabled={isRemovingSnapClassroomMaterial}
                         type="button"
                       >
-                        {isDeletingClassroomMaterial ? "Đang xóa..." : "Xóa"}
+                        {isRemovingSnapClassroomMaterial
+                          ? "Đang xóa..."
+                          : "Xóa"}
                       </Button>
                     </div>
                   </DialogContent>
@@ -914,37 +943,42 @@ const MaterialManagementContent = ({ classId }: MaterialManagementProps) => {
                     </div>
                   </DialogContent>
                 </Dialog>
-                <div className="rounded-xl border border-slate-200/70 bg-white px-4 py-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="text-sm font-medium text-slate-700">
-                      Chủ đề của lớp đã chọn
-                    </div>
-                    {selectedClassId ? (
-                      <span className="text-xs text-slate-500">
-                        Tổng: {classMaterials.length}
-                      </span>
-                    ) : null}
-                  </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-medium text-slate-700">
+                    Chủ đề đã gán vào lớp
+                  </p>
+                  {selectedClassId ? (
+                    <span className="text-xs text-slate-500">
+                      {classMaterials.length} chủ đề
+                    </span>
+                  ) : null}
+                </div>
+
+                <div className="overflow-hidden rounded-2xl border border-slate-200/80">
                   {!selectedClassId ? (
-                    <div className="mt-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-center text-sm text-slate-500">
+                    <div className="px-6 py-10 text-center text-sm text-slate-500">
                       Chọn lớp để xem danh sách chủ đề đã gán.
                     </div>
                   ) : isClassMaterialsLoading ? (
-                    <div className="mt-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">
+                    <div className="px-6 py-8 text-sm text-slate-500">
                       Đang tải chủ đề của lớp...
                     </div>
                   ) : classMaterials.length > 0 ? (
-                    <div className="mt-3 overflow-hidden rounded-xl border border-slate-200/70 bg-white">
                       <Table>
-                        <TableHeader className="bg-slate-50">
-                          <TableRow className="border-slate-200">
-                            <TableHead className="w-55">Chủ đề</TableHead>
-                            <TableHead>Mô tả</TableHead>
-                            <TableHead className="w-24 text-center">
-                              Thứ tự học
+                        <TableHeader className="bg-slate-50/80">
+                          <TableRow className="border-slate-200 hover:bg-transparent">
+                            <TableHead className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                              Chủ đề
                             </TableHead>
-                            <TableHead className="w-32 text-center">
-                              Hành động
+                            <TableHead className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                              Mô tả
+                            </TableHead>
+                            <TableHead className="text-center text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                              Thứ tự
+                            </TableHead>
+                            <TableHead className="text-right text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                              Thao tác
                             </TableHead>
                           </TableRow>
                         </TableHeader>
@@ -952,10 +986,17 @@ const MaterialManagementContent = ({ classId }: MaterialManagementProps) => {
                           {classMaterials.map((material: ClassroomMaterialItem) => (
                             <TableRow
                               key={material.id}
-                              className="border-slate-100"
+                              className="border-slate-100 transition-colors hover:bg-amber-50/30"
                             >
-                              <TableCell className="font-semibold text-slate-900">
-                                {material.title}
+                              <TableCell>
+                                <div className="flex items-center gap-3">
+                                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-600">
+                                    <BookOpen className="h-3.5 w-3.5" />
+                                  </div>
+                                  <span className="font-semibold text-slate-900">
+                                    {material.title}
+                                  </span>
+                                </div>
                               </TableCell>
                               <TableCell className="text-slate-600">
                                 {material.description || "Không có mô tả"}
@@ -964,14 +1005,14 @@ const MaterialManagementContent = ({ classId }: MaterialManagementProps) => {
                                 {material.materialOrder ?? 0}
                               </TableCell>
                               {/* ACTION */}
-                              <TableCell>
-                                <div className="flex justify-center">
+                              <TableCell className="text-right">
+                                <div className="flex justify-end">
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                       <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="h-9 w-9 cursor-pointer rounded-xl border border-slate-200 bg-white shadow-sm hover:bg-slate-100"
+                                        className="h-8 w-8 cursor-pointer rounded-lg border border-slate-200 hover:bg-slate-100"
                                       >
                                         <MoreHorizontal className="h-4 w-4 text-slate-600" />
                                       </Button>
@@ -1016,20 +1057,28 @@ const MaterialManagementContent = ({ classId }: MaterialManagementProps) => {
                           ))}
                         </TableBody>
                       </Table>
-                    </div>
                   ) : (
-                    <div className="mt-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-center text-sm text-slate-500">
+                    <div className="px-6 py-10 text-center text-sm text-slate-500">
                       Lớp này chưa có chủ đề nào.
                     </div>
                   )}
                 </div>
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200/70 bg-white px-4 py-3">
-                  <div className="text-sm font-medium text-slate-700">
-                    Tìm theo tiêu đề
-                  </div>
+              </div>
+            </section>
+
+            <section className="space-y-4 border-t border-slate-200 pt-6">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900">
+                    Thư viện chủ đề
+                  </h3>
+                  <div className="mt-2 h-px w-14 bg-gradient-to-r from-slate-300 to-transparent" />
+                </div>
+                <div className="relative min-w-[220px]">
+                  <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
                   <Input
-                    placeholder="Nhập tiêu đề cần tìm"
-                    className="h-9 w-full max-w-xs border-slate-200/70 bg-white text-slate-900 placeholder:text-slate-300/70"
+                    placeholder="Tìm theo tiêu đề..."
+                    className="h-10 border-slate-200/80 bg-white pl-9 text-slate-900 placeholder:text-slate-400"
                     value={searchTitle}
                     onChange={(event) => {
                       resetAssignError();
@@ -1042,16 +1091,18 @@ const MaterialManagementContent = ({ classId }: MaterialManagementProps) => {
                     }}
                   />
                 </div>
-                {isMaterialsLoading ? (
-                  <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">
-                    Đang tải chủ đề...
-                  </div>
-                ) : materials.length > 0 ? (
-                  <div className="space-y-2">
-                    <div className="overflow-hidden rounded-xl border border-slate-200/70 bg-white">
+              </div>
+
+              {isMaterialsLoading ? (
+                <div className="py-8 text-sm text-slate-500">
+                  Đang tải chủ đề...
+                </div>
+              ) : materials.length > 0 ? (
+                <div className="space-y-4">
+                  <div className="overflow-hidden rounded-2xl border border-slate-200/80">
                       <Table>
-                        <TableHeader className="bg-slate-50">
-                          <TableRow className="border-slate-200">
+                        <TableHeader className="bg-slate-50/80">
+                          <TableRow className="border-slate-200 hover:bg-transparent">
                             <TableHead className="w-12 text-center">
                               <input
                                 type="checkbox"
@@ -1063,13 +1114,20 @@ const MaterialManagementContent = ({ classId }: MaterialManagementProps) => {
                                 }
                               />
                             </TableHead>
-                            <TableHead className="w-55">Chủ đề học</TableHead>
-                            <TableHead>Mô tả</TableHead>
-                            <TableHead>Ngày tạo</TableHead>
-                            <TableHead>Ngày cập nhật</TableHead>
-
-                            <TableHead className="w-40 text-center">
-                              Hành động
+                            <TableHead className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                              Chủ đề
+                            </TableHead>
+                            <TableHead className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                              Mô tả
+                            </TableHead>
+                            <TableHead className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                              Ngày tạo
+                            </TableHead>
+                            <TableHead className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                              Cập nhật
+                            </TableHead>
+                            <TableHead className="text-right text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                              Thao tác
                             </TableHead>
                           </TableRow>
                         </TableHeader>
@@ -1077,7 +1135,7 @@ const MaterialManagementContent = ({ classId }: MaterialManagementProps) => {
                           {materials.map((material: Item) => (
                             <TableRow
                               key={material.id}
-                              className="border-slate-100 transition hover:bg-slate-50"
+                              className="border-slate-100 transition-colors hover:bg-amber-50/30"
                             >
                               <TableCell className="text-center">
                                 <input
@@ -1092,8 +1150,15 @@ const MaterialManagementContent = ({ classId }: MaterialManagementProps) => {
                                   }
                                 />
                               </TableCell>
-                              <TableCell className="font-semibold text-slate-900">
-                                {material.title}
+                              <TableCell>
+                                <div className="flex items-center gap-3">
+                                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-600">
+                                    <GraduationCap className="h-3.5 w-3.5" />
+                                  </div>
+                                  <span className="font-semibold text-slate-900">
+                                    {material.title}
+                                  </span>
+                                </div>
                               </TableCell>
                               <TableCell className="text-slate-600 max-w-[250px]">
                                 {material.description ? (
@@ -1197,14 +1262,15 @@ const MaterialManagementContent = ({ classId }: MaterialManagementProps) => {
                         </TableBody>
                       </Table>
                     </div>
-                    <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-slate-600">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-4 text-sm text-slate-500">
                       <span>
                         Trang {currentPage + 1}
                         {totalPages ? ` / ${totalPages}` : ""}
                       </span>
                       <div className="flex items-center gap-2">
                         <Button
-                          className="h-9 cursor-pointer rounded-lg border border-slate-200 bg-white px-3 text-slate-700 hover:bg-slate-100"
+                          variant="outline"
+                          className="h-9 cursor-pointer rounded-xl border-slate-200 px-4"
                           onClick={() =>
                             handlePageChange(Math.max(0, currentPage - 1))
                           }
@@ -1213,7 +1279,8 @@ const MaterialManagementContent = ({ classId }: MaterialManagementProps) => {
                           Trước
                         </Button>
                         <Button
-                          className="h-9 cursor-pointer rounded-lg border border-slate-200 bg-white px-3 text-slate-700 hover:bg-slate-100"
+                          variant="outline"
+                          className="h-9 cursor-pointer rounded-xl border-slate-200 px-4"
                           onClick={() =>
                             handlePageChange(
                               Math.min(totalPages - 1, currentPage + 1),
@@ -1225,24 +1292,35 @@ const MaterialManagementContent = ({ classId }: MaterialManagementProps) => {
                         </Button>
                       </div>
                     </div>
-                  </div>
-                ) : (
-                  <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-center text-sm text-slate-500">
-                    Chưa có chủ đề phù hợp.
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                </div>
+              ) : (
+                <div className="py-10 text-center text-sm text-slate-500">
+                  Chưa có chủ đề phù hợp.
+                </div>
+              )}
+            </section>
+          </div>
 
-          <Card className="border-slate-200/80 bg-white shadow-sm">
-            <CardHeader>
-              <CardTitle>Thêm chủ đề</CardTitle>
-              <CardDescription>Điền tên chủ đề và mô tả ngắn.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white xl:sticky xl:top-24 xl:self-start">
+            <section className="space-y-4 p-5">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-50 text-amber-600">
+                  <Plus className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900">
+                    Thêm chủ đề
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Tạo chủ đề mới vào thư viện
+                  </p>
+                </div>
+              </div>
+
+              <div className="h-px w-full bg-slate-100" />
+
               <div className="grid gap-2">
-                <label className="text-xs font-medium text-slate-600">
+                <label className="text-xs font-medium tracking-wide text-slate-500 uppercase">
                   Tên chủ đề
                 </label>
                 <Input
@@ -1256,7 +1334,7 @@ const MaterialManagementContent = ({ classId }: MaterialManagementProps) => {
                 />
               </div>
               <div className="grid gap-2">
-                <label className="text-xs font-medium text-slate-600">
+                <label className="text-xs font-medium tracking-wide text-slate-500 uppercase">
                   Mô tả chủ đề
                 </label>
                 <textarea
@@ -1274,8 +1352,6 @@ const MaterialManagementContent = ({ classId }: MaterialManagementProps) => {
                   {error.response.data.message}
                 </p>
               ) : null}
-            </CardContent>
-            <CardFooter className="flex flex-col gap-2">
               <Button
                 className="h-10 w-full cursor-pointer rounded-xl bg-slate-900 text-white hover:bg-slate-800"
                 onClick={handleAddItem}
@@ -1284,7 +1360,8 @@ const MaterialManagementContent = ({ classId }: MaterialManagementProps) => {
                 {isPending ? "Đang thêm..." : "Thêm chủ đề"}
               </Button>
               <Button
-                className="h-10 w-full cursor-pointer rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
+                variant="outline"
+                className="h-10 w-full cursor-pointer rounded-xl border-slate-200"
                 onClick={() => {
                   setTitle("");
                   setDescription("");
@@ -1292,8 +1369,8 @@ const MaterialManagementContent = ({ classId }: MaterialManagementProps) => {
               >
                 Xóa nhập liệu
               </Button>
-            </CardFooter>
-          </Card>
+            </section>
+          </div>
         </div>
       </div>
     </div>
@@ -1304,7 +1381,7 @@ export default function MaterialManagement(props: MaterialManagementProps) {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-[#f4f6fb] text-sm text-slate-500">
+        <div className="flex min-h-screen items-center justify-center text-sm text-slate-500">
           Đang tải chủ đề...
         </div>
       }

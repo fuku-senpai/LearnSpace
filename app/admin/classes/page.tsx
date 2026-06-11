@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import {
   Pencil,
-  BookOpen,
   Trash2,
   GraduationCap,
   CalendarDays,
@@ -13,6 +12,9 @@ import {
   MapPin,
   Video,
   MoreHorizontal,
+  Search,
+  Plus,
+  Sparkles,
 } from "lucide-react";
 
 import { useRouter } from "next/navigation";
@@ -20,14 +22,6 @@ import { useCreateClassroomMutation } from "@/app/hooks/classes/useCreateClass";
 import { useUpdateClassroomMutation } from "@/app/hooks/classes/useUpdateClassroom";
 import { useCreateClassScheduleMutation } from "@/app/hooks/schedules/useCreateClassSchedule";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -119,15 +113,33 @@ const formatDate = (value?: string) => {
 const getStatusStyles = (status?: string) => {
   switch ((status ?? "").toUpperCase()) {
     case "ACTIVE":
-      return "border-emerald-200 bg-emerald-50 text-emerald-700";
+      return "border-emerald-200/80 bg-emerald-50 text-emerald-700";
+    case "CLOSED":
     case "INACTIVE":
       return "border-slate-200 bg-slate-100 text-slate-600";
     case "PENDING":
-      return "border-amber-200 bg-amber-50 text-amber-700";
+      return "border-amber-200/80 bg-amber-50 text-amber-700";
     default:
       return "border-slate-200 bg-slate-100 text-slate-700";
   }
 };
+
+const getStatusLabel = (status?: string) => {
+  const normalized = (status ?? "").toUpperCase();
+  return (
+    statusOptions.find((option) => option.value === normalized)?.label ??
+    status ??
+    "—"
+  );
+};
+
+const getDayLabel = (value?: string) =>
+  dayOptions.find((option) => option.value === value)?.label ?? value ?? "—";
+
+const getStudyModeLabel = (value?: string) =>
+  studyModeOptions.find((option) => option.value === value)?.label ??
+  value ??
+  "—";
 
 const getErrorMessage = (error?: unknown) => {
   if (!error || typeof error !== "object") return undefined;
@@ -304,7 +316,6 @@ const ClassesManagement = () => {
   const [loadingMore, setLoadingMore] = useState(false);
 
   const loadMoreClasses = () => {
-    console.log("Load more");
     if (isFetchingClasses || loadingMore || !hasMoreClasses) return;
 
     setLoadingMore(true);
@@ -481,8 +492,8 @@ const ClassesManagement = () => {
     }
   };
   return (
-    <div className="min-h-screen bg-[#f4f6fb]">
-      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-6 py-8">
+    <div>
+      <div className="mx-auto flex max-w-7xl flex-col gap-8">
         <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
           <DialogContent className="max-w-lg">
             <DialogHeader>
@@ -773,76 +784,88 @@ const ClassesManagement = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-        <div className="rounded-3xl border border-slate-200/70 bg-gradient-to-br from-white to-slate-50 p-6 shadow-sm">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-            {/* Left content */}
-            <div className="space-y-3">
-              <div className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 shadow-sm">
-                Hệ thống quản lý lớp học
-              </div>
-
+        <section className="space-y-4 border-b border-slate-200 pb-6">
+          <span className="inline-flex items-center gap-2 text-xs font-semibold tracking-[0.14em] text-amber-600 uppercase">
+            <Sparkles className="h-3.5 w-3.5" />
+            Quản lý lớp
+          </span>
+          <div className="h-px w-full max-w-[100px] bg-gradient-to-r from-amber-400 to-transparent" />
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div className="space-y-1">
+              <h2 className="text-2xl font-bold tracking-tight text-slate-900">
+                Danh sách lớp học
+              </h2>
+              <p className="max-w-2xl text-sm text-slate-500">
+                Tạo mới, cập nhật thông tin lớp và quản lý lịch học theo từng
+                lớp.
+              </p>
+            </div>
+            <div className="flex items-center gap-6 border-l border-slate-200 pl-6 text-sm">
               <div>
-                <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
-                  Quản lý lớp học
-                </h1>
-
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                  Tạo mới, cập nhật và quản lý thông tin lớp học, lịch học và
-                  trạng thái vận hành của từng lớp.
+                <p className="text-xs text-slate-400 uppercase">Trang hiện tại</p>
+                <p className="font-semibold text-slate-900">
+                  {classes.length} lớp
                 </p>
               </div>
-
-              {/* Stats nhỏ */}
-              <div className="flex flex-wrap items-center gap-4 pt-1 text-sm text-slate-500">
-                <span>
-                  Tổng lớp đang hoạt động:{" "}
-                  <span className="font-semibold text-slate-900">
-                    {classes.length}
-                  </span>
-                </span>
+              <div>
+                <p className="text-xs text-slate-400 uppercase">Tổng hệ thống</p>
+                <p className="font-semibold text-slate-900">
+                  {data?.totalElements ?? 0}
+                </p>
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
-        <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-          <Card className="border-slate-200/80 bg-white shadow-sm">
-            <CardHeader className="space-y-2">
-              <CardTitle>Danh sách lớp học</CardTitle>
-              <CardDescription>
-                Theo dõi thông tin lớp học và ghi chú mô tả.
-              </CardDescription>
-              <div className="flex flex-wrap gap-3">
+        <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="min-w-0 space-y-8">
+            <section className="space-y-4">
+              <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 pb-4">
+                <div className="relative min-w-[200px] flex-1">
+                  <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    placeholder="Tìm theo tên lớp..."
+                    className="h-10 border-slate-200/80 bg-white pl-9 text-slate-900 placeholder:text-slate-400"
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                  />
+                </div>
                 <Input
-                  placeholder="Tìm theo tên lớp..."
-                  className="h-10 w-64 border-slate-200/70 bg-white text-slate-900 placeholder:text-slate-300/70"
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                />
-                <Input
-                  placeholder="Tìm theo mã lớp..."
-                  className="h-10 w-48 border-slate-200/70 bg-white text-slate-900 placeholder:text-slate-300/70"
+                  placeholder="Mã lớp..."
+                  className="h-10 w-40 border-slate-200/80 bg-white text-slate-900 placeholder:text-slate-400"
                   value={codeSearch}
                   onChange={(event) => setCodeSearch(event.target.value)}
                 />
                 <Button
-                  className="h-10 rounded-lg cursor-pointer bg-slate-900 text-white hover:bg-slate-800"
+                  className="h-10 cursor-pointer rounded-xl bg-slate-900 px-5 text-white hover:bg-slate-800"
                   onClick={handleFilter}
                 >
                   Lọc
                 </Button>
               </div>
-            </CardHeader>
-            <CardContent>
+
+              <div className="overflow-hidden rounded-2xl border border-slate-200/80">
               <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Tên lớp học</TableHead>
-                    <TableHead>Thời gian học</TableHead>
-                    <TableHead>Mô tả</TableHead>
-                    <TableHead>Trạng thái</TableHead>
-                    <TableHead>Số học sinh</TableHead>
-                    <TableHead className="text-right">Thao tác</TableHead>
+                <TableHeader className="bg-slate-50/80">
+                  <TableRow className="border-slate-200 hover:bg-transparent">
+                    <TableHead className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                      Lớp học
+                    </TableHead>
+                    <TableHead className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                      Thời gian
+                    </TableHead>
+                    <TableHead className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                      Mô tả
+                    </TableHead>
+                    <TableHead className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                      Trạng thái
+                    </TableHead>
+                    <TableHead className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                      Học sinh
+                    </TableHead>
+                    <TableHead className="text-right text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                      Thao tác
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -866,11 +889,14 @@ const ClassesManagement = () => {
                     </TableRow>
                   ) : (
                     classes.map((item) => (
-                      <TableRow key={item.id ?? item.name}>
-                        <TableCell className="min-w-[260px]">
+                      <TableRow
+                        key={item.id ?? item.name}
+                        className="border-slate-100 transition-colors hover:bg-amber-50/30"
+                      >
+                        <TableCell className="min-w-[220px]">
                           <div className="flex items-start gap-3">
-                            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100">
-                              <GraduationCap className="h-5 w-5 text-slate-700" />
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600">
+                              <GraduationCap className="h-4 w-4" />
                             </div>
 
                             <div className="space-y-1">
@@ -878,13 +904,11 @@ const ClassesManagement = () => {
                                 {item.name}
                               </p>
 
-                              <div className="flex items-center gap-2">
-                                {item.code && (
-                                  <span className="rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
-                                    {item.code}
-                                  </span>
-                                )}
-                              </div>
+                              {item.code ? (
+                                <span className="inline-flex text-[11px] font-medium text-slate-500">
+                                  #{item.code}
+                                </span>
+                              ) : null}
                             </div>
                           </div>
                         </TableCell>
@@ -921,16 +945,16 @@ const ClassesManagement = () => {
                         </TableCell>
                         <TableCell>
                           <span
-                            className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold ${getStatusStyles(item.status)}`}
+                            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${getStatusStyles(item.status)}`}
                           >
-                            <div className="h-2 w-2 rounded-full bg-current" />
-                            {item.status}
+                            <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                            {getStatusLabel(item.status)}
                           </span>
                         </TableCell>
                         <TableCell>
-                          <div className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-3 py-1.5">
-                            <Users className="h-4 w-4 text-slate-500" />
-                            <span className="font-semibold text-slate-800">
+                          <div className="inline-flex items-center gap-1.5 text-sm text-slate-700">
+                            <Users className="h-4 w-4 text-slate-400" />
+                            <span className="font-semibold">
                               {item.totalStudent ?? 0}
                             </span>
                           </div>
@@ -1005,13 +1029,16 @@ const ClassesManagement = () => {
                   )}
                 </TableBody>
               </Table>
-              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-1 pt-4 text-sm text-slate-500">
                 <span>
                   Trang {currentPage + 1} / {totalPages}
                 </span>
                 <div className="flex items-center gap-2">
                   <Button
-                    className="h-9 cursor-pointer rounded-lg border border-slate-200 bg-white px-3 text-slate-700 hover:bg-slate-100"
+                    variant="outline"
+                    className="h-9 cursor-pointer rounded-xl border-slate-200 px-4"
                     onClick={() =>
                       handlePageChange(Math.max(0, currentPage - 1))
                     }
@@ -1020,7 +1047,8 @@ const ClassesManagement = () => {
                     Trước
                   </Button>
                   <Button
-                    className="h-9 rounded-lg cursor-pointer border border-slate-200 bg-white px-3 text-slate-700 hover:bg-slate-100"
+                    variant="outline"
+                    className="h-9 cursor-pointer rounded-xl border-slate-200 px-4"
                     onClick={() =>
                       handlePageChange(
                         Math.min(totalPages - 1, currentPage + 1),
@@ -1032,35 +1060,53 @@ const ClassesManagement = () => {
                   </Button>
                 </div>
               </div>
-            </CardContent>
-            <Card className="border-slate-200/80 bg-white shadow-sm">
-              <CardHeader>
-                <CardTitle>Lịch học theo lớp</CardTitle>
-                <CardDescription>
-                  Danh sách schedule của lớp đang chọn.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
+            </section>
+
+            <section className="space-y-4 border-t border-slate-200 pt-6">
+              <div className="space-y-1">
+                <h3 className="text-lg font-semibold text-slate-900">
+                  Lịch học theo lớp
+                </h3>
+                <div className="h-px w-16 bg-gradient-to-r from-slate-300 to-transparent" />
+                <p className="text-sm text-slate-500">
+                  {selectedClass
+                    ? `Đang xem: ${selectedClass.name}${selectedClass.code ? ` (${selectedClass.code})` : ""}`
+                    : "Chọn lớp ở form bên phải để xem lịch học."}
+                </p>
+              </div>
+
+              <div className="overflow-hidden rounded-2xl border border-slate-200/80">
                 {!selectedClassroomId ? (
-                  <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
-                    Chọn lớp học ở form trên để xem lịch học.
+                  <div className="px-6 py-10 text-center text-sm text-slate-500">
+                    Chọn lớp học ở panel bên phải để xem lịch.
                   </div>
                 ) : isSchedulesLoading || isSchedulesFetching ? (
-                  <div className="rounded-xl border border-slate-200 bg-white px-4 py-4 text-sm text-slate-500">
+                  <div className="px-6 py-8 text-sm text-slate-500">
                     Đang tải danh sách lịch học...
                   </div>
                 ) : schedules.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
+                  <div className="px-6 py-10 text-center text-sm text-slate-500">
                     Chưa có lịch học cho lớp này.
                   </div>
                 ) : (
                   <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Ngày học</TableHead>
-                        <TableHead>Giờ</TableHead>
-                        <TableHead>Hình thức</TableHead>
-                        <TableHead>Địa điểm / Link</TableHead>
+                    <TableHeader className="bg-slate-50/80">
+                      <TableRow className="border-slate-200 hover:bg-transparent">
+                        <TableHead className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                          Ngày
+                        </TableHead>
+                        <TableHead className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                          Giờ
+                        </TableHead>
+                        <TableHead className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                          Hình thức
+                        </TableHead>
+                        <TableHead className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                          Địa điểm / Link
+                        </TableHead>
+                        <TableHead className="text-right text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                          Thao tác
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1069,9 +1115,8 @@ const ClassesManagement = () => {
                           key={schedule.id}
                           className="transition-colors hover:bg-slate-50"
                         >
-                          {/* Day */}
                           <TableCell className="font-medium text-slate-900">
-                            {schedule.dayOfWeek}
+                            {getDayLabel(schedule.dayOfWeek)}
                           </TableCell>
 
                           {/* Time */}
@@ -1084,11 +1129,10 @@ const ClassesManagement = () => {
                             </div>
                           </TableCell>
 
-                          {/* Study mode */}
                           <TableCell>
-                            <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700">
-                              <Monitor className="h-4 w-4 text-slate-500" />
-                              {schedule.studyMode}
+                            <div className="inline-flex items-center gap-2 text-sm text-slate-700">
+                              <Monitor className="h-4 w-4 text-slate-400" />
+                              {getStudyModeLabel(schedule.studyMode)}
                             </div>
                           </TableCell>
 
@@ -1098,7 +1142,7 @@ const ClassesManagement = () => {
                               <div className="flex items-start gap-2 text-sm text-slate-600">
                                 <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
                                 <span>
-                                  {schedule.location || "No location provided"}
+                                  {schedule.location || "Chưa có địa điểm"}
                                 </span>
                               </div>
 
@@ -1110,7 +1154,7 @@ const ClassesManagement = () => {
                                   className="inline-flex items-center gap-2 text-sm font-medium text-slate-900 hover:text-slate-700"
                                 >
                                   <Video className="h-4 w-4" />
-                                  Join meeting
+                                  Tham gia lớp online
                                 </a>
                               )}
                             </div>
@@ -1159,19 +1203,26 @@ const ClassesManagement = () => {
                     </TableBody>
                   </Table>
                 )}
-              </CardContent>
-            </Card>
-          </Card>
+              </div>
+            </section>
+          </div>
 
-          <div className="space-y-6">
-            <Card className="border-slate-200/80 bg-white shadow-sm">
-              <CardHeader>
-                <CardTitle>Tạo lớp học</CardTitle>
-                <CardDescription>
-                  Nhập thông tin tên và mô tả lớp học.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
+          <div className="divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200/80 bg-white xl:sticky xl:top-24 xl:self-start">
+            <section className="p-5">
+              <div className="mb-4 flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-50 text-amber-600">
+                  <Plus className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900">
+                    Tạo lớp học
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Thêm lớp mới vào hệ thống
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-4">
                 <div className="grid gap-2">
                   <label className="text-xs font-medium text-slate-600">
                     Tên lớp học
@@ -1224,8 +1275,6 @@ const ClassesManagement = () => {
                     {getErrorMessage(createError)}
                   </p>
                 ) : null}
-              </CardContent>
-              <CardFooter className="flex flex-col gap-2">
                 <Button
                   className="h-10 w-full cursor-pointer rounded-xl bg-slate-900 text-white hover:bg-slate-800"
                   onClick={handleCreate}
@@ -1233,25 +1282,21 @@ const ClassesManagement = () => {
                 >
                   {isPending ? "Đang lưu..." : "Lưu lớp học"}
                 </Button>
-              </CardFooter>
-            </Card>
+              </div>
+            </section>
 
-            <Card className="border-slate-200/80 bg-white shadow-sm">
-              <CardHeader>
-                <CardTitle>Tạo lịch học cho lớp</CardTitle>
-                <CardDescription>
-                  Nhập lịch học theo lớp, bao gồm ngày, giờ, hình thức và liên
-                  kết học.
-                </CardDescription>
-                {selectedClass ? (
-                  <p className="text-xs font-medium text-slate-500">
-                    Đang xem lịch của: {selectedClass.name}
-                    {selectedClass.code ? ` (${selectedClass.code})` : ""}
-                  </p>
-                ) : null}
-              </CardHeader>
+            <section className="p-5">
+              <div className="mb-4 space-y-1">
+                <h3 className="text-sm font-semibold text-slate-900">
+                  Tạo lịch học
+                </h3>
+                <div className="h-px w-12 bg-gradient-to-r from-amber-400/60 to-transparent" />
+                <p className="text-xs text-slate-500">
+                  Thiết lập ngày, giờ và hình thức học
+                </p>
+              </div>
               <form onSubmit={handleScheduleSubmit(onSubmitSchedule)}>
-                <CardContent className="space-y-4">
+                <div className="space-y-4">
                   <div className="grid gap-2">
                     <label className="text-xs font-medium text-slate-600">
                       Lớp học
@@ -1286,21 +1331,10 @@ const ClassesManagement = () => {
                               className="h-[180px]"
                               viewportClassName="h-[180px] overflow-y-auto"
                               onViewportScroll={(event) => {
-                                console.log("Event:", event);
                                 const target = event.currentTarget;
                                 const isBottom =
                                   target.scrollTop + target.clientHeight >=
                                   target.scrollHeight - 20;
-
-                                console.log({
-                                  scrollTop: target.scrollTop,
-                                  clientHeight: target.clientHeight,
-                                  scrollHeight: target.scrollHeight,
-                                  isBottom,
-                                  page: classLookupFilter.page,
-                                  isFetchingClasses,
-                                  hasMoreClasses,
-                                });
 
                                 if (
                                   isBottom &&
@@ -1425,18 +1459,16 @@ const ClassesManagement = () => {
                       {getErrorMessage(scheduleError)}
                     </p>
                   ) : null}
-                </CardContent>
-                <CardFooter className="flex flex-col gap-2">
                   <Button
                     type="submit"
-                    className="h-10 cursor-pointer w-full rounded-xl bg-slate-900 text-white hover:bg-slate-800"
+                    className="h-10 w-full cursor-pointer rounded-xl bg-slate-900 text-white hover:bg-slate-800"
                     disabled={isSchedulePending || isScheduleSubmitting}
                   >
                     {isSchedulePending ? "Đang tạo lịch..." : "Tạo lịch học"}
                   </Button>
-                </CardFooter>
+                </div>
               </form>
-            </Card>
+            </section>
           </div>
         </div>
       </div>

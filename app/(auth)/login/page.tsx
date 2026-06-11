@@ -195,7 +195,7 @@ const LoginPage = () => {
                 </div>
 
                 <Form {...form}>
-                  <form
+                  <form 
                     onSubmit={(event) => {
                       event.preventDefault();
                       event.stopPropagation();

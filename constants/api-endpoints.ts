@@ -58,6 +58,14 @@ export const CLASSROOM_MATERIAL_API = {
     `/classroomMaterial/${classroomMaterialId}`,
 };
 
+export const SNAP_CLASSROOM_MATERIAL_API = {
+  GET_BY_CLASSROOM: (classroomId: string) => `/${classroomId}/materials`,
+  DELETE: (snapClassroomMaterialId: string) =>
+    `/${snapClassroomMaterialId}/materials`,
+  UPDATE_ORDER: (snapClassroomMaterialId: string) =>
+    `/${snapClassroomMaterialId}/order`,
+};
+
 export const TEACHER_API = {
   GET_ALL: "/teachers",
   GET_CLASSROOMS: (teacherId: string) => `/teacher/${teacherId}/classrooms`,

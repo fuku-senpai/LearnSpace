@@ -19,7 +19,6 @@ import type {
 } from "@/app/service/teacher.service";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableHeader,
@@ -45,9 +44,43 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { BadgeCheck, CalendarDays, Clock3, Filter, Trash2 } from "lucide-react";
+import {
+  BadgeCheck,
+  CalendarDays,
+  Clock3,
+  Filter,
+  GraduationCap,
+  Sparkles,
+  Trash2,
+  UserCheck,
+} from "lucide-react";
 
 const PAGE_SIZE = 8;
+
+const getStatusStyles = (status?: string) => {
+  switch ((status ?? "").toUpperCase()) {
+    case "ACTIVE":
+      return "border-emerald-200/80 bg-emerald-50 text-emerald-700";
+    case "CLOSED":
+    case "INACTIVE":
+      return "border-slate-200 bg-slate-100 text-slate-600";
+    default:
+      return "border-slate-200 bg-slate-100 text-slate-700";
+  }
+};
+
+const getStatusLabel = (status?: string) => {
+  switch ((status ?? "").toUpperCase()) {
+    case "ACTIVE":
+      return "Đang hoạt động";
+    case "CLOSED":
+      return "Tạm dừng";
+    case "INACTIVE":
+      return "Không hoạt động";
+    default:
+      return status ?? "—";
+  }
+};
 
 const mergeUniqueTeachers = (prev: TeacherItem[], next: TeacherItem[]) => {
   const seen = new Set(prev.map((item) => item.teacherId));
@@ -204,409 +237,273 @@ const AssignTeacherToClass = () => {
     );
   };
 
+  const filteredClassrooms =
+    classroomsData?.content.filter((item) =>
+      classroomsKeyword
+        ? `${item.classroomName} ${item.code}`
+            .toLowerCase()
+            .includes(classroomsKeyword.toLowerCase())
+        : true,
+    ) ?? [];
+
   return (
-    <div className="min-h-screen bg-slate-50 px-6 py-6 text-slate-900">
-      <div className="mx-auto space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold">Gán giáo viên vào lớp</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Chọn giáo viên và lớp học từ danh sách có phân trang, cuộn xuống để
-            tải thêm.
-          </p>
-        </div>
-
-        <div className="grid gap-8 lg:grid-cols-2">
-          {/* Teacher */}
-          <div className="space-y-3">
-            <div>
-              <h3 className="text-sm font-semibold tracking-wide text-slate-800 uppercase">
-                Giáo viên
-              </h3>
-
-              <p className="mt-1 text-sm text-slate-500">
-                Chọn giáo viên phụ trách lớp học
+    <div>
+      <div className="mx-auto max-w-7xl space-y-8">
+        <section className="space-y-4 border-b border-slate-200 pb-6">
+          <span className="inline-flex items-center gap-2 text-xs font-semibold tracking-[0.14em] text-amber-600 uppercase">
+            <Sparkles className="h-3.5 w-3.5" />
+            Phân công giảng dạy
+          </span>
+          <div className="h-px w-full max-w-[100px] bg-gradient-to-r from-amber-400 to-transparent" />
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div className="space-y-1">
+              <h2 className="text-2xl font-bold tracking-tight text-slate-900">
+                Gán giáo viên vào lớp
+              </h2>
+              <p className="max-w-2xl text-sm text-slate-500">
+                Chọn giáo viên và lớp học, xác nhận phân công rồi theo dõi danh
+                sách lớp đã gán.
               </p>
             </div>
-
-            <Select
-              value={selectedTeacherId}
-              onValueChange={setSelectedTeacherId}
-            >
-              <SelectTrigger className="h-14 cursor-pointer rounded-2xl border-slate-200 bg-white px-4 shadow-sm transition-all hover:border-slate-300 focus:ring-2 focus:ring-slate-200">
-                <SelectValue placeholder="Chọn giáo viên" />
-              </SelectTrigger>
-
-              <SelectContent
-                position="popper"
-                className="rounded-2xl border border-slate-200 p-2 shadow-2xl"
-              >
-                <ScrollArea
-                  className="h-72"
-                  viewportClassName="overflow-y-auto"
-                  onViewportScroll={handleTeacherScroll}
-                >
-                  {teacherItems.map((item) => (
-                    <SelectItem
-                      key={item.teacherId}
-                      value={item.teacherId}
-                      className="cursor-pointer rounded-xl p-3 transition hover:bg-slate-50"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-3">
-                          <span className="font-medium text-slate-800">
-                            {item.fullName}
-                          </span>
-
-                          <div className="h-4 w-px bg-slate-300" />
-
-                          <span className="truncate text-xs text-slate-500">
-                            {item.email}
-                          </span>
-                        </div>
-                      </div>
-                    </SelectItem>
-                  ))}
-
-                  {isFetchingTeachers && (
-                    <div className="py-4 text-center text-sm text-slate-500">
-                      Đang tải thêm giáo viên...
-                    </div>
-                  )}
-                </ScrollArea>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Class */}
-          <div className="space-y-3">
-            <div>
-              <h3 className="text-sm font-semibold tracking-wide text-slate-800 uppercase">
-                Lớp học
-              </h3>
-
-              <p className="mt-1 text-sm text-slate-500">
-                Chọn lớp cần phân công
-              </p>
-            </div>
-
-            <Select value={selectedClassId} onValueChange={setSelectedClassId}>
-              <SelectTrigger className="h-14 rounded-2xl cursor-pointer border-slate-200 bg-white px-4 shadow-sm transition-all hover:border-slate-300 focus:ring-2 focus:ring-slate-200">
-                <SelectValue placeholder="Chọn lớp học" />
-              </SelectTrigger>
-
-              <SelectContent
-                position="popper"
-                className="rounded-2xl border border-slate-200 p-2 shadow-2xl"
-              >
-                <ScrollArea
-                  className="h-72"
-                  viewportClassName="overflow-y-auto"
-                  onViewportScroll={handleClassScroll}
-                >
-                  {classItems.map((item) => (
-                    <SelectItem
-                      key={item.id}
-                      value={item.id}
-                      className="cursor-pointer rounded-xl p-3 transition hover:bg-slate-50"
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                          <span className="font-medium text-slate-800">
-                            {item.name}
-                          </span>
-
-                          <div className="h-4 w-px bg-slate-300" />
-
-                          <span className="truncate text-xs text-slate-500">
-                            {item.code}
-                          </span>
-                        </div>
-
-                        <span
-                          className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                            item.status === "ACTIVE"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-slate-100 text-slate-600"
-                          }`}
-                        >
-                          {item.status}
-                        </span>
-                      </div>
-                    </SelectItem>
-                  ))}
-
-                  {isFetchingClasses && (
-                    <div className="py-4 text-center text-sm text-slate-500">
-                      Đang tải thêm lớp học...
-                    </div>
-                  )}
-                </ScrollArea>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div className="mt-8 overflow-hidden rounded-3xl border border-slate-200 bg-white">
-          {/* Header */}
-          <div className="border-b border-slate-100 px-6 py-5">
-            <h2 className="text-base font-semibold text-slate-900">
-              Xác nhận phân công
-            </h2>
-
-            <p className="mt-1 text-sm text-slate-500">
-              Kiểm tra giáo viên và lớp học trước khi thực hiện
-            </p>
-          </div>
-
-          {/* Content */}
-          <div className="grid divide-y divide-slate-100 lg:grid-cols-2 lg:divide-x lg:divide-y-0">
-            {/* Teacher */}
-            <div className="p-6">
-              <span className="text-xs font-medium uppercase tracking-wider text-slate-400">
-                Giáo viên
-              </span>
-
-              <div className="mt-4 flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-700">
-                  {selectedTeacher?.fullName?.charAt(0) || "?"}
-                </div>
-
-                <div>
-                  <h3 className="font-medium text-slate-900">
-                    {selectedTeacher?.fullName || "Chưa chọn giáo viên"}
-                  </h3>
-
-                  <p className="text-sm text-slate-500">
-                    {selectedTeacher?.email || "—"}
-                  </p>
-                </div>
+            <div className="flex items-center gap-6 border-l border-slate-200 pl-6 text-sm">
+              <div>
+                <p className="text-xs text-slate-400 uppercase">Đã gán</p>
+                <p className="font-semibold text-slate-900">
+                  {classroomsData?.content.filter((item) => item.teacher).length ??
+                    0}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400 uppercase">Tổng hiển thị</p>
+                <p className="font-semibold text-slate-900">
+                  {filteredClassrooms.length}
+                </p>
               </div>
             </div>
+          </div>
+        </section>
 
-            {/* Class */}
-            <div className="p-6">
-              <span className="text-xs font-medium uppercase tracking-wider text-slate-400">
-                Lớp học
-              </span>
-
-              <div className="mt-4">
-                <h3 className="font-medium text-slate-900">
-                  {selectedClass?.name || "Chưa chọn lớp học"}
+        <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_380px]">
+          <section className="min-w-0 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">
+                  Danh sách lớp và giáo viên
                 </h3>
-
-                <div className="mt-2 flex items-center gap-2 text-sm text-slate-500">
-                  <span>{selectedClass?.code || "—"}</span>
-
-                  {selectedClass?.status && (
-                    <>
-                      <span>•</span>
-
-                      <span className="capitalize">
-                        {selectedClass.status.toLowerCase()}
-                      </span>
-                    </>
-                  )}
-                </div>
+                <div className="mt-2 h-px w-14 bg-gradient-to-r from-slate-300 to-transparent" />
               </div>
+
+              <Select
+                value={hasTeacher === undefined ? "all" : String(hasTeacher)}
+                onValueChange={(value) => {
+                  setHasTeacher(value === "all" ? undefined : value === "true");
+                  setClassroomsPage(0);
+                }}
+              >
+                <SelectTrigger className="h-10 w-[220px] cursor-pointer rounded-xl border-slate-200/80 bg-white">
+                  <SelectValue placeholder="Lọc giáo viên" />
+                </SelectTrigger>
+
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="all">
+                    <div className="flex cursor-pointer items-center gap-2">
+                      <Filter className="h-4 w-4 text-slate-500" />
+                      <span>Tất cả</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="true">
+                    <div className="flex cursor-pointer items-center gap-2">
+                      <BadgeCheck className="h-4 w-4 text-emerald-500" />
+                      <span>Có giáo viên</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="false">
+                    <div className="flex cursor-pointer items-center gap-2">
+                      <Clock3 className="h-4 w-4 text-amber-500" />
+                      <span>Chưa có giáo viên</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          </div>
 
-          {/* Footer */}
-          <div className="flex justify-end border-t border-slate-100 bg-slate-50 px-6 py-4">
-            <Button
-              type="button"
-              disabled={!selectedTeacherId || !selectedClassId || isAssigning}
-              onClick={handleAssignTeacher}
-              className="h-11 cursor-pointer rounded-xl px-5"
-            >
-              {isAssigning ? "Đang xử lý..." : "Gán giáo viên vào lớp"}
-            </Button>
-          </div>
-        </div>
-
-        {/* Classrooms list with filters (shadcn) */}
-        <Card className="mt-6">
-          <CardHeader className="flex items-center justify-between px-6">
-            <CardTitle>Danh sách lớp và giáo viên</CardTitle>
-
-            <Select
-              value={hasTeacher === undefined ? "all" : String(hasTeacher)}
-              onValueChange={(value) => {
-                setHasTeacher(value === "all" ? undefined : value === "true");
-                setClassroomsPage(0);
-              }}
-            >
-              <SelectTrigger className="w-[220px] cursor-pointer rounded-xl border-slate-200 bg-white shadow-sm">
-                <SelectValue placeholder="Lọc giáo viên" />
-              </SelectTrigger>
-
-              <SelectContent className="rounded-xl">
-                <SelectItem value="all">
-                  <div className="flex cursor-pointer items-center gap-2">
-                    <Filter className="h-4 w-4 text-slate-500" />
-                    <span>Tất cả</span>
-                  </div>
-                </SelectItem>
-
-                <SelectItem value="true">
-                  <div className="flex cursor-pointer items-center gap-2">
-                    <BadgeCheck className="h-4 w-4 text-emerald-500" />
-                    <span>Có giáo viên</span>
-                  </div>
-                </SelectItem>
-
-                <SelectItem value="false">
-                  <div className="flex cursor-pointer items-center gap-2">
-                    <Clock3 className="h-4 w-4 text-amber-500" />
-                    <span>Chưa có giáo viên</span>
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </CardHeader>
-
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Tên lớp</TableHead>
-                  <TableHead>Mã</TableHead>
-                  <TableHead>Tổng học viên</TableHead>
-                  <TableHead>Thời gian học</TableHead>
-                  <TableHead>Trạng thái</TableHead>
-                  <TableHead>Giáo viên</TableHead>
-                  <TableHead>Hành động</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {classroomsData?.content
-                  .filter((it) =>
-                    classroomsKeyword
-                      ? `${it.classroomName} ${it.code}`
-                          .toLowerCase()
-                          .includes(classroomsKeyword.toLowerCase())
-                      : true,
-                  )
-                  .map((c: ClassroomWithTeacher) => (
-                    <TableRow key={c.classroomId}>
-                      <TableCell>
-                        <div className="font-medium">{c.classroomName}</div>
-                        <div className="text-sm text-slate-500">
-                          {c.description}
-                        </div>
-                      </TableCell>
-                      <TableCell>{c.code}</TableCell>
-                      <TableCell>{c.totalStudent}</TableCell>
-                      <TableCell>
-                        <div className="flex items-start gap-3">
-                          <div className="rounded-lg bg-slate-100 p-2">
-                            <CalendarDays className="h-4 w-4 text-slate-600" />
-                          </div>
-
-                          <div className="space-y-1">
-                            <div className="text-sm font-medium text-slate-900">
-                              {c.startDate}
-                            </div>
-
-                            <div className="text-xs text-slate-500">
-                              đến {c.endDate}
-                            </div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span
-                          className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                            c.status === "ACTIVE"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-slate-100 text-slate-600"
-                          }`}
-                        >
-                          {c.status}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        {c.teacher ? (
-                          <div className="text-sm">
-                            <div className="font-medium">
-                              {c.teacher.fullName}
-                            </div>
-                            <div className="text-xs text-slate-500">
-                              {c.teacher.email}
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="text-sm text-slate-500">
-                            Chưa có giáo viên
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {c.teacher && (
-                          <AlertDialog
-                            open={removeClassroomId === c.classroomId}
-                            onOpenChange={(open) => {
-                              if (!open) setRemoveClassroomId(null);
-                            }}
-                          >
-                            <button
-                              onClick={() => setRemoveClassroomId(c.classroomId)}
-                              className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-red-600 hover:bg-red-50"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              Gỡ
-                            </button>
-                            <AlertDialogContent className="rounded-2xl">
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                  Xác nhận gỡ giáo viên
-                                </AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Bạn chắc chắn muốn gỡ giáo viên{" "}
-                                  <span className="font-medium text-slate-900">
-                                    {c.teacher.fullName}
-                                  </span>{" "}
-                                  khỏi lớp{" "}
-                                  <span className="font-medium text-slate-900">
-                                    {c.classroomName}
-                                  </span>
-                                  ? Hành động này không thể hoàn tác.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel className="cursor-pointer rounded-xl">
-                                  Huỷ
-                                </AlertDialogCancel>
-                                <AlertDialogAction
-                                  className="cursor-pointer rounded-xl bg-red-500 hover:bg-red-600"
-                                  disabled={isRemoving}
-                                  onClick={() => handleRemoveTeacher(c.classroomId)}
-                                >
-                                  {isRemoving ? "Đang gỡ..." : "Gỡ"}
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        )}
+            <div className="overflow-hidden rounded-2xl border border-slate-200/80">
+              <Table>
+                <TableHeader className="bg-slate-50/80">
+                  <TableRow className="border-slate-200 hover:bg-transparent">
+                    <TableHead className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                      Lớp học
+                    </TableHead>
+                    <TableHead className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                      Học viên
+                    </TableHead>
+                    <TableHead className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                      Thời gian
+                    </TableHead>
+                    <TableHead className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                      Trạng thái
+                    </TableHead>
+                    <TableHead className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                      Giáo viên
+                    </TableHead>
+                    <TableHead className="text-right text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                      Thao tác
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isFetchingClassrooms && filteredClassrooms.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={6}
+                        className="py-8 text-center text-sm text-slate-500"
+                      >
+                        Đang tải danh sách...
                       </TableCell>
                     </TableRow>
-                  ))}
-              </TableBody>
-            </Table>
+                  ) : filteredClassrooms.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={6}
+                        className="py-8 text-center text-sm text-slate-500"
+                      >
+                        Không có kết quả phù hợp.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredClassrooms.map((classroom: ClassroomWithTeacher) => (
+                      <TableRow
+                        key={classroom.classroomId}
+                        className="border-slate-100 transition-colors hover:bg-amber-50/30"
+                      >
+                        <TableCell className="min-w-[200px]">
+                          <div className="flex items-start gap-3">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-600">
+                              <GraduationCap className="h-4 w-4" />
+                            </div>
+                            <div>
+                              <p className="font-semibold text-slate-900">
+                                {classroom.classroomName}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                #{classroom.code}
+                              </p>
+                              {classroom.description ? (
+                                <p className="mt-1 line-clamp-1 text-xs text-slate-400">
+                                  {classroom.description}
+                                </p>
+                              ) : null}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-medium text-slate-800">
+                          {classroom.totalStudent}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2 text-sm text-slate-700">
+                            <CalendarDays className="h-4 w-4 shrink-0 text-slate-400" />
+                            <div>
+                              <p>{classroom.startDate}</p>
+                              <p className="text-xs text-slate-500">
+                                đến {classroom.endDate}
+                              </p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span
+                            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${getStatusStyles(classroom.status)}`}
+                          >
+                            <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                            {getStatusLabel(classroom.status)}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          {classroom.teacher ? (
+                            <div className="text-sm">
+                              <p className="font-medium text-slate-900">
+                                {classroom.teacher.fullName}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                {classroom.teacher.email}
+                              </p>
+                            </div>
+                          ) : (
+                            <span className="text-sm text-slate-400">
+                              Chưa có giáo viên
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {classroom.teacher ? (
+                            <AlertDialog
+                              open={removeClassroomId === classroom.classroomId}
+                              onOpenChange={(open) => {
+                                if (!open) setRemoveClassroomId(null);
+                              }}
+                            >
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setRemoveClassroomId(classroom.classroomId)
+                                }
+                                className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-rose-200 px-2.5 py-1.5 text-xs font-medium text-rose-600 transition hover:bg-rose-50"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                Gỡ
+                              </button>
+                              <AlertDialogContent className="rounded-2xl">
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    Xác nhận gỡ giáo viên
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Bạn chắc chắn muốn gỡ giáo viên{" "}
+                                    <span className="font-medium text-slate-900">
+                                      {classroom.teacher?.fullName}
+                                    </span>{" "}
+                                    khỏi lớp{" "}
+                                    <span className="font-medium text-slate-900">
+                                      {classroom.classroomName}
+                                    </span>
+                                    ? Hành động này không thể hoàn tác.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel className="cursor-pointer rounded-xl">
+                                    Huỷ
+                                  </AlertDialogCancel>
+                                  <AlertDialogAction
+                                    className="cursor-pointer rounded-xl bg-red-500 hover:bg-red-600"
+                                    disabled={isRemoving}
+                                    onClick={() =>
+                                      handleRemoveTeacher(classroom.classroomId)
+                                    }
+                                  >
+                                    {isRemoving ? "Đang gỡ..." : "Gỡ"}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          ) : (
+                            <span className="text-xs text-slate-300">—</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
 
-            {(!classroomsData || classroomsData.content.length === 0) && (
-              <div className="mt-4 text-sm text-slate-500">
-                Không có kết quả
-              </div>
-            )}
-
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4 text-sm text-slate-500">
               <span>
-                Trang {currentPage + 1} / {totalPages}
+                Trang {currentPage + 1} / {Math.max(totalPages, 1)}
               </span>
               <div className="flex items-center gap-2">
                 <Button
-                  className="h-9 cursor-pointer rounded-lg border border-slate-200 bg-white px-3 text-slate-700 hover:bg-slate-100"
+                  variant="outline"
+                  className="h-9 cursor-pointer rounded-xl border-slate-200 px-4"
                   onClick={() =>
                     handleClassroomsPageChange(Math.max(0, currentPage - 1))
                   }
@@ -615,7 +512,8 @@ const AssignTeacherToClass = () => {
                   Trước
                 </Button>
                 <Button
-                  className="h-9 rounded-lg cursor-pointer border border-slate-200 bg-white px-3 text-slate-700 hover:bg-slate-100"
+                  variant="outline"
+                  className="h-9 cursor-pointer rounded-xl border-slate-200 px-4"
                   onClick={() =>
                     handleClassroomsPageChange(
                       Math.min(totalPages - 1, currentPage + 1),
@@ -627,8 +525,176 @@ const AssignTeacherToClass = () => {
                 </Button>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </section>
+
+          <div className="divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200/80 bg-white xl:sticky xl:top-24 xl:self-start">
+            <section className="space-y-4 p-5">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-50 text-amber-600">
+                  <UserCheck className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900">
+                    Phân công mới
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Cuộn danh sách để tải thêm
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-medium tracking-wide text-slate-500 uppercase">
+                  Giáo viên
+                </label>
+                <Select
+                  value={selectedTeacherId}
+                  onValueChange={setSelectedTeacherId}
+                >
+                  <SelectTrigger className="h-11 cursor-pointer rounded-xl border-slate-200/80 bg-white">
+                    <SelectValue placeholder="Chọn giáo viên" />
+                  </SelectTrigger>
+                  <SelectContent
+                    position="popper"
+                    className="rounded-xl border border-slate-200 p-1"
+                  >
+                    <ScrollArea
+                      className="h-56"
+                      viewportClassName="overflow-y-auto"
+                      onViewportScroll={handleTeacherScroll}
+                    >
+                      {teacherItems.map((item) => (
+                        <SelectItem
+                          key={item.teacherId}
+                          value={item.teacherId}
+                          className="cursor-pointer rounded-lg"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-slate-800">
+                              {item.fullName}
+                            </span>
+                            <span className="h-3 w-px bg-slate-300" />
+                            <span className="truncate text-xs text-slate-500">
+                              {item.email}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                      {isFetchingTeachers ? (
+                        <div className="py-3 text-center text-xs text-slate-500">
+                          Đang tải thêm...
+                        </div>
+                      ) : null}
+                    </ScrollArea>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-medium tracking-wide text-slate-500 uppercase">
+                  Lớp học
+                </label>
+                <Select
+                  value={selectedClassId}
+                  onValueChange={setSelectedClassId}
+                >
+                  <SelectTrigger className="h-11 cursor-pointer rounded-xl border-slate-200/80 bg-white">
+                    <SelectValue placeholder="Chọn lớp học" />
+                  </SelectTrigger>
+                  <SelectContent
+                    position="popper"
+                    className="rounded-xl border border-slate-200 p-1"
+                  >
+                    <ScrollArea
+                      className="h-56"
+                      viewportClassName="overflow-y-auto"
+                      onViewportScroll={handleClassScroll}
+                    >
+                      {classItems.map((item) => (
+                        <SelectItem
+                          key={item.id}
+                          value={item.id}
+                          className="cursor-pointer rounded-lg"
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-slate-800">
+                                {item.name}
+                              </span>
+                              <span className="h-3 w-px bg-slate-300" />
+                              <span className="text-xs text-slate-500">
+                                {item.code}
+                              </span>
+                            </div>
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${getStatusStyles(item.status)}`}
+                            >
+                              {getStatusLabel(item.status)}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                      {isFetchingClasses ? (
+                        <div className="py-3 text-center text-xs text-slate-500">
+                          Đang tải thêm...
+                        </div>
+                      ) : null}
+                    </ScrollArea>
+                  </SelectContent>
+                </Select>
+              </div>
+            </section>
+
+            <section className="space-y-4 p-5">
+              <div className="space-y-1">
+                <h3 className="text-sm font-semibold text-slate-900">
+                  Xác nhận phân công
+                </h3>
+                <div className="h-px w-12 bg-gradient-to-r from-amber-400/60 to-transparent" />
+              </div>
+
+              <div className="space-y-4 border-l-2 border-amber-400/40 pl-4">
+                <div>
+                  <p className="text-[10px] font-semibold tracking-wide text-slate-400 uppercase">
+                    Giáo viên
+                  </p>
+                  <p className="mt-1 font-medium text-slate-900">
+                    {selectedTeacher?.fullName || "Chưa chọn"}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {selectedTeacher?.email || "—"}
+                  </p>
+                </div>
+                <div className="h-px w-full bg-slate-100" />
+                <div>
+                  <p className="text-[10px] font-semibold tracking-wide text-slate-400 uppercase">
+                    Lớp học
+                  </p>
+                  <p className="mt-1 font-medium text-slate-900">
+                    {selectedClass?.name || "Chưa chọn"}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {selectedClass?.code
+                      ? `#${selectedClass.code}`
+                      : "—"}
+                    {selectedClass?.status
+                      ? ` · ${getStatusLabel(selectedClass.status)}`
+                      : ""}
+                  </p>
+                </div>
+              </div>
+
+              <Button
+                type="button"
+                disabled={!selectedTeacherId || !selectedClassId || isAssigning}
+                onClick={handleAssignTeacher}
+                className="h-11 w-full cursor-pointer rounded-xl bg-slate-900 text-white hover:bg-slate-800"
+              >
+                {isAssigning ? "Đang xử lý..." : "Gán giáo viên vào lớp"}
+              </Button>
+            </section>
+          </div>
+        </div>
       </div>
     </div>
   );
