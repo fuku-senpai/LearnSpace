@@ -35,6 +35,38 @@ export type GetAllTeachersResponse = {
   totalPages: number;
 };
 
+export type TeacherScheduleStatus = "ACTIVE" | "CLOSED";
+
+export type TeacherScheduleItem = {
+  classroomId: string;
+  classroomName: string;
+  classroomCode: string;
+  classroomStatus: TeacherScheduleStatus;
+  startDate: string;
+  endDate: string;
+  dayOfWeek: string;
+  startTime: string;
+  endTime: string;
+  studyMode: string;
+  location: string | null;
+  meetingUrl: string | null;
+};
+
+export type GetTeacherScheduleFilter = {
+  teacherId: string;
+  page?: number;
+  size?: number;
+  status?: TeacherScheduleStatus;
+};
+
+export type GetTeacherScheduleResponse = {
+  schedules: TeacherScheduleItem[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+};
+
 export const TeacherService = {
   getAllTeachers: async (
     filter: GetAllTeachersFilter,
@@ -46,6 +78,22 @@ export const TeacherService = {
           page: filter.page ?? 0,
           size: filter.size ?? 10,
           keyword: filter.keyword || undefined,
+        },
+      },
+    );
+
+    return res.data;
+  },
+  getTeacherSchedule: async (
+    filter: GetTeacherScheduleFilter,
+  ): Promise<GetTeacherScheduleResponse> => {
+    const res: AxiosResponse<GetTeacherScheduleResponse> = await axiosClient.get(
+      `/teachers/${filter.teacherId}/schedule`,
+      {
+        params: {
+          page: filter.page ?? 0,
+          size: filter.size ?? 10,
+          status: filter.status || undefined,
         },
       },
     );

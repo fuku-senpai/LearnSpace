@@ -24,6 +24,7 @@ import AssignTeacherToClass from "../assign_teacher/page";
 import ClassesManagement from "../classes/page";
 import LessonManagement from "../lessons/page";
 import MaterialManagement from "../materials/page";
+import TeacherSchedule from "../teacher_schedule/page";
 
 type MenuKey =
   | "overview"
@@ -475,14 +476,10 @@ const DashboardContent = () => {
             </div>
           )}
 
-          {(activeMenu === "students" || activeMenu === "schedule") && (
+          {activeMenu === "students" && (
             <div className="relative mx-auto max-w-md space-y-6 pt-8 text-center">
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-slate-200 text-slate-500">
-                {activeMenu === "students" ? (
-                  <Users className="h-6 w-6" />
-                ) : (
-                  <CalendarDays className="h-6 w-6" />
-                )}
+                <Users className="h-6 w-6" />
               </div>
               <div className="space-y-2">
                 <div className="mx-auto h-px w-16 bg-gradient-to-r from-transparent via-slate-300 to-transparent" />
@@ -520,6 +517,11 @@ const DashboardContent = () => {
           {activeMenu === "teacher-assignment" && (
             <div className="relative">
               <AssignTeacherToClass />
+            </div>
+          )}
+          {activeMenu === "schedule" && (
+            <div className="relative">
+              <TeacherSchedule />
             </div>
           )}
         </div>

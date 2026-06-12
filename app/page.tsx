@@ -111,7 +111,7 @@ export default function LandingPage() {
               </div>
               <div>
                 <h1 className="text-sm font-semibold text-white">
-                  Course Learning Platform
+                  Course Learning Platform 
                 </h1>
                 <p className="text-xs text-zinc-500">Student Learning Hub</p>
               </div>

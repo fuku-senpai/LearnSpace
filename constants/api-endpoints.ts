@@ -70,6 +70,7 @@ export const TEACHER_API = {
   GET_ALL: "/teachers",
   GET_CLASSROOMS: (teacherId: string) => `/teacher/${teacherId}/classrooms`,
   GET_MY_CLASSROOMS: "/teacher/classrooms",
+  GET_SCHEDULE: (teacherId: string) => `/teachers/${teacherId}/schedule`,
 };
 export const VIDEO_API = {
   UPLOAD: "/videos/upload",
