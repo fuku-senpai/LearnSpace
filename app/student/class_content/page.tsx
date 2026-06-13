@@ -482,20 +482,7 @@ const ClassContentManagement = () => {
               />
             ) : (
               <div className="space-y-5">
-                <div className="space-y-1 border-b border-slate-200 pb-4">
-                  <span className="inline-flex items-center gap-2 text-xs font-semibold tracking-[0.14em] text-violet-600 uppercase">
-                    <Sparkles className="h-3.5 w-3.5" />
-                    Video bài giảng
-                  </span>
-                  <div className="h-px w-14 bg-gradient-to-r from-violet-400 to-transparent" />
-                  <p className="text-sm text-slate-500">
-                    Buổi học:{" "}
-                    <span className="font-medium text-slate-900">
-                      {activeSession.session.title || "Chưa chọn"}
-                    </span>
-                  </p>
-                </div>
-
+               
                 {!activeSession.session.id ? (
                   <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-6 py-12 text-center text-sm text-slate-500">
                     Chọn buổi học để xem video
