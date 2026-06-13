@@ -37,8 +37,8 @@ export const Lesson_API = {
   CREATE_LESSON: "/lesson",
   GET_LESSONS: (materialId: string) => `/${materialId}/lessons`,
   GET_LESSON_DETAIL: (lessonId: string) => `/lessons/${lessonId}`,
-  UPDATE_LESSON: (lessonId: string) => `/lessons/${lessonId}`,
-  DELETE_LESSON: (lessonId: string) => `/lessons/${lessonId}`,
+  UPDATE_LESSON: (lessonId: string) => `/lesson/${lessonId}`,
+  DELETE_LESSON: (lessonId: string) => `/lesson/${lessonId}`,
 };
 
 export const LessonResource_API = {

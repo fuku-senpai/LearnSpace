@@ -33,6 +33,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Eye, Layers, Pencil, Plus, Sparkles, Trash2, Video } from "lucide-react";
+import { toast } from "sonner";
 
 const LessonManagementContent = () => {
   const router = useRouter();
@@ -97,14 +98,18 @@ const LessonManagementContent = () => {
     const orderValue = Number(editingOrder);
     if (!Number.isFinite(orderValue) || orderValue <= 0) return;
 
-    await updateLesson({
-      lessonId: editingLesson.id,
-      title: editingTitle.trim(),
-      lessonOrder: orderValue,
-      materialId,
-    });
-
-    setEditingLesson(null);
+    try {
+      const response = await updateLesson({
+        lessonId: editingLesson.id,
+        title: editingTitle.trim(),
+        lessonOrder: orderValue,
+        materialId,
+      });
+      toast.success(response.message || "Cập nhật buổi học thành công.");
+      setEditingLesson(null);
+    } catch {
+      // Error shown inline via updateError
+    }
   };
 
   const handleDeleteLesson = (lessonId: string) => {
@@ -115,12 +120,16 @@ const LessonManagementContent = () => {
   const handleConfirmDeleteLesson = async () => {
     if (!deletingLessonId || !materialId) return;
 
-    await deleteLesson({
-      lessonId: deletingLessonId,
-      materialId,
-    });
-
-    setDeletingLessonId(null);
+    try {
+      const response = await deleteLesson({
+        lessonId: deletingLessonId,
+        materialId,
+      });
+      toast.success(response.message || "Xoá buổi học thành công.");
+      setDeletingLessonId(null);
+    } catch {
+      // Error shown inline via deleteError
+    }
   };
 
   const deletingLesson = lessons?.find(
@@ -260,7 +269,7 @@ const LessonManagementContent = () => {
                 <div className="px-6 py-12 text-center text-sm text-slate-500">
                   Chưa có buổi học nào.
                 </div>
-              )}
+              )}  
             </div>
           </section>
 
