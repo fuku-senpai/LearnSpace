@@ -159,7 +159,7 @@ function LessonMaterialsList({
   );
 }
 
-const StudentClassView = () => {
+const ClassContentManagement = () => {
   const [activeTab, setActiveTab] = useState<TabKey>("materials");
   const [activeSessionId, setActiveSessionId] = useState("");
   const [selectedCourseId, setSelectedCourseId] = useState<string | undefined>(
@@ -366,7 +366,6 @@ const StudentClassView = () => {
               Chưa có nội dung cho lớp học này.
             </div>
           ) : null}
-
           <div className="relative space-y-0">
             {modules.map((courseModule, moduleIdx) => {
               const isLastModule = moduleIdx === modules.length - 1;
@@ -572,4 +571,4 @@ const StudentClassView = () => {
   );
 };
 
-export default StudentClassView;
+export default ClassContentManagement;

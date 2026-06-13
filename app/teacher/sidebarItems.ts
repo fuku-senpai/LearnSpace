@@ -1,33 +1,71 @@
 import type { LucideIcon } from "lucide-react";
-import { LayoutDashboard, MonitorPlay } from "lucide-react";
+import { GraduationCap, LayoutDashboard, MonitorPlay, UserRound } from "lucide-react";
 
-export type TeacherMenuKey = "overview" | "content";
+import type { DashboardMenuGroup } from "@/components/dashboard/DashboardSidebar";
 
-export type TeacherMenuItem = {
-  key: TeacherMenuKey;
-  label: string;
-  icon: LucideIcon;
-};
+export type TeacherMenuKey = "overview" | "content" | "profile";
 
-export const teacherMenuGroups: {
-  title: string;
-  items: TeacherMenuItem[];
-}[] = [
+export const teacherMenuGroups: DashboardMenuGroup<TeacherMenuKey>[] = [
   {
-    title: "Tổng quan",
+    title: "Điểm neo",
+    subtitle: "bắt đầu từ đây",
     items: [
-      { key: "overview", label: "Bảng điều khiển", icon: LayoutDashboard },
+      {
+        key: "overview",
+        label: "Tổng quan",
+        hint: "nhìn nhanh",
+        index: "01",
+        icon: LayoutDashboard,
+        accent: "from-sky-400 to-cyan-500",
+        activeGlow: "shadow-[0_0_20px_rgba(56,189,248,0.22)]",
+      },
     ],
   },
   {
     title: "Giảng dạy",
+    subtitle: "video & tài liệu",
     items: [
-      { key: "content", label: "Video & Tài liệu", icon: MonitorPlay },
+      {
+        key: "content",
+        label: "Video & Tài liệu",
+        hint: "upload buổi học",
+        index: "02",
+        icon: MonitorPlay,
+        accent: "from-violet-400 to-fuchsia-500",
+        activeGlow: "shadow-[0_0_20px_rgba(139,92,246,0.25)]",
+      },
+    ],
+  },
+  {
+    title: "Bản thân",
+    subtitle: "của bạn",
+    items: [
+      {
+        key: "profile",
+        label: "Thông tin cá nhân",
+        hint: "cập nhật hồ sơ",
+        index: "03",
+        icon: UserRound,
+        accent: "from-fuchsia-400 to-pink-500",
+        activeGlow: "shadow-[0_0_20px_rgba(232,121,249,0.22)]",
+      },
     ],
   },
 ];
 
 export const teacherMenuLabels: Record<TeacherMenuKey, string> = {
-  overview: "Bảng điều khiển",
+  overview: "Tổng quan",
   content: "Video & Tài liệu",
+  profile: "Thông tin cá nhân",
+};
+
+export const teacherSidebarBranding = {
+  title: "Course Teacher",
+  tagline: "Không gian giảng dạy",  
+  icon: GraduationCap,
+  iconColor: "text-sky-400",
+  radialGradient:
+    "bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(56,189,248,0.14),transparent_60%)]",
+  lineAccent: "from-sky-500/40",
+  chevronActive: "text-sky-300/90",
 };

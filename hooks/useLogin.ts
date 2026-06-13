@@ -30,7 +30,7 @@ export const useLogin = () => {
           break;
 
         case "STUDENT":
-          router.replace("/student/student_dashboard");
+          router.replace("/student/dashboard_layout");
           break;
 
         default:

@@ -3,6 +3,12 @@ export const AUTH_API = {
   CUSTOMER_REGISTER: "/auth/register",
   REFRESH_TOKEN: "/auth/refresh-token",
   LOGOUT: "/auth/logout",
+  GET_ACCOUNTS: "/auth/accounts",
+  ACCOUNT_BLOCK: (accountId: string) => `/auth/account/${accountId}/block`,
+};
+
+export const STUDENT_API = {
+  PROFILE: "/student",
 };
 export const CLASS_API = {
   CREATE_CLASS: "/class",
@@ -15,7 +21,9 @@ export const CLASS_API = {
   ASSIGN_TEACHER: (classId: string) => `/class/${classId}/assign-teacher`,
   REMOVE_TEACHER: (classId: string) => `/class/${classId}/remove-teacher`,
   SNAP_MATERIALS: (classId: string) => `/class/${classId}/snap-materials`,
+  GET_STUDENTS: (classroomId: string) => `/class/${classroomId}/students`,
 };
+
 export const MATERIALS_API = {
  CREATE_MATERIAL: (classroomId: string) => `/${classroomId}/materials`,  
   GET_MATERIALS: (classroomId: string) => `/${classroomId}/materials`,
@@ -68,6 +76,7 @@ export const SNAP_CLASSROOM_MATERIAL_API = {
 
 export const TEACHER_API = {
   GET_ALL: "/teachers",
+  PROFILE: "/teacher",
   GET_CLASSROOMS: (teacherId: string) => `/teacher/${teacherId}/classrooms`,
   GET_MY_CLASSROOMS: "/teacher/classrooms",
   GET_SCHEDULE: (teacherId: string) => `/teachers/${teacherId}/schedule`,

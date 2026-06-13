@@ -5,102 +5,60 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowRight,
   BookOpen,
-  CalendarDays,
-  ChevronRight,
   GraduationCap,
   Layers,
-  LayoutDashboard,
-  LogOut,
   Sparkles,
   UserCheck,
-  Users,
 } from "lucide-react";
 
 import { useGetClassesQuery } from "@/app/hooks/classes/useGetClasses";
 import { useGetALLMaterialsQuery } from "@/app/hooks/materials/useGetAllMaterials";
 import { Button } from "@/components/ui/button";
+import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { useLogout } from "@/hooks/useLogout";
 import AssignTeacherToClass from "../assign_teacher/page";
 import ClassesManagement from "../classes/page";
 import LessonManagement from "../lessons/page";
 import MaterialManagement from "../materials/page";
 import TeacherSchedule from "../teacher_schedule/page";
-
-type MenuKey =
-  | "overview"
-  | "materials"
-  | "classes"
-  | "lessons"
-  | "students"
-  | "schedule"
-  | "teacher-assignment"
-  | "logout";
-
-type MenuItem = {
-  key: MenuKey;
-  label: string;
-  icon: ComponentType<{ className?: string }>;
-};
-
-const menuGroups: {
-  title: string;
-  items: MenuItem[];
-}[] = [
-  {
-    title: "Tổng quan",
-    items: [{ key: "overview", label: "Bảng điều khiển", icon: LayoutDashboard }],
-  },
-  {
-    title: "Quản lý lớp",
-    items: [
-      { key: "classes", label: "Lớp học", icon: GraduationCap },
-      { key: "students", label: "Học viên", icon: Users },
-      { key: "schedule", label: "Lịch dạy", icon: CalendarDays },
-      {
-        key: "teacher-assignment",
-        label: "Gán giáo viên",
-        icon: UserCheck,
-      },
-    ],
-  },
-  {
-    title: "Nội dung",
-    items: [
-      { key: "materials", label: "Chủ đề", icon: BookOpen },
-      { key: "lessons", label: "Buổi học", icon: Layers },
-    ],
-  },
-];
+import StudentOfClassroom from "../students_of_classroom/page";
+import AccountManagement from "../accounts/page";
+import {
+  adminMenuGroups,
+  adminMenuLabels,
+  adminSidebarBranding,
+  type AdminMenuKey,
+} from "../sidebarItems";
 
 const workflowSteps = [
   {
     step: "01",
     title: "Tạo lớp học",
     description: "Khởi tạo lớp, thời gian và thông tin cơ bản.",
-    key: "classes" as MenuKey,
+    key: "classes" as AdminMenuKey,
   },
   {
     step: "02",
     title: "Gán chủ đề",
     description: "Đưa chủ đề vào lớp và sắp xếp thứ tự.",
-    key: "materials" as MenuKey,
+    key: "materials" as AdminMenuKey,
   },
   {
     step: "03",
     title: "Thêm buổi học",
     description: "Tạo buổi học theo từng chủ đề đã gán.",
-    key: "lessons" as MenuKey,
+    key: "lessons" as AdminMenuKey,
   },
   {
     step: "04",
     title: "Gán giáo viên",
     description: "Phân công giáo viên phụ trách lớp.",
-    key: "teacher-assignment" as MenuKey,
+    key: "teacher-assignment" as AdminMenuKey,
   },
 ];
 
 const quickActions: {
-  key: MenuKey;
+  key: AdminMenuKey;
   title: string;
   description: string;
   icon: ComponentType<{ className?: string }>;
@@ -135,18 +93,6 @@ const quickActions: {
     lineColor: "bg-emerald-400",
   },
 ];
-
-const menuLabels: Record<MenuKey, string> = {
-  overview: "Bảng điều khiển",
-  materials: "Chủ đề",
-  classes: "Lớp học",
-  lessons: "Buổi học",
-  students: "Học viên",
-  schedule: "Lịch dạy",
-  "teacher-assignment": "Gán giáo viên",
-  logout: "Đăng xuất",
-};
-
 const DashboardContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -159,20 +105,15 @@ const DashboardContent = () => {
   const { data: materialsResponse, isLoading: isMaterialsLoading } =
     useGetALLMaterialsQuery({ page: 0, size: 1, title: "" });
 
-  const activeMenu = useMemo<MenuKey>(() => {
-    const allItems = menuGroups.flatMap((group) => group.items);
-    if (menuParam && allItems.some((item) => item.key === menuParam)) {
-      return menuParam as MenuKey;
+  const activeMenu = useMemo<AdminMenuKey>(() => {
+    const validKeys = Object.keys(adminMenuLabels) as AdminMenuKey[];
+    if (menuParam && validKeys.includes(menuParam as AdminMenuKey)) {
+      return menuParam as AdminMenuKey;
     }
     return "overview";
   }, [menuParam]);
 
-  const handleMenuChange = (key: MenuKey) => {
-    if (key === "logout") {
-      logoutMutation.mutate();
-      return;
-    }
-
+  const handleMenuChange = (key: AdminMenuKey) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("menu", key);
     if (
@@ -180,6 +121,7 @@ const DashboardContent = () => {
       key === "classes" ||
       key === "schedule" ||
       key === "students" ||
+      key === "accounts" ||
       key === "teacher-assignment"
     ) {
       params.delete("classId");
@@ -210,83 +152,17 @@ const DashboardContent = () => {
 
   return (
     <div className="flex min-h-screen gap-4 bg-[#f3f5f9] p-4">
-      <aside className="sticky top-4 hidden h-[calc(100vh-2rem)] w-[270px] shrink-0 flex-col overflow-hidden rounded-3xl border border-white/[0.06] bg-[#0c0e14] shadow-[0_20px_50px_rgba(0,0,0,0.18)] lg:flex">
-        <div className="pointer-events-none absolute inset-0 rounded-3xl bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(251,191,36,0.12),transparent_60%)]" />
-
-        <div className="relative border-b border-white/[0.06] px-6 py-7">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-[0_8px_24px_rgba(251,191,36,0.25)]">
-              <GraduationCap className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="text-[15px] font-semibold tracking-tight text-white">
-                Course Admin
-              </h2>
-              <p className="text-xs text-zinc-500">Bảng quản trị hệ thống</p>
-            </div>
-          </div>
-        </div>
-
-        <nav className="relative min-h-0 flex-1 space-y-6 overflow-y-auto px-4 py-6">
-          {menuGroups.map((group) => (
-            <div key={group.title} className="space-y-1.5">
-              <p className="px-3 text-[10px] font-semibold tracking-[0.16em] text-zinc-600 uppercase">
-                {group.title}
-              </p>
-              <div className="space-y-0.5">
-                {group.items.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = activeMenu === item.key;
-
-                  return (
-                    <button
-                      key={item.key}
-                      type="button"
-                      onClick={() => handleMenuChange(item.key)}
-                      className={`group flex h-10 w-full cursor-pointer items-center gap-3 rounded-xl px-3 text-sm transition-all duration-200 ${
-                        isActive
-                          ? "bg-white/[0.08] text-white shadow-[inset_3px_0_0_0_#fbbf24]"
-                          : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200"
-                      }`}
-                    >
-                      <span
-                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition ${
-                          isActive
-                            ? "bg-amber-400/15 text-amber-300"
-                            : "bg-white/[0.04] text-zinc-500 group-hover:text-zinc-300"
-                        }`}
-                      >
-                        <Icon className="h-4 w-4" />
-                      </span>
-                      <span className="truncate font-medium">{item.label}</span>
-                      {isActive ? (
-                        <ChevronRight className="ml-auto h-4 w-4 text-amber-400/80" />
-                      ) : null}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </nav>
-
-        <div className="relative mt-auto shrink-0 border-t border-white/[0.06] bg-[#0c0e14] p-4">
-          <button
-            type="button"
-            onClick={() => handleMenuChange("logout")}
-            disabled={logoutMutation.isPending}
-            className="flex h-10 w-full cursor-pointer items-center gap-3 rounded-xl px-3 text-sm font-medium text-rose-400 transition hover:bg-rose-500/10 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-500/10">
-              <LogOut className="h-4 w-4" />
-            </span>
-            {logoutMutation.isPending ? "Đang đăng xuất..." : "Đăng xuất"}
-          </button>
-        </div>
-      </aside>
+      <DashboardSidebar
+        groups={adminMenuGroups}
+        activeMenu={activeMenu}
+        onMenuChange={handleMenuChange}
+        onLogout={() => logoutMutation.mutate()}
+        isLogoutPending={logoutMutation.isPending}
+        branding={adminSidebarBranding}
+      />
 
       <main className="flex min-h-[calc(100vh-2rem)] min-w-0 flex-1 flex-col overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm">
-        <header className="sticky top-0 z-20 border-b border-slate-200/70 bg-white/90 px-6 py-4 backdrop-blur-xl">
+        {/* <header className="sticky top-0 z-20 border-b border-slate-200/70 bg-white/90 px-6 py-4 backdrop-blur-xl">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <p className="text-[11px] font-semibold tracking-[0.14em] text-slate-400 uppercase">
@@ -315,7 +191,7 @@ const DashboardContent = () => {
               </div>
             </div>
           </div>
-        </header>
+        </header> */}
 
         <div className="relative flex-1 px-4 py-6 sm:px-6 sm:py-8">
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(15,23,42,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(15,23,42,0.03)_1px,transparent_1px)] bg-[length:32px_32px]" />
@@ -476,30 +352,7 @@ const DashboardContent = () => {
             </div>
           )}
 
-          {activeMenu === "students" && (
-            <div className="relative mx-auto max-w-md space-y-6 pt-8 text-center">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-slate-200 text-slate-500">
-                <Users className="h-6 w-6" />
-              </div>
-              <div className="space-y-2">
-                <div className="mx-auto h-px w-16 bg-gradient-to-r from-transparent via-slate-300 to-transparent" />
-                <h3 className="text-lg font-semibold text-slate-900">
-                  {menuLabels[activeMenu]}
-                </h3>
-                <p className="text-sm text-slate-500">
-                  Mô-đun đang được phát triển. Bạn có thể quay lại bảng điều
-                  khiển để tiếp tục các tác vụ khác.
-                </p>
-              </div>
-              <Button
-                variant="ghost"
-                className="cursor-pointer border-b border-slate-300 rounded-none px-0 hover:bg-transparent"
-                onClick={() => handleMenuChange("overview")}
-              >
-                Về bảng điều khiển
-              </Button>
-            </div>
-          )}
+         
 
           <div className={`relative ${activeMenu === "materials" ? "" : "hidden"}`}>
             <MaterialManagement classId={classId ?? undefined} />
@@ -522,6 +375,16 @@ const DashboardContent = () => {
           {activeMenu === "schedule" && (
             <div className="relative">
               <TeacherSchedule />
+            </div>
+          )}
+          {activeMenu === "students" && (
+            <div className="relative">
+              <StudentOfClassroom />
+            </div>
+          )}
+          {activeMenu === "accounts" && (
+            <div className="relative">
+              <AccountManagement />
             </div>
           )}
         </div>

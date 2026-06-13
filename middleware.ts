@@ -15,7 +15,7 @@ const accessTokenCookieOptions = {
 const DASHBOARD_PATH = {
   ADMIN: "/admin/dashboard_layout?menu=classes",
   TEACHER: "/teacher/dashboard_layout",
-  STUDENT: "/student/student_dashboard",
+  STUDENT: "/student/dashboard_layout",
 } as const;
 
 async function refreshAccessToken(
