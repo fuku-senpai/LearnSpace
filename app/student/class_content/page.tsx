@@ -8,8 +8,6 @@ import {
   MonitorPlay,
   Sparkles,
   UserPlus,
-  Clock,
-  Target,
 } from "lucide-react";
 import { useGetMyClassesQuery } from "@/app/hooks/classes/useGetMyClasses";
 import { useGetSnapMaterials } from "@/app/hooks/materials/useGetSnapMaterials";
@@ -33,6 +31,9 @@ import {
   type LessonContentTab,
 } from "@/components/lesson/LessonContentTabBar";
 import { LessonModuleSidebar } from "@/components/lesson/LessonModuleSidebar";
+import { LessonQuizList } from "@/components/lesson/LessonQuizList";
+import { LessonQuizTakeModal } from "@/components/lesson/LessonQuizTakeModal";
+import { LessonQuizResultModal } from "@/components/lesson/LessonQuizResultModal";
 import {
   getSnapLessonIndicators,
   mergeLessonIndicators,
@@ -181,13 +182,17 @@ function LessonMaterialsList({
 }
 
 const ClassContentManagement = () => {
-  const [activeTab, setActiveTab] = useState<TabKey>("materials");
+  const [activeTab, setActiveTab] = useState<TabKey>("replay");
   const [activeSessionId, setActiveSessionId] = useState("");
   const [selectedCourseId, setSelectedCourseId] = useState<string | undefined>(
     undefined,
   );
   const [enrollCode, setEnrollCode] = useState("");
   const [enrollMessage, setEnrollMessage] = useState<string | null>(null);
+  const [activeQuizId, setActiveQuizId] = useState<string | null>(null);
+  const [isQuizModalOpen, setIsQuizModalOpen] = useState(false);
+  const [resultQuizId, setResultQuizId] = useState<string | null>(null);
+  const [isResultModalOpen, setIsResultModalOpen] = useState(false);
 
   const { data: myClasses = [], isLoading: isLoadingClasses } =
     useGetMyClassesQuery();
@@ -298,9 +303,19 @@ const ClassContentManagement = () => {
     resolvedSessionId || undefined,
   );
 
-  const selectContent = (sessionId: string, tab: TabKey) => {
+  const selectContent = (sessionId: string, tab: TabKey, quizId?: string) => {
     setActiveSessionId(sessionId);
     setActiveTab(tab);
+
+    if (quizId) {
+      setActiveQuizId(quizId);
+      setIsQuizModalOpen(true);
+      return;
+    }
+
+    if (tab !== "quiz") {
+      setActiveQuizId(null);
+    }
   };
 
   const handleEnroll = async () => {
@@ -416,6 +431,7 @@ const ClassContentManagement = () => {
             modules={sidebarModules}
             activeSessionId={resolvedSessionId}
             activeTab={activeTab}
+            activeQuizId={activeQuizId}
             onSelectContent={selectContent}
             isLoading={isLoadingMaterials}
             errorMessage={
@@ -446,45 +462,27 @@ const ClassContentManagement = () => {
                 lessonTitle={activeSession.session.title}
               />
             ) : activeTab === "quiz" ? (
-              <div className="space-y-4">
-                {!activeSession.session.id ? (
-                  <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-6 py-12 text-center text-sm text-slate-500">
-                    Chọn buổi học để xem trắc nghiệm
-                  </div>
-                ) : activeSession.session.quizzes.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-6 py-12 text-center text-sm text-slate-500">
-                    Chưa có trắc nghiệm cho buổi học này
-                  </div>
-                ) : (
-                  activeSession.session.quizzes.map((quiz) => (
-                    <div
-                      key={quiz.quizId}
-                      className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm"
-                    >
-                      <p className="font-semibold text-slate-900">{quiz.title}</p>
-                      {quiz.description ? (
-                        <p className="mt-1 text-sm text-slate-600">
-                          {quiz.description}
-                        </p>
-                      ) : null}
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {typeof quiz.durationMinutes === "number" ? (
-                          <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700">
-                            <Clock className="h-3.5 w-3.5" />
-                            {quiz.durationMinutes} phút
-                          </span>
-                        ) : null}
-                        {typeof quiz.passScore === "number" ? (
-                          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-800">
-                            <Target className="h-3.5 w-3.5" />
-                            Điểm đạt: {quiz.passScore}
-                          </span>
-                        ) : null}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
+              !activeSession.session.id ? (
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-6 py-12 text-center text-sm text-slate-500">
+                  Chọn buổi học để xem bài tập
+                </div>
+              ) : (
+                <LessonQuizList
+                  lessonTitle={activeSession.session.title}
+                  quizzes={activeSession.session.quizzes}
+                  mode="student"
+                  activeQuizId={activeQuizId}
+                  onQuizClick={(quizId) => {
+                    setActiveQuizId(quizId);
+                    setIsQuizModalOpen(true);
+                  }}
+                  onResultClick={(quizId) => {
+                    setResultQuizId(quizId);
+                    setActiveQuizId(quizId);
+                    setIsResultModalOpen(true);
+                  }}
+                />
+              )
             ) : (
               <div className="space-y-5">
                
@@ -536,6 +534,28 @@ const ClassContentManagement = () => {
           </div>
         </main>
       </div>
+
+      <LessonQuizTakeModal
+        quizId={activeQuizId}
+        open={isQuizModalOpen}
+        onOpenChange={(open) => {
+          setIsQuizModalOpen(open);
+          if (!open) setActiveQuizId(null);
+        }}
+        onViewResult={(quizId) => {
+          setResultQuizId(quizId);
+          setIsResultModalOpen(true);
+        }}
+      />
+
+      <LessonQuizResultModal
+        quizId={resultQuizId}
+        open={isResultModalOpen}
+        onOpenChange={(open) => {
+          setIsResultModalOpen(open);
+          if (!open) setResultQuizId(null);
+        }}
+      />
     </div>
   );
 };

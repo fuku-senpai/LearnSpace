@@ -2,20 +2,14 @@
 
 import { Suspense, useEffect, useMemo, useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
-import { FileText, MonitorPlay, Clock, Target } from "lucide-react";
+import { FileText, MonitorPlay } from "lucide-react";
 import { useGetTeacherClassrooms } from "@/app/hooks/teacher/useGetTeacherClassrooms";
 import { useGetSnapMaterials } from "@/app/hooks/materials/useGetSnapMaterials";
 import { UploadCloud, Loader2, Film } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import {
-  Select,
-  SelectTrigger,
-  SelectContent,
-  SelectItem,
-  SelectValue,
-} from "@/components/ui/select";
+import {Select,SelectTrigger,SelectContent,SelectItem, SelectValue} from "@/components/ui/select";
 import { usePresignVideo } from "@/app/hooks/videos/usePresignVideoMutation";
 import { useCreateNewRecord } from "@/app/hooks/records/useCreateNewRecord";
 import { useGetVideoQuery } from "@/app/hooks/videos/useGetVideoQuery";
@@ -28,16 +22,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { TeacherClassroom } from "@/app/service/teacher.service";
 import type { LessonQuiz } from "@/app/service/material.service";
-import {
-  LessonContentTabBar,
-  type LessonContentTab,
-} from "@/components/lesson/LessonContentTabBar";
+import {LessonContentTabBar,type LessonContentTab} from "@/components/lesson/LessonContentTabBar";
 import { LessonModuleSidebar } from "@/components/lesson/LessonModuleSidebar";
-import {
-  getSnapLessonIndicators,
-  mergeLessonIndicators,
-  useLessonSidebarIndicators,
-} from "@/app/hooks/lesson/useLessonSidebarIndicators";
+import { LessonQuizPanel } from "@/components/lesson/LessonQuizPanel";
+import {getSnapLessonIndicators,mergeLessonIndicators,useLessonSidebarIndicators} from "@/app/hooks/lesson/useLessonSidebarIndicators";
 
 type TabKey = LessonContentTab;
 
@@ -94,81 +82,6 @@ function findActiveSession(
 }
 
 // modules are derived from snap-materials API (materials -> sessions)
-
-function LessonQuizzesPanel({
-  quizzes,
-  lessonTitle,
-}: {
-  quizzes: LessonQuiz[];
-  lessonTitle: string;
-}) {
-  if (!lessonTitle) {
-    return (
-      <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
-        Chọn buổi học để xem trắc nghiệm
-      </div>
-    );
-  }
-
-  if (quizzes.length === 0) {
-    return (
-      <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
-        Chưa có trắc nghiệm cho buổi học này
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      <div>
-        <h3 className="text-lg font-semibold text-slate-900">Trắc nghiệm</h3>
-        <p className="text-sm text-slate-500">
-          Buổi học: <span className="font-medium">{lessonTitle}</span>
-        </p>
-      </div>
-
-      <div className="space-y-3">
-        {quizzes.map((quiz) => (
-          <Card
-            key={quiz.quizId}
-            className="border-slate-200/90 shadow-sm transition hover:border-violet-200"
-          >
-            <div className="space-y-3 p-5">
-              <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-700">
-                  <FileText className="h-5 w-5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-slate-900">{quiz.title}</p>
-                  {quiz.description ? (
-                    <p className="mt-1 text-sm text-slate-600">
-                      {quiz.description}
-                    </p>
-                  ) : null}
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-3">
-                {typeof quiz.durationMinutes === "number" ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700">
-                    <Clock className="h-3.5 w-3.5 text-slate-500" />
-                    {quiz.durationMinutes} phút
-                  </span>
-                ) : null}
-                {typeof quiz.passScore === "number" ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-800">
-                    <Target className="h-3.5 w-3.5" />
-                    Điểm đạt: {quiz.passScore}
-                  </span>
-                ) : null}
-              </div>
-            </div>
-          </Card>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 type UploadedMaterialFile = {
   name: string;
@@ -476,7 +389,7 @@ function LessonMaterialsPanel({
 
 function VideoDocumentManagementContent() {
   const searchParams = useSearchParams();
-  const [activeTab, setActiveTab] = useState<TabKey>("materials");
+  const [activeTab, setActiveTab] = useState<TabKey>("replay");
   const [activeSessionId, setActiveSessionId] = useState("");
   const [selectedVideo, setSelectedVideo] = useState<File | null>(null);
   const [videoTitle, setVideoTitle] = useState("");
@@ -611,7 +524,11 @@ function VideoDocumentManagementContent() {
     resolvedSessionId || undefined,
   );
 
-  const selectContent = (sessionId: string, tab: TabKey) => {
+  const selectContent = (
+    sessionId: string,
+    tab: TabKey,
+    _quizId?: string,
+  ) => {
     setActiveSessionId(sessionId);
     setActiveTab(tab);
     setSelectedVideo(null);
@@ -766,9 +683,11 @@ function VideoDocumentManagementContent() {
                 lessonTitle={activeSession.session.title}
               />
             ) : activeTab === "quiz" ? (
-              <LessonQuizzesPanel
-                quizzes={activeSession.session.quizzes}
+              <LessonQuizPanel
+                snapLessonId={activeSession.session.id}
                 lessonTitle={activeSession.session.title}
+                quizzes={activeSession.session.quizzes}
+                classroomId={effectiveCourseId}
               />
             ) : (
               <Card className="border-slate-200 shadow-sm">

@@ -9,6 +9,8 @@ export const AUTH_API = {
 
 export const STUDENT_API = {
   PROFILE: "/student",
+  SUBMIT_QUIZ: (quizId: string) => `/student/quizzes/${quizId}/submit`,
+  GET_QUIZ_RESULT: (quizId: string) => `/student/quizzes/${quizId}/result`,
 };
 export const CLASS_API = {
   CREATE_CLASS: "/class",
@@ -80,6 +82,11 @@ export const TEACHER_API = {
   GET_MY_CLASSROOMS: "/teacher/classrooms",
   GET_SCHEDULE: (teacherId: string) => `/teachers/${teacherId}/schedule`,
 };
+export const LESSON_QUIZ_API = {
+  CREATE: "/lesson-quiz",
+  GET_BY_ID: (quizId: string) => `/lesson-quiz/${quizId}`,
+};
+
 export const VIDEO_API = {
   UPLOAD: "/videos/upload",
   PRESIGN: "/videos/presign",

@@ -38,8 +38,8 @@ const tabs: {
   },
   {
     key: "quiz",
-    label: "Trắc nghiệm",
-    shortLabel: "Quiz",
+    label: "Bài tập",
+    shortLabel: "Bài tập",
     icon: ClipboardList,
   },
 ];

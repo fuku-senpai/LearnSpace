@@ -1,0 +1,547 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import {
+  AlertCircle,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardList,
+  Clock,
+  Loader2,
+  X,
+} from "lucide-react";
+import { AxiosError } from "axios";
+import { useGetQuizResultQuery } from "@/app/hooks/lessonQuiz/useGetQuizResult";
+import type { QuizSubmissionResult } from "@/app/service/lessonQuiz.service";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
+import { lessonNavyButton } from "./lessonTheme";
+
+type LessonQuizResultModalProps = {
+  quizId: string | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+};
+
+const MODAL_CLASS =
+  "flex max-h-[90vh] w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden rounded-2xl border border-slate-200/60 bg-white p-0 shadow-xl sm:max-w-3xl";
+
+const optionLabel = (index: number) => String.fromCharCode(65 + index);
+
+const isPendingResult = (status?: string) => status === "PENDING";
+
+const getStatusLabel = (status?: string) => {
+  if (status === "GRADED") return "Đã chấm";
+  if (status === "PENDING") return "Đang chờ chấm";
+  return status;
+};
+
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof AxiosError) {
+    if (error.response?.status === 404) {
+      return "Bạn chưa nộp bài hoặc chưa có kết quả cho bài tập này.";
+    }
+    const data = error.response?.data;
+    if (data && typeof data === "object" && "message" in data) {
+      const message = data.message;
+      if (typeof message === "string" && message.trim()) {
+        return message;
+      }
+    }
+  }
+  return "Không thể tải kết quả. Vui lòng thử lại.";
+};
+
+function PendingBanner({
+  passScore,
+  totalCount,
+  submittedCount,
+}: {
+  passScore: number;
+  totalCount: number;
+  submittedCount: number;
+}) {
+  return (
+    <div className="border-b border-amber-100 bg-amber-50/60 px-6 py-4">
+      <div className="flex items-start gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-amber-600 ring-1 ring-amber-200">
+          <Clock className="h-4 w-4" />
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-amber-900">
+            Bài làm đang chờ giáo viên chấm
+          </p>
+          <p className="mt-1 text-sm leading-relaxed text-amber-800/80">
+            Bạn có thể xem lại câu trả lời đã nộp. Điểm số và đáp án đúng/sai
+            sẽ hiển thị sau khi được chấm.
+          </p>
+          <p className="mt-2 text-xs text-amber-700/70">
+            Đã nộp {submittedCount}/{totalCount} câu · Yêu cầu đạt ≥ {passScore}{" "}
+            điểm
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ScoreStrip({
+  score,
+  passScore,
+  passed,
+  correctCount,
+  totalCount,
+  status,
+}: {
+  score: number;
+  passScore: number;
+  passed: boolean;
+  correctCount: number;
+  totalCount: number;
+  status?: string;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-slate-100 bg-white px-6 py-3.5 text-sm">
+      <div className="flex items-baseline gap-1.5">
+        <span className="text-2xl font-semibold tracking-tight text-slate-900 tabular-nums">
+          {score}
+        </span>
+        <span className="text-slate-400">điểm</span>
+      </div>
+
+      <span className="hidden h-4 w-px bg-slate-200 sm:block" />
+
+      <span
+        className={cn(
+          "font-medium",
+          passed ? "text-emerald-600" : "text-amber-600",
+        )}
+      >
+        {passed ? "Đạt" : "Chưa đạt"}
+        <span className="font-normal text-slate-400"> · cần {passScore}</span>
+      </span>
+
+      <span className="hidden h-4 w-px bg-slate-200 sm:block" />
+
+      <span className="text-slate-600">
+        <span className="font-medium text-slate-900 tabular-nums">
+          {correctCount}/{totalCount}
+        </span>{" "}
+        câu đúng
+      </span>
+
+      {status ? (
+        <>
+          <span className="hidden h-4 w-px bg-slate-200 sm:block" />
+          <span className="font-medium text-emerald-600">
+            {getStatusLabel(status)}
+          </span>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
+function OptionItem({
+  label,
+  content,
+  isSelected,
+  isCorrect,
+  isPending,
+}: {
+  label: string;
+  content: string;
+  isSelected: boolean;
+  isCorrect: boolean;
+  isPending: boolean;
+}) {
+  if (isPending) {
+    return (
+      <div
+        className={cn(
+          "flex items-start gap-3 rounded-xl px-1 py-2 transition-colors",
+          isSelected && "bg-blue-50/60",
+        )}
+      >
+        <span
+          className={cn(
+            "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 text-[9px] font-semibold",
+            isSelected
+              ? "border-blue-900 bg-blue-900 text-white"
+              : "border-slate-200 bg-white text-slate-400",
+          )}
+        >
+          {label}
+        </span>
+        <div className="min-w-0 flex-1 pt-px">
+          <p className="text-sm leading-relaxed text-slate-700">{content}</p>
+          {isSelected ? (
+            <p className="mt-1 text-xs text-blue-800">Bạn đã chọn</p>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+
+  const showMarker = isSelected || isCorrect;
+
+  return (
+    <div
+      className={cn(
+        "flex items-start gap-3 rounded-xl px-1 py-2 transition-colors",
+        showMarker && "bg-slate-50/80",
+      )}
+    >
+      <span
+        className={cn(
+          "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2",
+          isCorrect
+            ? "border-emerald-500 bg-emerald-500 text-white"
+            : isSelected
+              ? "border-rose-400 bg-rose-400 text-white"
+              : "border-slate-200 bg-white",
+        )}
+      >
+        {isCorrect ? (
+          <Check className="h-3 w-3" strokeWidth={3} />
+        ) : isSelected ? (
+          <X className="h-3 w-3" strokeWidth={3} />
+        ) : (
+          <span className="text-[9px] font-semibold text-slate-400">{label}</span>
+        )}
+      </span>
+
+      <div className="min-w-0 flex-1 pt-px">
+        <p className="text-sm leading-relaxed text-slate-700">{content}</p>
+        {showMarker ? (
+          <p className="mt-1 text-xs text-slate-400">
+            {[isSelected ? "Bạn chọn" : null, isCorrect ? "Đáp án đúng" : null]
+              .filter(Boolean)
+              .join(" · ")}
+          </p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function QuestionDetail({
+  question,
+  index,
+  total,
+  isPending,
+}: {
+  question: QuizSubmissionResult["questions"][number];
+  index: number;
+  total: number;
+  isPending: boolean;
+}) {
+  const isEssay = question.options.length === 0;
+  const hasAnswer =
+    Boolean(question.essayAnswer?.trim()) ||
+    Boolean(question.selectedOptionId);
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <p className="text-xs font-medium tracking-wide text-slate-400 uppercase">
+          Câu {index + 1} / {total}
+        </p>
+        {isPending ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
+            <Clock className="h-3 w-3" />
+            Chờ chấm
+          </span>
+        ) : (
+          <span
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
+              question.correct
+                ? "bg-emerald-50 text-emerald-700"
+                : "bg-rose-50 text-rose-600",
+            )}
+          >
+            <span
+              className={cn(
+                "h-1.5 w-1.5 rounded-full",
+                question.correct ? "bg-emerald-500" : "bg-rose-400",
+              )}
+            />
+            {question.correct ? "Trả lời đúng" : "Trả lời sai"}
+            <span className="text-slate-300">·</span>
+            {question.points}đ
+          </span>
+        )}
+      </div>
+
+      <p className="text-[15px] leading-relaxed font-medium text-slate-900">
+        {question.questionContent}
+      </p>
+
+      <div className="mt-5 min-h-0 flex-1">
+        {isEssay ? (
+          <div className="rounded-xl bg-slate-50 px-4 py-3.5">
+            <p className="text-[11px] font-medium tracking-wide text-slate-400 uppercase">
+              Bài làm của bạn
+            </p>
+            <p className="mt-2 text-sm leading-relaxed text-slate-700 whitespace-pre-wrap">
+              {question.essayAnswer?.trim() || "Không có nội dung"}
+            </p>
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {question.options.map((option, optionIndex) => (
+              <OptionItem
+                key={option.optionId}
+                label={optionLabel(optionIndex)}
+                content={option.content}
+                isSelected={option.optionId === question.selectedOptionId}
+                isCorrect={option.correct}
+                isPending={isPending}
+              />
+            ))}
+          </div>
+        )}
+        {isPending && !hasAnswer ? (
+          <p className="mt-3 text-xs text-slate-400">Bạn chưa trả lời câu này</p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function countSubmittedQuestions(questions: QuizSubmissionResult["questions"]) {
+  return questions.filter(
+    (question) =>
+      Boolean(question.essayAnswer?.trim()) ||
+      Boolean(question.selectedOptionId),
+  ).length;
+}
+
+function ResultBody({ result }: { result: QuizSubmissionResult }) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const isPending = isPendingResult(result.status);
+  const correctCount = result.questions.filter((q) => q.correct).length;
+  const submittedCount = countSubmittedQuestions(result.questions);
+  const activeQuestion = result.questions[activeIndex];
+
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [result.quizId, result.submissionId]);
+
+  if (!activeQuestion) return null;
+
+  return (
+    <>
+      {isPending ? (
+        <PendingBanner
+          passScore={result.passScore}
+          totalCount={result.questions.length}
+          submittedCount={submittedCount}
+        />
+      ) : (
+        <ScoreStrip
+          score={result.score}
+          passScore={result.passScore}
+          passed={result.passed}
+          correctCount={correctCount}
+          totalCount={result.questions.length}
+          status={result.status}
+        />
+      )}
+
+      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+        <aside className="shrink-0 border-b border-slate-100 bg-slate-50/40 px-4 py-3 lg:w-56 lg:border-r lg:border-b-0 lg:py-4">
+          <p className="mb-2.5 px-1 text-[11px] font-medium text-slate-400">
+            Danh sách câu
+          </p>
+          <div className="flex gap-1.5 overflow-x-auto pb-1 lg:max-h-[min(52vh,420px)] lg:flex-col lg:overflow-y-auto lg:pb-0">
+            {result.questions.map((question, index) => {
+              const isActive = index === activeIndex;
+              const hasAnswer =
+                Boolean(question.essayAnswer?.trim()) ||
+                Boolean(question.selectedOptionId);
+
+              return (
+                <button
+                  key={question.questionId}
+                  type="button"
+                  onClick={() => setActiveIndex(index)}
+                  className={cn(
+                    "flex min-w-[120px] shrink-0 cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-all lg:min-w-0 lg:w-full",
+                    isActive
+                      ? "bg-blue-900 text-white shadow-sm"
+                      : "bg-white text-slate-700 ring-1 ring-slate-200/80 hover:ring-slate-300",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "h-2 w-2 shrink-0 rounded-full",
+                      isPending
+                        ? hasAnswer
+                          ? isActive
+                            ? "bg-blue-200"
+                            : "bg-blue-500"
+                          : isActive
+                            ? "bg-slate-300"
+                            : "bg-slate-300"
+                        : question.correct
+                          ? isActive
+                            ? "bg-emerald-300"
+                            : "bg-emerald-500"
+                          : isActive
+                            ? "bg-rose-300"
+                            : "bg-rose-400",
+                    )}
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span
+                      className={cn(
+                        "block text-xs font-semibold",
+                        isActive ? "text-white" : "text-slate-900",
+                      )}
+                    >
+                      Câu {index + 1}
+                    </span>
+                    <span
+                      className={cn(
+                        "mt-0.5 block truncate text-[11px]",
+                        isActive ? "text-blue-100" : "text-slate-400",
+                      )}
+                    >
+                      {question.questionContent}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </aside>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+          <QuestionDetail
+            question={activeQuestion}
+            index={activeIndex}
+            total={result.questions.length}
+            isPending={isPending}
+          />
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-3 border-t border-slate-100 bg-white px-5 py-3 sm:px-6">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="cursor-pointer text-slate-500"
+          onClick={() => setActiveIndex((i) => Math.max(0, i - 1))}
+          disabled={activeIndex === 0}
+        >
+          <ChevronLeft className="mr-1 h-4 w-4" />
+          Câu trước
+        </Button>
+        <span className="text-xs text-slate-400 tabular-nums">
+          {activeIndex + 1} / {result.questions.length}
+        </span>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="cursor-pointer text-slate-500"
+          onClick={() =>
+            setActiveIndex((i) =>
+              Math.min(result.questions.length - 1, i + 1),
+            )
+          }
+          disabled={activeIndex >= result.questions.length - 1}
+        >
+          Câu sau
+          <ChevronRight className="ml-1 h-4 w-4" />
+        </Button>
+      </div>
+    </>
+  );
+}
+
+export function LessonQuizResultModal({
+  quizId,
+  open,
+  onOpenChange,
+}: LessonQuizResultModalProps) {
+  const {
+    data: result,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useGetQuizResultQuery(open ? (quizId ?? undefined) : undefined, open);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className={MODAL_CLASS}>
+        <div className="shrink-0 px-6 pt-6 pb-4">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-900">
+              <ClipboardList className="h-[18px] w-[18px]" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <DialogTitle className="text-lg font-semibold tracking-tight text-slate-900">
+                {result?.quizTitle ?? "Kết quả bài tập"}
+              </DialogTitle>
+              <DialogDescription className="mt-0.5 text-sm text-slate-500">
+                {result && isPendingResult(result.status)
+                  ? "Xem lại bài làm đã nộp — đang chờ chấm"
+                  : "Xem lại điểm số và từng câu trả lời"}
+              </DialogDescription>
+            </div>
+          </div>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-hidden">
+          {isLoading ? (
+            <div className="flex items-center justify-center gap-2 py-24 text-sm text-slate-500">
+              <Loader2 className="h-5 w-5 animate-spin text-slate-300" />
+              Đang tải...
+            </div>
+          ) : isError ? (
+            <div className="px-6 py-16 text-center">
+              <AlertCircle className="mx-auto mb-3 h-6 w-6 text-slate-300" />
+              <p className="font-medium text-slate-800">Không thể tải kết quả</p>
+              <p className="mt-1 text-sm text-slate-500">
+                {getErrorMessage(error)}
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-5 cursor-pointer"
+                onClick={() => refetch()}
+              >
+                Thử lại
+              </Button>
+            </div>
+          ) : result ? (
+            <ResultBody result={result} />
+          ) : null}
+        </div>
+
+        <div className="shrink-0 border-t border-slate-100 px-6 py-4">
+          <Button
+            type="button"
+            className={cn("h-10 w-full cursor-pointer rounded-xl", lessonNavyButton)}
+            onClick={() => onOpenChange(false)}
+          >
+            Đóng
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
