@@ -20,7 +20,7 @@ export const useCreateNewRecord = () => {
     mutationFn: (payload) => RecordService.createRecord(payload),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: ["records", variables.snapLessonId],
+        queryKey: ["video", "play", variables.snapLessonId],
       });
     },
   });

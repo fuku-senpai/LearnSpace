@@ -48,7 +48,6 @@ export const LessonResource_API = {
 
 export const Record_API = {
   CREATE: "/lessonVideo",
-  GET_BY_LESSON: (snapLessonId: string) => `/${snapLessonId}/lessonVideos`,
 };
 
 export const SCHEDULE_API = {

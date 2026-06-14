@@ -1,5 +1,6 @@
 import { AxiosResponse } from "axios";
 import { axiosClient } from "../lib/axiosClient";
+import type { VideoType } from "./record.service";
 
 export type MaterialItemPayload = {
   title: string;
@@ -38,10 +39,17 @@ export type SnapLesson = {
   lessonOrder: number;
   title: string;
   lessonVideos: LessonVideo[];
+  lessonResources?: LessonResourceRef[];
 };
 
 export type LessonVideo = {
   lessonVideoId: string;
+  videoType?: VideoType;
+};
+
+export type LessonResourceRef = {
+  lessonResourceId?: string;
+  id?: string;
 };
 export type SnapMaterial = {
   materialId: string;

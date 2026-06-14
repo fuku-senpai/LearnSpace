@@ -6,19 +6,16 @@ import {
   FileText,
   Loader2,
   MonitorPlay,
-  PlayCircle,
   Sparkles,
   UserPlus,
-  Video,
 } from "lucide-react";
 import { useGetMyClassesQuery } from "@/app/hooks/classes/useGetMyClasses";
 import { useGetSnapMaterials } from "@/app/hooks/materials/useGetSnapMaterials";
 import { useGetLessonResourcesQuery } from "@/app/hooks/lessonResource/useGetLessonResources";
-import { useGetRecordsByLessonQuery } from "@/app/hooks/records/useGetRecords";
 import { useGetVideoQuery } from "@/app/hooks/videos/useGetVideoQuery";
 import { useEnrollClassroomMutation } from "@/app/hooks/classes/useEnrollClassroom";
 import { type MyClass } from "@/app/service/classroom.service";
-import { RecordItem } from "@/app/service/record.service";
+import { VideoType } from "@/app/service/record.service";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -28,13 +25,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  LessonContentTabBar,
+  type LessonContentTab,
+} from "@/components/lesson/LessonContentTabBar";
+import { LessonModuleSidebar } from "@/components/lesson/LessonModuleSidebar";
+import {
+  getSnapLessonIndicators,
+  mergeLessonIndicators,
+  useLessonSidebarIndicators,
+} from "@/app/hooks/lesson/useLessonSidebarIndicators";
 
-type TabKey = "videos" | "materials";
+type TabKey = LessonContentTab;
+
+const getVideoTypeByTab = (tab: TabKey): VideoType | undefined => {
+  if (tab === "preview") return "PREVIEW";
+  if (tab === "replay") return "AFTER_LESSON";
+  return undefined;
+};
 
 type Session = {
   id: string;
   title: string;
-  hasVideo: boolean;
+  lessonOrder?: number;
+  hasMaterials: boolean;
+  hasPreviewVideo: boolean;
+  hasReplayVideo: boolean;
 };
 
 type Module = {
@@ -50,7 +66,7 @@ type ActiveSessionState = {
 
 const emptyActiveSession: ActiveSessionState = {
   module: { id: "", title: "", sessions: [] },
-  session: { id: "", title: "", hasVideo: false },
+  session: { id: "", title: "", hasMaterials: false, hasPreviewVideo: false, hasReplayVideo: false },
 };
 
 function findActiveSession(
@@ -187,14 +203,52 @@ const ClassContentManagement = () => {
     return snapMaterials.map((material) => ({
       id: material.materialId,
       title: material.title,
-      sessions: (material.lessons || []).map((lesson) => ({
-        id: lesson.lessonId,
-        title: lesson.title,
-        hasVideo:
-          Array.isArray(lesson.lessonVideos) && lesson.lessonVideos.length > 0,
-      })),
+      sessions: (material.lessons || []).map((lesson) => {
+        const snapFlags = getSnapLessonIndicators(
+          lesson.lessonVideos,
+          lesson.lessonResources,
+        );
+
+        return {
+          id: lesson.lessonId,
+          title: lesson.title,
+          lessonOrder: lesson.lessonOrder,
+          ...snapFlags,
+        };
+      }),
     }));
   }, [snapMaterials]);
+
+  const lessonIds = useMemo(
+    () => modules.flatMap((courseModule) => courseModule.sessions.map((s) => s.id)),
+    [modules],
+  );
+  const lessonIndicators = useLessonSidebarIndicators(lessonIds);
+
+  const sidebarModules = useMemo(
+    () =>
+      modules.map((courseModule) => ({
+        ...courseModule,
+        sessions: courseModule.sessions.map((session) => {
+          const merged = mergeLessonIndicators(
+            {
+              hasMaterials: session.hasMaterials,
+              hasPreviewVideo: session.hasPreviewVideo,
+              hasReplayVideo: session.hasReplayVideo,
+            },
+            lessonIndicators[session.id],
+          );
+
+          return {
+            id: session.id,
+            title: session.title,
+            lessonOrder: session.lessonOrder,
+            ...merged,
+          };
+        }),
+      })),
+    [modules, lessonIndicators],
+  );
 
   const resolvedSessionId = useMemo(() => {
     const allSessions = modules.flatMap(
@@ -214,21 +268,18 @@ const ClassContentManagement = () => {
     [modules, resolvedSessionId],
   );
 
-  const { data: records = [], isFetching: isFetchingRecords } =
-    useGetRecordsByLessonQuery(resolvedSessionId || undefined);
-  const recordItems = records as RecordItem[];
-
+  const activeVideoType = getVideoTypeByTab(activeTab);
   const shouldFetchPlayUrl =
-    activeTab === "videos" &&
-    Boolean(resolvedSessionId) &&
-    activeSession.session.hasVideo;
+    Boolean(resolvedSessionId) && Boolean(activeVideoType);
 
   const {
-    data: playVideo,
+    data: playVideos = [],
     isLoading: isLoadingPlayUrl,
     isFetching: isFetchingPlayUrl,
-  } = useGetVideoQuery(shouldFetchPlayUrl ? resolvedSessionId : undefined);
-
+  } = useGetVideoQuery(
+    shouldFetchPlayUrl ? resolvedSessionId : undefined,
+    activeVideoType,
+  );
   const { data: lessonResources = [] } = useGetLessonResourcesQuery(
     resolvedSessionId || undefined,
   );
@@ -346,135 +397,33 @@ const ClassContentManagement = () => {
       </header>
 
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-0 lg:grid-cols-[300px_minmax(0,1fr)]">
-        <section className="min-h-0 overflow-y-auto border-r border-slate-200/80 bg-slate-50/40 px-4 py-4">
-          {isLoadingMaterials ? (
-            <div className="flex items-center justify-center gap-2 py-8 text-sm text-slate-500">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Đang tải dữ liệu...
-            </div>
-          ) : null}
-          {materialsError ? (
-            <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
-              Lỗi:{" "}
-              {materialsError instanceof Error
-                ? materialsError.message
-                : "Không thể tải dữ liệu"}
-            </div>
-          ) : null}
-          {!isLoadingMaterials && modules.length === 0 && !materialsError ? (
-            <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-500">
-              Chưa có nội dung cho lớp học này.
-            </div>
-          ) : null}
-          <div className="relative space-y-0">
-            {modules.map((courseModule, moduleIdx) => {
-              const isLastModule = moduleIdx === modules.length - 1;
-              const allSessionsHaveVideo =
-                courseModule.sessions.length > 0 &&
-                courseModule.sessions.every((session) => session.hasVideo);
-
-              return (
-                <div key={courseModule.id} className="relative pl-12 pb-6">
-                  {!isLastModule ? (
-                    <div
-                      className={`absolute left-4 top-8 bottom-0 w-px transition-colors duration-300 ${
-                        allSessionsHaveVideo
-                          ? "bg-gradient-to-b from-violet-400 to-violet-300"
-                          : "bg-slate-200"
-                      }`}
-                    />
-                  ) : null}
-
-                  <div
-                    className={`absolute left-0 top-0 z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 bg-white shadow-sm transition-colors duration-300 ${
-                      allSessionsHaveVideo
-                        ? "border-violet-400"
-                        : "border-slate-200"
-                    }`}
-                  >
-                    <div
-                      className={`h-3 w-3 rounded-full transition-colors duration-300 ${
-                        allSessionsHaveVideo ? "bg-violet-500" : "bg-slate-300"
-                      }`}
-                    />
-                  </div>
-
-                  <div className="pb-3">
-                    <div className="text-sm font-semibold text-slate-800">
-                      {courseModule.title}
-                    </div>
-                    <div className="text-xs text-slate-400">
-                      {courseModule.sessions.length} buổi
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    {courseModule.sessions.map((session) => {
-                      const isActive = session.id === resolvedSessionId;
-
-                      return (
-                        <button
-                          key={session.id}
-                          type="button"
-                          onClick={() => selectSession(session.id)}
-                          className={`flex w-full cursor-pointer items-center rounded-xl px-2.5 py-2 text-left text-sm transition ${
-                            isActive
-                              ? "bg-white font-semibold text-violet-700 shadow-sm ring-1 ring-violet-200"
-                              : "text-slate-600 hover:bg-white/80"
-                          }`}
-                        >
-                          <div className="relative flex flex-1 items-center gap-2">
-                            <div
-                              className={`h-2 w-2 shrink-0 rounded-full ${
-                                isActive ? "bg-violet-500" : "bg-slate-300"
-                              }`}
-                            />
-                            <span className="flex-1 truncate">
-                              {session.title}
-                            </span>
-                            {session.hasVideo ? (
-                              <Video className="h-3.5 w-3.5 shrink-0 text-rose-500" />
-                            ) : null}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+        <section className="min-h-0 overflow-y-auto border-r border-slate-200/80 bg-slate-50/30 px-3 py-4 sm:px-4">
+          <LessonModuleSidebar
+            modules={sidebarModules}
+            activeSessionId={resolvedSessionId}
+            onSelectSession={selectSession}
+            isLoading={isLoadingMaterials}
+            errorMessage={
+              materialsError
+                ? `Lỗi: ${
+                    materialsError instanceof Error
+                      ? materialsError.message
+                      : "Không thể tải dữ liệu"
+                  }`
+                : undefined
+            }
+            emptyMessage="Chưa có nội dung cho lớp học này."
+          />
         </section>
 
         <main className="min-h-0 min-w-0 overflow-y-auto bg-white">
-          <div className="flex items-center gap-1 border-b border-slate-200/80 px-4 py-2">
-            <button
-              type="button"
-              onClick={() => setActiveTab("videos")}
-              className={`flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
-                activeTab === "videos"
-                  ? "bg-violet-50 text-violet-700"
-                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
-              }`}
-            >
-              <PlayCircle className="h-4 w-4" />
-              Video xem lại
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("materials")}
-              className={`flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
-                activeTab === "materials"
-                  ? "bg-violet-50 text-violet-700"
-                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
-              }`}
-            >
-              <FileText className="h-4 w-4" />
-              Tài liệu ({lessonResources.length})
-            </button>
-          </div>
+          <LessonContentTabBar
+            activeTab={activeTab}
+            materialsCount={lessonResources.length}
+            onChange={setActiveTab}
+          />
 
-          <div className="p-4 sm:p-5">
+          <div className="bg-slate-50/50 p-4 sm:p-5">
             {activeTab === "materials" ? (
               <LessonMaterialsList
                 snapLessonId={activeSession.session.id}
@@ -487,66 +436,43 @@ const ClassContentManagement = () => {
                   <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-6 py-12 text-center text-sm text-slate-500">
                     Chọn buổi học để xem video
                   </div>
-                ) : !activeSession.session.hasVideo ? (
+                ) : isLoadingPlayUrl || isFetchingPlayUrl ? (
+                  <div className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-6 py-12 text-sm text-slate-500">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Đang tải video...
+                  </div>
+                ) : playVideos.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-6 py-12 text-center text-sm text-slate-500">
-                    Chưa có video cho buổi học này
+                    {activeTab === "preview"
+                      ? "Chưa có video xem trước cho buổi học này"
+                      : "Chưa có video xem lại cho buổi học này"}
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-black shadow-sm">
-                      <div className="aspect-video">
-                        {isLoadingPlayUrl || isFetchingPlayUrl ? (
-                          <div className="flex h-full items-center justify-center gap-2 text-sm text-slate-300">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Đang tải video...
+                    {playVideos.map((video, index) => (
+                      <div
+                        key={video.id ?? `${video.url}-${index}`}
+                        className="space-y-2"
+                      >
+                        {video.title ? (
+                          <p className="text-sm font-semibold text-slate-900">
+                            {video.title}
+                          </p>
+                        ) : null}
+                        <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-black shadow-sm">
+                          <div className="aspect-video">
+                            <video
+                              key={video.url}
+                              src={video.url}
+                              controls
+                              preload="metadata"
+                              playsInline
+                              className="h-full w-full"
+                            />
                           </div>
-                        ) : playVideo?.url ? (
-                          <video
-                            key={playVideo.url}
-                            src={playVideo.url}
-                            controls
-                            preload="metadata"
-                            playsInline
-                            className="h-full w-full"
-                          />
-                        ) : (
-                          <div className="flex h-full items-center justify-center p-4 text-center text-sm text-slate-300">
-                            Không thể tải URL phát video
-                          </div>
-                        )}
+                        </div>
                       </div>
-                    </div>
-
-                    {recordItems.length > 0 ? (
-                      <div className="divide-y divide-slate-200 rounded-2xl border border-slate-200/80">
-                        {recordItems.map((record) => (
-                          <div
-                            key={record.id}
-                            className="flex items-center justify-between gap-4 px-4 py-3"
-                          >
-                            <div>
-                              <p className="text-sm font-medium text-slate-900">
-                                {record.title}
-                              </p>
-                              {record.createdAt ? (
-                                <p className="mt-0.5 text-xs text-slate-500">
-                                  {new Date(record.createdAt).toLocaleString(
-                                    "vi-VN",
-                                  )}
-                                </p>
-                              ) : null}
-                            </div>
-                            <Video className="h-4 w-4 shrink-0 text-slate-400" />
-                          </div>
-                        ))}
-                      </div>
-                    ) : null}
-
-                    {isFetchingRecords ? (
-                      <p className="text-center text-xs text-slate-400">
-                        Đang cập nhật danh sách...
-                      </p>
-                    ) : null}
+                    ))}
                   </div>
                 )}
               </div>

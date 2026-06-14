@@ -1,5 +1,6 @@
 import { AxiosResponse } from "axios";
 import { axiosClient } from "../lib/axiosClient";
+import type { VideoType } from "./record.service";
 
 export type UploadVideoPayload = {
   file: File;
@@ -12,7 +13,10 @@ export type PresignVideoResponse = {
   fileKey: string;
 };
 
-export type PlayVideoResponse = {
+export type PlayVideoItem = {
+  id?: string;
+  title?: string;
+  videoType?: VideoType;
   url: string;
 };
 
@@ -42,10 +46,17 @@ export const VideoService = {
     return res.data;
   },
 
-  getPlayUrl: async (snapLessonId: string): Promise<PlayVideoResponse> => {
-    const res: AxiosResponse<PlayVideoResponse> = await axiosClient.get(
-      `/video/getVideos?snapLessonId=${encodeURIComponent(snapLessonId)}`,
-    );
-    return res.data;
+  getPlayVideos: async (
+    snapLessonId: string,
+    videoType: VideoType,
+  ): Promise<PlayVideoItem[]> => {
+    const res: AxiosResponse<PlayVideoItem[] | PlayVideoItem> =
+      await axiosClient.get(
+        `/video/getVideos?snapLessonId=${encodeURIComponent(snapLessonId)}&type=${videoType}`,
+      );
+    const data = res.data;
+    if (Array.isArray(data)) return data;
+    if (data && typeof data === "object" && "url" in data) return [data];
+    return [];
   },
 };

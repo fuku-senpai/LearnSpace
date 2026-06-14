@@ -6,7 +6,7 @@ import { Record_API } from "@/constants/api-endpoints";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { title, fileKey, snapLessonId } = body;
+    const { title, videoType, fileKey, snapLessonId } = body;
 
     const cookieStore = await cookies();
     const accessToken = cookieStore.get("accessToken")?.value;
@@ -21,7 +21,7 @@ export async function POST(req: Request) {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
       },
-      body: JSON.stringify({ title, fileKey, snapLessonId }),
+      body: JSON.stringify({ title, videoType, fileKey, snapLessonId }),
     });
 
     const data = await res.json();
@@ -36,42 +36,6 @@ export async function POST(req: Request) {
     return NextResponse.json(data, { status: 201 });
   } catch (error) {
     console.error("CREATE RECORD ERROR:", error);
-    return NextResponse.json({ message: "Internal server error" }, { status: 500 });
-  }
-}
-
-export async function GET(req: Request) {
-  try {
-    const { searchParams } = new URL(req.url);
-    const snapLessonId = searchParams.get("snapLessonId");
-
-    if (!snapLessonId) {
-      return NextResponse.json({ message: "snapLessonId is required" }, { status: 400 });
-    }
-
-    const cookieStore = await cookies();
-    const accessToken = cookieStore.get("accessToken")?.value;
-
-    if (!accessToken) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
-
-    const res = await fetch(`${env.API_URL}${Record_API.GET_BY_LESSON(snapLessonId)}`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      return NextResponse.json({ message: data?.message || "Fetch records failed" }, { status: res.status });
-    }
-
-    return NextResponse.json(data, { status: 200 });
-  } catch (error) {
-    console.error("GET RECORDS ERROR:", error);
     return NextResponse.json({ message: "Internal server error" }, { status: 500 });
   }
 }
