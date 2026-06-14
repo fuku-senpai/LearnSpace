@@ -33,6 +33,14 @@ export type ClassroomMaterialItem = {
   totalLessons: number;
 };
 
+export type LessonQuiz = {
+  quizId: string;
+  title: string;
+  description?: string;
+  durationMinutes?: number;
+  passScore?: number;
+};
+
 export type SnapLesson = {
   lessonId: string;
   sourceLessonId?: string;
@@ -40,6 +48,7 @@ export type SnapLesson = {
   title: string;
   lessonVideos: LessonVideo[];
   lessonResources?: LessonResourceRef[];
+  lessonQuizzes?: LessonQuiz[];
 };
 
 export type LessonVideo = {

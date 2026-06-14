@@ -8,6 +8,8 @@ import {
   MonitorPlay,
   Sparkles,
   UserPlus,
+  Clock,
+  Target,
 } from "lucide-react";
 import { useGetMyClassesQuery } from "@/app/hooks/classes/useGetMyClasses";
 import { useGetSnapMaterials } from "@/app/hooks/materials/useGetSnapMaterials";
@@ -15,6 +17,7 @@ import { useGetLessonResourcesQuery } from "@/app/hooks/lessonResource/useGetLes
 import { useGetVideoQuery } from "@/app/hooks/videos/useGetVideoQuery";
 import { useEnrollClassroomMutation } from "@/app/hooks/classes/useEnrollClassroom";
 import { type MyClass } from "@/app/service/classroom.service";
+import type { LessonQuiz } from "@/app/service/material.service";
 import { VideoType } from "@/app/service/record.service";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +54,8 @@ type Session = {
   hasMaterials: boolean;
   hasPreviewVideo: boolean;
   hasReplayVideo: boolean;
+  hasQuiz: boolean;
+  quizzes: LessonQuiz[];
 };
 
 type Module = {
@@ -66,7 +71,7 @@ type ActiveSessionState = {
 
 const emptyActiveSession: ActiveSessionState = {
   module: { id: "", title: "", sessions: [] },
-  session: { id: "", title: "", hasMaterials: false, hasPreviewVideo: false, hasReplayVideo: false },
+  session: { id: "", title: "", hasMaterials: false, hasPreviewVideo: false, hasReplayVideo: false, hasQuiz: false, quizzes: [] },
 };
 
 function findActiveSession(
@@ -209,11 +214,15 @@ const ClassContentManagement = () => {
           lesson.lessonResources,
         );
 
+        const lessonQuizzes = lesson.lessonQuizzes ?? [];
+
         return {
           id: lesson.lessonId,
           title: lesson.title,
           lessonOrder: lesson.lessonOrder,
           ...snapFlags,
+          hasQuiz: lessonQuizzes.length > 0,
+          quizzes: lessonQuizzes,
         };
       }),
     }));
@@ -243,6 +252,11 @@ const ClassContentManagement = () => {
             id: session.id,
             title: session.title,
             lessonOrder: session.lessonOrder,
+            hasQuiz: session.hasQuiz,
+            quizzes: session.quizzes.map((quiz) => ({
+              quizId: quiz.quizId,
+              title: quiz.title,
+            })),
             ...merged,
           };
         }),
@@ -284,9 +298,9 @@ const ClassContentManagement = () => {
     resolvedSessionId || undefined,
   );
 
-  const selectSession = (sessionId: string) => {
+  const selectContent = (sessionId: string, tab: TabKey) => {
     setActiveSessionId(sessionId);
-    setActiveTab("materials");
+    setActiveTab(tab);
   };
 
   const handleEnroll = async () => {
@@ -401,7 +415,8 @@ const ClassContentManagement = () => {
           <LessonModuleSidebar
             modules={sidebarModules}
             activeSessionId={resolvedSessionId}
-            onSelectSession={selectSession}
+            activeTab={activeTab}
+            onSelectContent={selectContent}
             isLoading={isLoadingMaterials}
             errorMessage={
               materialsError
@@ -420,6 +435,7 @@ const ClassContentManagement = () => {
           <LessonContentTabBar
             activeTab={activeTab}
             materialsCount={lessonResources.length}
+            quizzesCount={activeSession.session.quizzes.length}
             onChange={setActiveTab}
           />
 
@@ -429,6 +445,46 @@ const ClassContentManagement = () => {
                 snapLessonId={activeSession.session.id}
                 lessonTitle={activeSession.session.title}
               />
+            ) : activeTab === "quiz" ? (
+              <div className="space-y-4">
+                {!activeSession.session.id ? (
+                  <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-6 py-12 text-center text-sm text-slate-500">
+                    Chọn buổi học để xem trắc nghiệm
+                  </div>
+                ) : activeSession.session.quizzes.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-6 py-12 text-center text-sm text-slate-500">
+                    Chưa có trắc nghiệm cho buổi học này
+                  </div>
+                ) : (
+                  activeSession.session.quizzes.map((quiz) => (
+                    <div
+                      key={quiz.quizId}
+                      className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm"
+                    >
+                      <p className="font-semibold text-slate-900">{quiz.title}</p>
+                      {quiz.description ? (
+                        <p className="mt-1 text-sm text-slate-600">
+                          {quiz.description}
+                        </p>
+                      ) : null}
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {typeof quiz.durationMinutes === "number" ? (
+                          <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700">
+                            <Clock className="h-3.5 w-3.5" />
+                            {quiz.durationMinutes} phút
+                          </span>
+                        ) : null}
+                        {typeof quiz.passScore === "number" ? (
+                          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-800">
+                            <Target className="h-3.5 w-3.5" />
+                            Điểm đạt: {quiz.passScore}
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             ) : (
               <div className="space-y-5">
                

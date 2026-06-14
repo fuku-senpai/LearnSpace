@@ -1,14 +1,15 @@
 "use client";
 
-import { FileText, PlayCircle, Sparkles } from "lucide-react";
+import { FileText, ClipboardList, PlayCircle, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type LessonContentTab = "preview" | "replay" | "materials";
+export type LessonContentTab = "preview" | "replay" | "materials" | "quiz";
 
 type LessonContentTabBarProps = {
   activeTab: LessonContentTab;
   onChange: (tab: LessonContentTab) => void;
   materialsCount?: number;
+  quizzesCount?: number;
 };
 
 const tabs: {
@@ -35,12 +36,19 @@ const tabs: {
     shortLabel: "Tài liệu",
     icon: FileText,
   },
+  {
+    key: "quiz",
+    label: "Trắc nghiệm",
+    shortLabel: "Quiz",
+    icon: ClipboardList,
+  },
 ];
 
 export function LessonContentTabBar({
   activeTab,
   onChange,
   materialsCount = 0,
+  quizzesCount = 0,
 }: LessonContentTabBarProps) {
   return (
     <div className="border-b border-slate-200/90 px-4 py-3 sm:px-6">
@@ -55,7 +63,9 @@ export function LessonContentTabBar({
           const countLabel =
             tab.key === "materials" && materialsCount > 0
               ? materialsCount
-              : null;
+              : tab.key === "quiz" && quizzesCount > 0
+                ? quizzesCount
+                : null;
 
           return (
             <button

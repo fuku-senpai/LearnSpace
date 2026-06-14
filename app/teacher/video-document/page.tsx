@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
-import { FileText, MonitorPlay } from "lucide-react";
+import { FileText, MonitorPlay, Clock, Target } from "lucide-react";
 import { useGetTeacherClassrooms } from "@/app/hooks/teacher/useGetTeacherClassrooms";
 import { useGetSnapMaterials } from "@/app/hooks/materials/useGetSnapMaterials";
 import { UploadCloud, Loader2, Film } from "lucide-react";
@@ -27,6 +27,7 @@ import { useUploadFile } from "@/app/hooks/lessonResource/useUploadAuto";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { TeacherClassroom } from "@/app/service/teacher.service";
+import type { LessonQuiz } from "@/app/service/material.service";
 import {
   LessonContentTabBar,
   type LessonContentTab,
@@ -53,6 +54,8 @@ type Session = {
   hasMaterials: boolean;
   hasPreviewVideo: boolean;
   hasReplayVideo: boolean;
+  hasQuiz: boolean;
+  quizzes: LessonQuiz[];
   materials: string[];
 };
 
@@ -69,7 +72,7 @@ type ActiveSessionState = {
 
 const emptyActiveSession: ActiveSessionState = {
   module: { id: "", title: "", sessions: [] },
-  session: { id: "", title: "", hasMaterials: false, hasPreviewVideo: false, hasReplayVideo: false, materials: [] },
+  session: { id: "", title: "", hasMaterials: false, hasPreviewVideo: false, hasReplayVideo: false, hasQuiz: false, quizzes: [], materials: [] },
 };
 
 function findActiveSession(
@@ -91,6 +94,81 @@ function findActiveSession(
 }
 
 // modules are derived from snap-materials API (materials -> sessions)
+
+function LessonQuizzesPanel({
+  quizzes,
+  lessonTitle,
+}: {
+  quizzes: LessonQuiz[];
+  lessonTitle: string;
+}) {
+  if (!lessonTitle) {
+    return (
+      <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
+        Chọn buổi học để xem trắc nghiệm
+      </div>
+    );
+  }
+
+  if (quizzes.length === 0) {
+    return (
+      <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
+        Chưa có trắc nghiệm cho buổi học này
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h3 className="text-lg font-semibold text-slate-900">Trắc nghiệm</h3>
+        <p className="text-sm text-slate-500">
+          Buổi học: <span className="font-medium">{lessonTitle}</span>
+        </p>
+      </div>
+
+      <div className="space-y-3">
+        {quizzes.map((quiz) => (
+          <Card
+            key={quiz.quizId}
+            className="border-slate-200/90 shadow-sm transition hover:border-violet-200"
+          >
+            <div className="space-y-3 p-5">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-700">
+                  <FileText className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-slate-900">{quiz.title}</p>
+                  {quiz.description ? (
+                    <p className="mt-1 text-sm text-slate-600">
+                      {quiz.description}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-3">
+                {typeof quiz.durationMinutes === "number" ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700">
+                    <Clock className="h-3.5 w-3.5 text-slate-500" />
+                    {quiz.durationMinutes} phút
+                  </span>
+                ) : null}
+                {typeof quiz.passScore === "number" ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-800">
+                    <Target className="h-3.5 w-3.5" />
+                    Điểm đạt: {quiz.passScore}
+                  </span>
+                ) : null}
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 type UploadedMaterialFile = {
   name: string;
@@ -451,11 +529,15 @@ function VideoDocumentManagementContent() {
           l.lessonResources,
         );
 
+        const lessonQuizzes = l.lessonQuizzes ?? [];
+
         return {
           id: l.lessonId,
           title: l.title,
           lessonOrder: l.lessonOrder,
           ...snapFlags,
+          hasQuiz: lessonQuizzes.length > 0,
+          quizzes: lessonQuizzes,
           materials: [],
         };
       }),
@@ -486,6 +568,11 @@ function VideoDocumentManagementContent() {
             id: session.id,
             title: session.title,
             lessonOrder: session.lessonOrder,
+            hasQuiz: session.hasQuiz,
+            quizzes: session.quizzes.map((quiz) => ({
+              quizId: quiz.quizId,
+              title: quiz.title,
+            })),
             ...merged,
           };
         }),
@@ -524,12 +611,14 @@ function VideoDocumentManagementContent() {
     resolvedSessionId || undefined,
   );
 
-  const selectSession = (sessionId: string) => {
+  const selectContent = (sessionId: string, tab: TabKey) => {
     setActiveSessionId(sessionId);
-    setActiveTab("materials");
+    setActiveTab(tab);
     setSelectedVideo(null);
     setVideoTitle("");
-    setVideoType("AFTER_LESSON");
+    if (tab === "preview") setVideoType("PREVIEW");
+    else if (tab === "replay") setVideoType("AFTER_LESSON");
+    else setVideoType("AFTER_LESSON");
   };
   const handleUploadVideo = async () => {
     if (!videoTitle.trim()) {
@@ -646,7 +735,8 @@ function VideoDocumentManagementContent() {
           <LessonModuleSidebar
             modules={sidebarModules}
             activeSessionId={resolvedSessionId}
-            onSelectSession={selectSession}
+            activeTab={activeTab}
+            onSelectContent={selectContent}
             isLoading={isLoading}
             errorMessage={
               error
@@ -661,6 +751,7 @@ function VideoDocumentManagementContent() {
           <LessonContentTabBar
             activeTab={activeTab}
             materialsCount={lessonResources.length}
+            quizzesCount={activeSession.session.quizzes.length}
             onChange={(tab) => {
               setActiveTab(tab);
               if (tab === "preview") setVideoType("PREVIEW");
@@ -672,6 +763,11 @@ function VideoDocumentManagementContent() {
             {activeTab === "materials" ? (
               <LessonMaterialsPanel
                 snapLessonId={activeSession.session.id}
+                lessonTitle={activeSession.session.title}
+              />
+            ) : activeTab === "quiz" ? (
+              <LessonQuizzesPanel
+                quizzes={activeSession.session.quizzes}
                 lessonTitle={activeSession.session.title}
               />
             ) : (

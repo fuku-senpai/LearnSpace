@@ -1,8 +1,19 @@
 "use client";
 
-import { BookOpen, Loader2 } from "lucide-react";
-import { HiMiniDocumentChartBar, HiVideoCamera } from "react-icons/hi2";
+import { useEffect, useState } from "react";
+import { BookOpen, ChevronRight, Loader2 } from "lucide-react";
+import {
+  HiClipboardDocumentCheck,
+  HiMiniDocumentChartBar,
+  HiVideoCamera,
+} from "react-icons/hi2";
 import { cn } from "@/lib/utils";
+import type { LessonContentTab } from "./LessonContentTabBar";
+
+export type LessonSidebarQuiz = {
+  quizId: string;
+  title: string;
+};
 
 export type LessonSidebarSession = {
   id: string;
@@ -11,6 +22,8 @@ export type LessonSidebarSession = {
   hasMaterials: boolean;
   hasPreviewVideo: boolean;
   hasReplayVideo: boolean;
+  hasQuiz: boolean;
+  quizzes?: LessonSidebarQuiz[];
 };
 
 export type LessonSidebarModule = {
@@ -19,26 +32,42 @@ export type LessonSidebarModule = {
   sessions: LessonSidebarSession[];
 };
 
+type SessionChildItem = {
+  id: string;
+  tab: LessonContentTab;
+  label: string;
+};
+
 type LessonModuleSidebarProps = {
   modules: LessonSidebarModule[];
   activeSessionId: string;
-  onSelectSession: (sessionId: string) => void;
+  activeTab: LessonContentTab;
+  onSelectContent: (sessionId: string, tab: LessonContentTab) => void;
   isLoading?: boolean;
   errorMessage?: string;
   emptyMessage?: string;
 };
 
+function getSessionChildren(session: LessonSidebarSession): SessionChildItem[] {
+  return (session.quizzes ?? []).map((quiz) => ({
+    id: `quiz-${quiz.quizId}`,
+    tab: "quiz" as const,
+    label: quiz.title,
+  }));
+}
+
 function SessionContentIcons({ session }: { session: LessonSidebarSession }) {
   if (
     !session.hasMaterials &&
     !session.hasPreviewVideo &&
-    !session.hasReplayVideo
+    !session.hasReplayVideo &&
+    !session.hasQuiz
   ) {
     return null;
   }
 
   return (
-    <div className="flex shrink-0 items-center gap-1">
+    <div className="flex shrink-0 items-center gap-1 pr-1">
       {session.hasMaterials ? (
         <HiMiniDocumentChartBar
           className="h-4 w-4 text-blue-800"
@@ -57,6 +86,12 @@ function SessionContentIcons({ session }: { session: LessonSidebarSession }) {
           aria-label="Có video xem lại"
         />
       ) : null}
+      {session.hasQuiz ? (
+        <HiClipboardDocumentCheck
+          className="h-4 w-4 text-violet-700"
+          aria-label="Có trắc nghiệm"
+        />
+      ) : null}
     </div>
   );
 }
@@ -64,11 +99,38 @@ function SessionContentIcons({ session }: { session: LessonSidebarSession }) {
 export function LessonModuleSidebar({
   modules,
   activeSessionId,
-  onSelectSession,
+  activeTab,
+  onSelectContent,
   isLoading = false,
   errorMessage,
   emptyMessage = "Chưa có dữ liệu.",
 }: LessonModuleSidebarProps) {
+  const [expandedSessionIds, setExpandedSessionIds] = useState<Set<string>>(
+    () => new Set(activeSessionId ? [activeSessionId] : []),
+  );
+
+  useEffect(() => {
+    if (!activeSessionId) return;
+    setExpandedSessionIds((prev) => {
+      if (prev.has(activeSessionId)) return prev;
+      const next = new Set(prev);
+      next.add(activeSessionId);
+      return next;
+    });
+  }, [activeSessionId]);
+
+  const toggleExpanded = (sessionId: string) => {
+    setExpandedSessionIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(sessionId)) {
+        next.delete(sessionId);
+      } else {
+        next.add(sessionId);
+      }
+      return next;
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center gap-2 py-10 text-sm text-slate-500">
@@ -109,8 +171,8 @@ export function LessonModuleSidebar({
         <div className="space-y-5">
           {modules.map((courseModule, moduleIndex) => (
             <div key={courseModule.id} className="relative pl-10">
-              <div className="absolute top-1 left-0 z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 border-blue-800 bg-white shadow-sm">
-                <span className="text-[10px] font-bold text-blue-900">
+              <div className="absolute top-1 left-0 z-10 flex h-9 w-9 items-center justify-center rounded-full border-2 border-blue-800 bg-white shadow-sm">
+                <span className="text-[11px] font-bold text-blue-900">
                   {moduleIndex + 1}
                 </span>
               </div>
@@ -124,45 +186,125 @@ export function LessonModuleSidebar({
                 </p>
               </div>
 
-              <div className="relative space-y-0.5 pl-1">
+              <div className="relative space-y-1.5 pl-1">
                 {courseModule.sessions.map((session, sessionIndex) => {
-                  const isActive = session.id === activeSessionId;
+                  const isActiveSession = session.id === activeSessionId;
+                  const isExpanded = expandedSessionIds.has(session.id);
                   const orderLabel = session.lessonOrder ?? sessionIndex + 1;
+                  const children = getSessionChildren(session);
+                  const hasQuizzes = children.length > 0;
 
                   return (
-                    <button
-                      key={session.id}
-                      type="button"
-                      onClick={() => onSelectSession(session.id)}
-                      className={cn(
-                        "group relative flex w-full cursor-pointer items-center gap-2 rounded-md py-1.5 pr-2 pl-3 text-left transition",
-                        isActive
-                          ? "bg-blue-50 text-blue-950"
-                          : "text-slate-700 hover:bg-slate-50",
-                      )}
-                    >
-                      <span className="absolute top-1/2 -left-3 h-px w-3 -translate-y-1/2 bg-blue-300/80" />
+                    <div key={session.id} className="space-y-0.5">
+                      <div
+                        className={cn(
+                          "group relative flex w-full items-center gap-1 rounded-md transition",
+                          isActiveSession
+                            ? "bg-blue-50 ring-1 ring-blue-200/80"
+                            : "hover:bg-slate-50",
+                        )}
+                      >
+                        <span className="absolute top-5 -left-3 h-px w-3 bg-blue-300/80" />
 
-                      <span
-                        className={cn(
-                          "flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-semibold",
-                          isActive
-                            ? "bg-blue-900 text-white"
-                            : "bg-slate-100 text-slate-600 group-hover:bg-slate-200",
+                        {hasQuizzes ? (
+                          <button
+                            type="button"
+                            onClick={() => toggleExpanded(session.id)}
+                            aria-expanded={isExpanded}
+                            aria-label={
+                              isExpanded
+                                ? `Thu gọn quiz buổi ${orderLabel}`
+                                : `Mở quiz buổi ${orderLabel}`
+                            }
+                            className={cn(
+                              "flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-md text-slate-500 transition hover:bg-blue-100/80 hover:text-blue-900",
+                              isExpanded && "text-blue-900",
+                            )}
+                          >
+                            <ChevronRight
+                              className={cn(
+                                "h-4 w-4 transition-transform duration-200",
+                                isExpanded && "rotate-90",
+                              )}
+                            />
+                          </button>
+                        ) : (
+                          <span className="h-9 w-9 shrink-0" aria-hidden />
                         )}
-                      >
-                        {orderLabel}
-                      </span>
-                      <span
-                        className={cn(
-                          "min-w-0 flex-1 truncate text-sm",
-                          isActive ? "font-semibold" : "font-medium",
-                        )}
-                      >
-                        {session.title}
-                      </span>
-                      <SessionContentIcons session={session} />
-                    </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (hasQuizzes) {
+                              if (!isExpanded) toggleExpanded(session.id);
+                              onSelectContent(session.id, "quiz");
+                            } else {
+                              onSelectContent(session.id, "materials");
+                            }
+                          }}
+                          className="flex min-h-10 min-w-0 flex-1 cursor-pointer items-center gap-2.5 py-2 pr-2 text-left"
+                        >
+                          <span
+                            className={cn(
+                              "flex h-6 w-6 shrink-0 items-center justify-center rounded text-[11px] font-semibold",
+                              isActiveSession
+                                ? "bg-blue-900 text-white"
+                                : "bg-slate-100 text-slate-600 group-hover:bg-slate-200",
+                            )}
+                          >
+                            {orderLabel}
+                          </span>
+                          <span
+                            className={cn(
+                              "min-w-0 flex-1 truncate text-[15px] leading-snug",
+                              isActiveSession
+                                ? "font-semibold text-blue-950"
+                                : "font-medium text-slate-700",
+                            )}
+                          >
+                            {session.title}
+                          </span>
+                        </button>
+                        <SessionContentIcons session={session} />
+                      </div>
+
+                      {isExpanded && hasQuizzes ? (
+                        <div className="ml-4 space-y-1 border-l border-violet-200/70 py-1 pl-3">
+                          {children.map((child) => {
+                            const isActiveChild =
+                              isActiveSession && activeTab === "quiz";
+
+                            return (
+                              <button
+                                key={child.id}
+                                type="button"
+                                onClick={() =>
+                                  onSelectContent(session.id, child.tab)
+                                }
+                                className={cn(
+                                  "flex min-h-9 w-full cursor-pointer items-center gap-2 rounded-md px-2.5 py-2 text-left text-[13px] transition",
+                                  isActiveChild
+                                    ? "bg-violet-700 font-semibold text-white shadow-sm"
+                                    : "text-slate-700 hover:bg-violet-50",
+                                )}
+                              >
+                                <HiClipboardDocumentCheck
+                                  className={cn(
+                                    "h-3.5 w-3.5 shrink-0",
+                                    isActiveChild
+                                      ? "text-violet-100"
+                                      : "text-violet-600",
+                                  )}
+                                />
+                                <span className="min-w-0 flex-1 truncate">
+                                  {child.label}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : null}
+                    </div>
                   );
                 })}
               </div>
