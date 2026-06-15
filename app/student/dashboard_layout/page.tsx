@@ -20,6 +20,7 @@ import { useLogout } from "@/hooks/useLogout";
 import ClassContentManagement from "../class_content/page";
 import ScheduleStudent from "../schedule_student/page";
 import StudentProfilePage from "../profile/page";
+import StudentChangePasswordPage from "../change-password/page";
 import {
   studentMenuGroups,
   studentMenuLabels,
@@ -309,6 +310,12 @@ const StudentDashboardContent = () => {
           {activeMenu === "profile" && (
             <div className="relative h-full min-h-0">
               <StudentProfilePage />
+            </div>
+          )}
+
+          {activeMenu === "password" && (
+            <div className="relative h-full min-h-0">
+              <StudentChangePasswordPage />
             </div>
           )}
         </div>

@@ -2,6 +2,7 @@ import {
   BookOpen,
   CalendarDays,
   GraduationCap,
+  KeyRound,
   LayoutDashboard,
   UserRound,
 } from "lucide-react";
@@ -12,7 +13,8 @@ export type StudentMenuKey =
   | "overview"
   | "content"
   | "schedule"
-  | "profile";
+  | "profile"
+  | "password";
 
 export const studentMenuGroups: DashboardMenuGroup<StudentMenuKey>[] = [
   {
@@ -67,6 +69,15 @@ export const studentMenuGroups: DashboardMenuGroup<StudentMenuKey>[] = [
         accent: "from-fuchsia-400 to-pink-500",
         activeGlow: "shadow-[0_0_20px_rgba(232,121,249,0.22)]",
       },
+      {
+        key: "password",
+        label: "Đổi mật khẩu",
+        hint: "bảo mật tài khoản",
+        index: "05",
+        icon: KeyRound,
+        accent: "from-amber-400 to-orange-500",
+        activeGlow: "shadow-[0_0_20px_rgba(251,191,36,0.22)]",
+      },
     ],
   },
 ];
@@ -76,6 +87,7 @@ export const studentMenuLabels: Record<StudentMenuKey, string> = {
   content: "Nội dung học tập",
   schedule: "Lịch học",
   profile: "Thông tin cá nhân",
+  password: "Đổi mật khẩu",
 };
 
 export const studentSidebarBranding = {

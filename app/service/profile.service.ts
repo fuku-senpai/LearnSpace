@@ -36,6 +36,15 @@ export type UpdateStudentProfileResponse = {
   avatar?: string | null;
 };
 
+export type ChangeStudentPasswordPayload = {
+  newPassword: string;
+  confirmPassword: string;
+};
+
+export type ChangeStudentPasswordResponse = {
+  message?: string;
+};
+
 export type UpdateTeacherProfilePayload = {
   fullName: string;
   specialization: string;
@@ -88,6 +97,15 @@ export const ProfileService = {
   ): Promise<UpdateStudentProfileResponse> => {
     const res: AxiosResponse<UpdateStudentProfileResponse> =
       await axiosClient.put("/student", payload);
+
+    return res.data;
+  },
+
+  changeStudentPassword: async (
+    payload: ChangeStudentPasswordPayload,
+  ): Promise<ChangeStudentPasswordResponse> => {
+    const res: AxiosResponse<ChangeStudentPasswordResponse> =
+      await axiosClient.post("/auth/change-password", payload);
 
     return res.data;
   },

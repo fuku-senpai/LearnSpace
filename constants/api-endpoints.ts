@@ -3,6 +3,7 @@ export const AUTH_API = {
   CUSTOMER_REGISTER: "/auth/register",
   REFRESH_TOKEN: "/auth/refresh-token",
   LOGOUT: "/auth/logout",
+  CHANGE_PASSWORD: "/auth/change-password",
   GET_ACCOUNTS: "/auth/accounts",
   ACCOUNT_BLOCK: (accountId: string) => `/auth/account/${accountId}/block`,
 };
