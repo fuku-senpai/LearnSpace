@@ -3,12 +3,13 @@ import {
   ArrowRight,
   BookOpen,
   Calendar,
+  ClipboardList,
   FileText,
   GraduationCap,
+  KeyRound,
   Play,
   Sparkles,
   Users,
-  Zap,
 } from "lucide-react";
 
 import { ParticleBackground } from "@/components/particle-background";
@@ -32,34 +33,79 @@ const stats = [
   { label: "Lớp học", value: "1 nơi", icon: Users },
 ];
 
-const features = [
+const roleBranches = [
   {
-    icon: BookOpen,
-    title: "Tài liệu",
-    description: "Gom file theo từng buổi học.",
-  },
-  {
-    icon: Play,
-    title: "Video",
-    description: "Xem lại bài giảng mọi lúc.",
-  },
-  {
-    icon: Users,
-    title: "Lớp học",
-    description: "Dashboard lớp & lịch học.",
-  },
-  {
+    role: "Giáo viên",
     icon: GraduationCap,
-    title: "Giáo viên",
-    description: "Upload & theo dõi nội dung.",
+    accent: "amber" as const,
+    items: [
+      {
+        icon: Play,
+        title: "Upload video",
+        description: "Đăng video bài giảng theo từng buổi học.",
+      },
+      {
+        icon: BookOpen,
+        title: "Tài liệu",
+        description: "Đính kèm slide, PDF cho mỗi buổi.",
+      },
+      {
+        icon: ClipboardList,
+        title: "Bài tập",
+        description: "Tạo quiz trắc nghiệm hoặc tự luận.",
+      },
+      {
+        icon: Calendar,
+        title: "Quản lý lớp",
+        description: "Sắp xếp buổi học và nội dung lớp.",
+      },
+    ],
+  },
+  {
+    role: "Học sinh",
+    icon: Users,
+    accent: "sky" as const,
+    items: [
+      {
+        icon: KeyRound,
+        title: "Nhập mã lớp",
+        description: "Tham gia lớp bằng mã admin cung cấp.",
+      },
+      {
+        icon: Play,
+        title: "Học video",
+        description: "Xem lại hoặc học trước theo buổi.",
+      },
+      {
+        icon: ClipboardList,
+        title: "Làm bài tập",
+        description: "Làm bài theo dạng cây từng buổi.",
+      },
+      {
+        icon: BookOpen,
+        title: "Xem kết quả",
+        description: "Theo dõi điểm và tiến độ học tập.",
+      },
+    ],
   },
 ];
 
-const steps = [
-  { num: "01", title: "Đăng nhập", desc: "Chọn vai trò học sinh hoặc giáo viên." },
-  { num: "02", title: "Vào lớp", desc: "Truy cập lớp và buổi học của bạn." },
-  { num: "03", title: "Học & xem lại", desc: "Video và tài liệu luôn sẵn sàng." },
-];
+const branchAccent = {
+  amber: {
+    node: "border-amber-400/30 bg-amber-400/10 text-amber-300",
+    line: "from-amber-400/45 via-amber-400/20",
+    lineH: "bg-amber-400/35",
+    dot: "border-amber-400/45",
+    icon: "text-amber-400/85",
+  },
+  sky: {
+    node: "border-sky-400/30 bg-sky-400/10 text-sky-300",
+    line: "from-sky-400/45 via-sky-400/20",
+    lineH: "bg-sky-400/35",
+    dot: "border-sky-400/45",
+    icon: "text-sky-400/85",
+  },
+};
 
 const bokehOrbs = [
   { left: "5%", top: "10%", size: 200, delay: 0 },
@@ -102,41 +148,41 @@ export default function LandingPage() {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_-10%,rgba(251,191,36,0.08),transparent_55%)]" />
 
       {/* Header */}
-      <div className="relative mx-auto max-w-6xl px-6 pt-5 lg:px-8">
-        <header className="sticky top-5 z-50">
-          <div className="login-card-glow flex items-center justify-between rounded-2xl border border-white/10 bg-[#0c0c0c]/80 px-5 py-3.5 backdrop-blur-xl">
-            <Link href="/" className="group flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-400/30 bg-amber-400/10 text-amber-300 transition duration-300 group-hover:scale-105 group-hover:shadow-[0_0_20px_rgba(251,191,36,0.2)]">
-                <GraduationCap className="h-5 w-5" />
-              </div>
-              <div>
-                <h1 className="text-sm font-semibold text-white">
-                  Course Learning Platform 
-                </h1>
-                <p className="text-xs text-zinc-500">Student Learning Hub</p>
-              </div>
-            </Link>
-
-            <div className="flex items-center gap-3">
-              <a
-                href="#features"
-                className="hidden text-sm text-zinc-400 transition hover:text-amber-300 sm:block"
-              >
-                Tính năng
-              </a>
-              <Button
-                asChild
-                className="login-btn-gold h-9 rounded-lg border-0 px-5 text-sm font-bold text-zinc-900"
-              >
-                <Link href="/login" className="inline-flex items-center gap-1.5">
-                  Đăng nhập
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
-              </Button>
+      <header className="sticky top-0 z-50 border-b border-white/6 bg-[#050505]/80 backdrop-blur-2xl">
+        <div className="relative mx-auto flex h-16 max-w-6xl items-center justify-between px-6 lg:px-8">
+          <Link href="/" className="group flex min-w-0 items-center gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-amber-400 to-amber-500 text-zinc-900 shadow-[0_2px_12px_rgba(251,191,36,0.25)] transition duration-300 group-hover:shadow-[0_4px_18px_rgba(251,191,36,0.35)]">
+              <GraduationCap className="h-[18px] w-[18px]" strokeWidth={2} />
             </div>
+            <div className="min-w-0">
+              <p className="truncate text-[15px] font-semibold tracking-tight text-white">
+                Course Learning
+              </p>
+              <p className="hidden truncate text-[11px] font-medium text-zinc-500 sm:block">
+                Nền tảng học tập trực tuyến
+              </p>
+            </div>
+          </Link>
+
+          <div className="flex shrink-0 items-center gap-2">
+            <a
+              href="#features"
+              className="rounded-lg px-2.5 py-2 text-[13px] font-medium text-zinc-400 transition-colors hover:bg-white/5 hover:text-zinc-100"
+            >
+              Tính năng
+            </a>
+            <Button
+              asChild
+              className="login-btn-gold h-9 rounded-full border-0 px-5 text-[13px] font-semibold text-zinc-900 shadow-none"
+            >
+              <Link href="/login" className="inline-flex items-center gap-1.5">
+                Đăng nhập
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </Button>
           </div>
-        </header>
-      </div>
+        </div>
+      </header>
 
       {/* Hero */}
       <section className="relative mx-auto max-w-6xl px-6 pb-20 pt-10 lg:px-8 lg:pb-28 lg:pt-14">
@@ -271,39 +317,83 @@ export default function LandingPage() {
               Tính năng
             </span>
             <h2 className="mt-4 text-2xl font-bold text-white sm:text-3xl">
-              Mọi thứ bạn cần
+              Hệ thống học tập trực tuyến
             </h2>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-zinc-500">
+              Hai nhánh vai trò — giáo viên quản lý nội dung, học sinh học tập
+              và làm bài trên cùng một nền tảng.
+            </p>
           </div>
 
-          <div className="relative mx-auto max-w-2xl">
-            <div className="absolute top-3 bottom-3 left-[15px] w-px bg-gradient-to-b from-amber-400/60 via-amber-400/25 to-transparent sm:left-[19px]" />
+          <div className="relative mx-auto max-w-4xl">
+            <div className="flex flex-col items-center">
+              <div className="flex h-11 items-center gap-2 rounded-full border border-white/10 bg-[#0c0c0c]/90 px-5 text-sm font-semibold text-white">
+                <Sparkles className="h-4 w-4 text-amber-400" />
+                Nền tảng học tập
+              </div>
+              <div className="h-9 w-px bg-gradient-to-b from-amber-400/55 to-amber-400/25" />
+            </div>
 
-            <div className="space-y-10">
-              {features.map((item, index) => {
-                const Icon = item.icon;
+            <div className="relative mx-auto mb-1 h-7 max-w-lg px-6">
+              <div className="absolute left-[20%] right-[20%] top-0 h-px bg-gradient-to-r from-amber-400/15 via-amber-400/40 to-sky-400/15" />
+              <div className="absolute left-[20%] top-0 h-7 w-px bg-gradient-to-b from-amber-400/40 to-amber-400/15" />
+              <div className="absolute right-[20%] top-0 h-7 w-px bg-gradient-to-b from-sky-400/40 to-sky-400/15" />
+            </div>
+
+            <div className="grid gap-12 md:grid-cols-2 md:gap-10">
+              {roleBranches.map((branch) => {
+                const BranchIcon = branch.icon;
+                const accent = branchAccent[branch.accent];
 
                 return (
-                  <div
-                    key={item.title}
-                    className="group relative flex gap-5 sm:gap-6"
-                  >
-                    <div className="relative z-10 flex shrink-0 flex-col items-center">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full border border-amber-400/40 bg-[#0a0a0a] text-amber-300 shadow-[0_0_16px_rgba(251,191,36,0.15)] transition duration-300 group-hover:border-amber-400/70 group-hover:shadow-[0_0_20px_rgba(251,191,36,0.3)] sm:h-10 sm:w-10">
-                        <Icon className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
+                  <div key={branch.role} className="relative">
+                    <div className="mb-5 flex justify-center">
+                      <div
+                        className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2 ${accent.node}`}
+                      >
+                        <BranchIcon className="h-4 w-4" />
+                        <span className="text-sm font-semibold text-white">
+                          {branch.role}
+                        </span>
                       </div>
-                      <span className="mt-2 text-[10px] font-bold tracking-widest text-zinc-600">
-                        0{index + 1}
-                      </span>
                     </div>
 
-                    <div className="min-w-0 flex-1 pt-0.5 sm:pt-1">
-                      <div className="mb-3 h-px w-full max-w-[120px] bg-gradient-to-r from-amber-400/50 to-transparent" />
-                      <h3 className="text-base font-semibold text-white sm:text-lg">
-                        {item.title}
-                      </h3>
-                      <p className="mt-1.5 text-sm leading-relaxed text-zinc-500">
-                        {item.description}
-                      </p>
+                    <div className="relative ml-3 sm:ml-4">
+                      <div
+                        className={`absolute bottom-3 left-[7px] top-3 w-px bg-gradient-to-b ${accent.line} to-transparent`}
+                      />
+
+                      <ul className="space-y-3">
+                        {branch.items.map((item) => {
+                          const ItemIcon = item.icon;
+
+                          return (
+                            <li key={item.title} className="relative pl-7">
+                              <span
+                                className={`absolute left-0 top-[1.15rem] h-px w-4 ${accent.lineH}`}
+                              />
+                              <span
+                                className={`absolute left-[5px] top-[0.95rem] h-1.5 w-1.5 rounded-full border bg-[#0a0a0a] ${accent.dot}`}
+                              />
+                              <div className="rounded-xl border border-white/8 bg-[#0c0c0c]/55 px-3.5 py-3 transition hover:border-white/12">
+                                <div className="flex items-start gap-2.5">
+                                  <ItemIcon
+                                    className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${accent.icon}`}
+                                  />
+                                  <div className="min-w-0">
+                                    <p className="text-sm font-medium text-zinc-200">
+                                      {item.title}
+                                    </p>
+                                    <p className="mt-0.5 text-xs leading-relaxed text-zinc-500">
+                                      {item.description}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ul>
                     </div>
                   </div>
                 );
@@ -313,96 +403,78 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* How it works */}
-      <section className="relative border-t border-white/5 bg-[#080808]/50">
-        <div className="mx-auto max-w-6xl px-6 py-14 lg:px-8">
-          <div className="mb-10 text-center">
-            <h2 className="text-xl font-bold text-white sm:text-2xl">
-              Bắt đầu trong 3 bước
-            </h2>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-3">
-            {steps.map((step, index) => (
-              <div
-                key={step.num}
-                className="landing-card-shine group relative rounded-2xl border border-white/10 bg-[#0c0c0c]/80 p-5 backdrop-blur-sm transition hover:border-amber-400/20"
-              >
-                {index < steps.length - 1 ? (
-                  <div className="absolute top-1/2 -right-2 hidden h-px w-4 bg-gradient-to-r from-amber-400/40 to-transparent md:block lg:w-6" />
-                ) : null}
-                <div className="mb-3 flex items-center gap-3">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-400/10 text-xs font-bold text-amber-400 ring-1 ring-amber-400/20">
-                    {step.num}
-                  </span>
-                  <Zap className="h-4 w-4 text-amber-400/60 opacity-0 transition group-hover:opacity-100" />
-                </div>
-                <h3 className="text-sm font-semibold text-white">
-                  {step.title}
-                </h3>
-                <p className="mt-1.5 text-xs leading-relaxed text-zinc-500">
-                  {step.desc}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="relative mx-auto max-w-6xl px-6 py-14 lg:px-8">
-        <div className="login-card-glow relative overflow-hidden rounded-2xl border border-amber-400/20 bg-gradient-to-br from-[#111111] via-[#0c0c0c] to-[#111111] px-8 py-10 text-center sm:px-12">
-          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-400 to-transparent" />
-          <div className="pointer-events-none absolute -top-20 left-1/2 h-40 w-40 -translate-x-1/2 rounded-full bg-amber-400/15 blur-3xl" />
-
-          <h2 className="relative text-xl font-bold text-white sm:text-2xl">
-            Sẵn sàng bắt đầu?
-          </h2>
-          <p className="relative mt-2 text-sm text-zinc-500">
-            Đăng nhập và truy cập lớp học ngay hôm nay.
-          </p>
-          <Button
-            asChild
-            className="login-btn-gold relative mt-6 h-10 rounded-lg border-0 px-8 text-sm font-bold text-zinc-900"
-          >
-            <Link href="/login" className="inline-flex items-center gap-2">
-              Đăng nhập ngay
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
-        </div>
-      </section>
-
       {/* Footer */}
-      <footer id="contact" className="relative border-t border-white/10 bg-[#060606]">
-        <div className="mx-auto max-w-6xl px-6 py-10 lg:px-8">
-          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full border border-amber-400/30 bg-amber-400/10 text-xs font-bold text-amber-300">
-                CL
-              </div>
-              <div>
-                <div className="text-sm font-semibold text-white">
-                  Course Learning Platform
+      <footer className="relative border-t border-white/8 bg-[#060606]">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-400/35 to-transparent" />
+        <div className="mx-auto max-w-6xl px-6 py-12 lg:px-8">
+          <div className="grid gap-10 md:grid-cols-[1.35fr_0.85fr_1fr] md:items-start">
+            <div>
+              <Link href="/" className="inline-flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-amber-400 to-amber-500 text-zinc-900 shadow-[0_2px_12px_rgba(251,191,36,0.2)]">
+                  <GraduationCap className="h-[18px] w-[18px]" strokeWidth={2} />
                 </div>
-                <div className="text-xs text-zinc-500">
-                  Nền tảng học tập trực tuyến
+                <div>
+                  <p className="text-sm font-semibold text-white">
+                    Course Learning
+                  </p>
+                  <p className="text-xs text-zinc-500">
+                    Nền tảng học tập trực tuyến
+                  </p>
                 </div>
-              </div>
+              </Link>
+              <p className="mt-4 max-w-sm text-sm leading-relaxed text-zinc-500">
+                Hệ thống quản lý lớp học — video bài giảng, tài liệu theo buổi
+                và bài tập trắc nghiệm / tự luận cho học sinh, giáo viên và
+                quản trị viên.
+              </p>
             </div>
 
-            <div className="flex flex-wrap gap-4 text-sm text-zinc-500">
-              <a className="transition hover:text-amber-300" href="#features">
-                Tính năng
-              </a>
-              <Link className="transition hover:text-amber-300" href="/login">
-                Đăng nhập
-              </Link>
+            <div>
+              <p className="text-[11px] font-semibold tracking-[0.14em] text-zinc-500 uppercase">
+                Liên kết
+              </p>
+              <ul className="mt-4 space-y-2.5 text-sm">
+                <li>
+                  <a
+                    className="text-zinc-400 transition hover:text-amber-300"
+                    href="#features"
+                  >
+                    Tính năng
+                  </a>
+                </li>
+                <li>
+                  <Link
+                    className="text-zinc-400 transition hover:text-amber-300"
+                    href="/login"
+                  >
+                    Đăng nhập
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+              <p className="text-sm font-semibold text-white">
+                Bắt đầu học ngay
+              </p>
+              <p className="mt-1.5 text-xs leading-relaxed text-zinc-500">
+                Đăng nhập với tài khoản được cấp, nhập mã lớp và vào học.
+              </p>
+              <Button
+                asChild
+                className="login-btn-gold mt-4 h-9 w-full rounded-lg border-0 text-sm font-bold text-zinc-900"
+              >
+                <Link href="/login" className="inline-flex items-center justify-center gap-1.5">
+                  Đăng nhập
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </Button>
             </div>
           </div>
 
-          <div className="mt-6 border-t border-white/10 pt-5 text-xs text-zinc-600">
-            © 2026 Course Learning Platform
+          <div className="mt-10 flex flex-col gap-2 border-t border-white/8 pt-6 text-xs text-zinc-600 sm:flex-row sm:items-center sm:justify-between">
+            <p>© 2026 Course Learning Platform</p>
+            <p>Video · Tài liệu · Bài tập — một nền tảng</p>
           </div>
         </div>
       </footer>

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useForm } from "react-hook-form";
 
 import { ParticleBackground } from "@/components/particle-background";
@@ -23,6 +22,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useLogin } from "@/hooks/useLogin";
+import { cn } from "@/lib/utils";
 import { useState } from "react";
 import {
   Eye,
@@ -30,8 +30,10 @@ import {
   GraduationCap,
   Loader2,
   Lock,
+  Mail,
   ShieldCheck,
   User,
+  Users,
 } from "lucide-react";
 
 type LoginFormValues = {
@@ -50,6 +52,27 @@ const featureTags = [
   "Theo dõi lịch học & tiến độ lớp",
   "Phân quyền học sinh, giáo viên & quản trị",
 ];
+
+const roleTabs = [
+  {
+    value: "STUDENT" as const,
+    label: "Học sinh",
+    description: "Học tập & làm bài",
+    icon: GraduationCap,
+  },
+  {
+    value: "TEACHER" as const,
+    label: "Giáo viên",
+    description: "Quản lý lớp học",
+    icon: Users,
+  },
+];
+
+const loginInputClass =
+  "h-12 rounded-2xl border-white/10 bg-[#111111]/80 text-[15px] leading-normal text-zinc-100 placeholder:text-zinc-500 focus-visible:border-amber-400/50 focus-visible:ring-1 focus-visible:ring-amber-400/30 focus-visible:outline-none";
+
+const loginInputIconClass =
+  "pointer-events-none absolute top-1/2 left-4 h-[18px] w-[18px] -translate-y-1/2 text-zinc-500 transition-colors duration-200 group-focus-within:text-amber-400/90";
 
 const LoginPage = () => {
   const form = useForm<LoginFormValues>({
@@ -120,10 +143,7 @@ const LoginPage = () => {
           {/* LEFT — branding */}
           <div className="hidden flex-col justify-center gap-10 lg:flex">
             <div className="space-y-8 motion-safe:animate-[fade-up_700ms_ease-out_both]">
-              <div className="inline-flex items-center gap-2.5 rounded-full border border-amber-400/25 bg-[#0d0d0d]/80 px-4 py-2 text-sm font-semibold tracking-[0.14em] text-amber-200/90 uppercase">
-                <span className="size-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.7)]" />
-                Học trực tuyến
-              </div>
+              
 
               <div className="space-y-2">
                 <h1 className="text-[3.1rem] font-bold leading-[1.06] tracking-tight text-white">
@@ -139,9 +159,6 @@ const LoginPage = () => {
                 </p>
               </div>
 
-              <p className="text-[17px] leading-relaxed text-zinc-500">
-                Tập trung lớp học, video và tài liệu trên một bảng điều khiển.
-              </p>
 
               <div className="flex max-w-md flex-col gap-3">
                 {featureTags.map((tag, index) => (
@@ -159,31 +176,15 @@ const LoginPage = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full border border-amber-400/30 bg-amber-400/10 text-sm font-bold text-amber-300">
-                CL
-              </div>
-              <div className="leading-tight">
-                <p className="text-lg font-semibold text-white">
-                  Course Learning Platform
-                </p>
-                <p className="text-sm text-zinc-500">
-                  Trung tâm học tập trực tuyến
-                </p>
-              </div>
-            </div>
+           
           </div>
 
           {/* RIGHT — login card */}
           <div className="w-full motion-safe:animate-[fade-up_700ms_ease-out_both] motion-safe:[animation-delay:120ms] lg:min-w-0">
-            <div className="float-bob-slow relative w-full overflow-hidden rounded-3xl border border-white/[0.06] bg-white/[0.03] shadow-[0_20px_50px_rgba(0,0,0,0.35)] backdrop-blur-2xl">
-            <div className="h-0.5 w-full bg-gradient-to-r from-amber-400 via-amber-300 to-sky-400 shadow-[0_0_12px_rgba(251,191,36,0.5)]" />
-
+            <div className="float-bob-slow relative w-full">
               <div className="space-y-4 px-6 py-6">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-amber-400/40 bg-amber-400/10 text-amber-300">
-                    <GraduationCap className="h-5 w-5" />
-                  </div>
+                  
                   <div>
                     <h2 className="text-[17px] font-semibold text-zinc-100">
                       Đăng nhập hệ thống
@@ -209,44 +210,51 @@ const LoginPage = () => {
                       name="role"
                       rules={{ required: "Vui lòng chọn vai trò." }}
                       render={({ field }) => (
-                        <FormItem className="space-y-1">
-                          <FormLabel className="text-[10px] font-semibold tracking-[0.14em] text-zinc-500 uppercase">
+                        <FormItem className="space-y-2">
+                          <FormLabel className="text-[11px] font-semibold tracking-[0.12em] text-zinc-500 uppercase">
                             Vai trò
                           </FormLabel>
                           <FormControl>
-                            <div className="grid grid-cols-2 gap-1.5 rounded-2xl border border-white/10 bg-[#111111]/80 p-1">
-                              <label className="cursor-pointer">
-                                <input
-                                  className="peer sr-only"
-                                  type="radio"
-                                  name={field.name}
-                                  value="STUDENT"
-                                  checked={field.value === "STUDENT"}
-                                  onChange={() => {
-                                    field.onChange("STUDENT");
-                                    resetValidation();
-                                  }}
-                                />
-                                <span className="block rounded-xl px-2 py-2 text-center text-xs font-medium text-zinc-400 transition peer-checked:bg-amber-400 peer-checked:text-zinc-900">
-                                  Học sinh
-                                </span>
-                              </label>
-                              <label className="cursor-pointer">
-                                <input
-                                  className="peer sr-only"
-                                  type="radio"
-                                  name={field.name}
-                                  value="TEACHER"
-                                  checked={field.value === "TEACHER"}
-                                  onChange={() => {
-                                    field.onChange("TEACHER");
-                                    resetValidation();
-                                  }}
-                                />
-                                <span className="block rounded-xl px-2 py-2 text-center text-xs font-medium text-zinc-400 transition peer-checked:bg-amber-400 peer-checked:text-zinc-900">
-                                  Giáo viên
-                                </span>
-                              </label>
+                            <div className="grid grid-cols-2 gap-2 rounded-2xl border border-white/10 bg-[#111111]/80 p-1.5">
+                              {roleTabs.map((role) => {
+                                const Icon = role.icon;
+
+                                return (
+                                  <label
+                                    key={role.value}
+                                    className="group cursor-pointer"
+                                  >
+                                    <input
+                                      className="peer sr-only"
+                                      type="radio"
+                                      name={field.name}
+                                      value={role.value}
+                                      checked={field.value === role.value}
+                                      onChange={() => {
+                                        field.onChange(role.value);
+                                        resetValidation();
+                                      }}
+                                    />
+                                    <span
+                                      className={cn(
+                                        "flex min-h-[4.5rem] flex-col items-center justify-center gap-1.5 rounded-xl border border-transparent px-3 py-3 text-center transition-all duration-200",
+                                        "text-zinc-400",
+                                        "group-hover:border-white/10 group-hover:bg-white/[0.03] group-hover:text-white",
+                                        "peer-checked:border-amber-400/30 peer-checked:bg-amber-400 peer-checked:text-zinc-900 peer-checked:shadow-[0_6px_20px_rgba(251,191,36,0.28)]",
+                                        "group-hover:peer-checked:border-amber-300/60 group-hover:peer-checked:bg-amber-300 group-hover:peer-checked:text-zinc-900 group-hover:peer-checked:shadow-[0_8px_26px_rgba(251,191,36,0.45)]",
+                                      )}
+                                    >
+                                      <Icon className="h-5 w-5 shrink-0 transition-colors duration-200" />
+                                      <span className="text-sm font-semibold leading-none">
+                                        {role.label}
+                                      </span>
+                                      <span className="text-[10px] font-medium leading-none opacity-70">
+                                        {role.description}
+                                      </span>
+                                    </span>
+                                  </label>
+                                );
+                              })}
                             </div>
                           </FormControl>
                           <FormMessage />
@@ -270,14 +278,17 @@ const LoginPage = () => {
                             Email
                           </FormLabel>
                           <FormControl>
-                            <div className="relative">
-                              <User className="pointer-events-none absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2 text-zinc-500" />
+                            <div className="group relative">
+                              <Mail
+                                className={loginInputIconClass}
+                                strokeWidth={1.5}
+                              />
                               <Input
                                 {...field}
                                 type="email"
                                 placeholder="phuc@gmail.com"
                                 autoComplete="email"
-                                className="h-10 rounded-2xl border-white/10 bg-[#111111]/80 pr-3 pl-9 text-sm text-zinc-100 placeholder:text-zinc-600 focus-visible:border-amber-400/50 focus-visible:ring-1 focus-visible:ring-amber-400/30 focus-visible:outline-none"
+                                className={cn(loginInputClass, "pr-4 pl-11")}
                               />
                             </div>
                           </FormControl>
@@ -314,24 +325,38 @@ const LoginPage = () => {
                             Mật khẩu
                           </FormLabel>
                           <FormControl>
-                            <div className="relative">
-                              <Lock className="pointer-events-none absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2 text-zinc-500" />
+                            <div className="group relative">
+                              <Lock
+                                className={loginInputIconClass}
+                                strokeWidth={1.5}
+                              />
                               <Input
                                 {...field}
                                 type={showPassword ? "text" : "password"}
                                 placeholder="••••••••"
                                 autoComplete="current-password"
-                                className="h-10 rounded-2xl border-white/10 bg-[#111111]/80 pr-9 pl-9 text-sm text-zinc-100 placeholder:text-zinc-600 focus-visible:border-amber-400/50 focus-visible:ring-1 focus-visible:ring-amber-400/30 focus-visible:outline-none"
+                                className={cn(loginInputClass, "pr-11 pl-11")}
                               />
                               <button
                                 type="button"
                                 onClick={() => setShowPassword((prev) => !prev)}
-                                className="absolute top-1/2 right-3 -translate-y-1/2 text-zinc-500 transition hover:text-amber-300"
+                                aria-label={
+                                  showPassword
+                                    ? "Ẩn mật khẩu"
+                                    : "Hiện mật khẩu"
+                                }
+                                className="absolute top-1/2 right-3.5 -translate-y-1/2 text-zinc-500 transition hover:text-amber-300"
                               >
                                 {showPassword ? (
-                                  <EyeOff className="h-3.5 w-3.5 cursor-pointer" />
+                                  <EyeOff
+                                    className="h-[18px] w-[18px] cursor-pointer"
+                                    strokeWidth={1.5}
+                                  />
                                 ) : (
-                                  <Eye className="h-3.5 w-3.5 cursor-pointer" />
+                                  <Eye
+                                    className="h-[18px] w-[18px] cursor-pointer"
+                                    strokeWidth={1.5}
+                                  />
                                 )}
                               </button>
                             </div>
@@ -365,15 +390,7 @@ const LoginPage = () => {
                   </form>
                 </Form>
 
-                <div className="flex items-center justify-between border-t border-white/5 pt-3">
-                  <Link
-                    className="text-[11px] text-amber-400 transition hover:text-amber-300"
-                    href="/forgot"
-                    onClick={resetValidation}
-                  >
-                    Quên mật khẩu?
-                  </Link>
-
+                <div className="flex items-center justify-end pt-3">
                   <Dialog>
                     <DialogTrigger asChild>
                       <button
