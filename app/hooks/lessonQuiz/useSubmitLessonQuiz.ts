@@ -11,7 +11,7 @@ type ErrorResponse = {
 };
 
 type SubmitLessonQuizVariables = {
-  quizId: string;
+  snapLessonQuizId: string;
   payload: SubmitQuizPayload;
 };
 
@@ -24,11 +24,11 @@ export const useSubmitLessonQuizMutation = () => {
     SubmitLessonQuizVariables
   >({
     mutationKey: ["submitLessonQuiz"],
-    mutationFn: ({ quizId, payload }) =>
-      LessonQuizService.submitQuiz(quizId, payload),
+    mutationFn: ({ snapLessonQuizId, payload }) =>
+      LessonQuizService.submitQuiz(snapLessonQuizId, payload),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: ["quiz-result", variables.quizId],
+        queryKey: ["quiz-result", variables.snapLessonQuizId],
       });
     },
   });

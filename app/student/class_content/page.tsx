@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ExternalLink,
   FileText,
@@ -15,7 +15,7 @@ import { useGetLessonResourcesQuery } from "@/app/hooks/lessonResource/useGetLes
 import { useGetVideoQuery } from "@/app/hooks/videos/useGetVideoQuery";
 import { useEnrollClassroomMutation } from "@/app/hooks/classes/useEnrollClassroom";
 import { type MyClass } from "@/app/service/classroom.service";
-import type { LessonQuiz } from "@/app/service/material.service";
+import { useGetLessonQuizzesQuery } from "@/app/hooks/lessonQuiz/useGetLessonQuizzes";
 import { VideoType } from "@/app/service/record.service";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,6 +48,11 @@ const getVideoTypeByTab = (tab: TabKey): VideoType | undefined => {
   return undefined;
 };
 
+type SessionQuizRef = {
+  quizId: string;
+  title: string;
+};
+
 type Session = {
   id: string;
   title: string;
@@ -56,7 +61,7 @@ type Session = {
   hasPreviewVideo: boolean;
   hasReplayVideo: boolean;
   hasQuiz: boolean;
-  quizzes: LessonQuiz[];
+  quizzes: SessionQuizRef[];
 };
 
 type Module = {
@@ -190,8 +195,16 @@ const ClassContentManagement = () => {
   const [enrollCode, setEnrollCode] = useState("");
   const [enrollMessage, setEnrollMessage] = useState<string | null>(null);
   const [activeQuizId, setActiveQuizId] = useState<string | null>(null);
+  const [activeSnapLessonQuizId, setActiveSnapLessonQuizId] = useState<
+    string | null
+  >(null);
+  const [pendingLessonQuizId, setPendingLessonQuizId] = useState<string | null>(
+    null,
+  );
   const [isQuizModalOpen, setIsQuizModalOpen] = useState(false);
-  const [resultQuizId, setResultQuizId] = useState<string | null>(null);
+  const [resultSnapLessonQuizId, setResultSnapLessonQuizId] = useState<
+    string | null
+  >(null);
   const [isResultModalOpen, setIsResultModalOpen] = useState(false);
 
   const { data: myClasses = [], isLoading: isLoadingClasses } =
@@ -227,7 +240,11 @@ const ClassContentManagement = () => {
           lessonOrder: lesson.lessonOrder,
           ...snapFlags,
           hasQuiz: lessonQuizzes.length > 0,
-          quizzes: lessonQuizzes,
+          quizzes: lessonQuizzes.map((quiz) => ({
+            quizId: quiz.quizId,
+            title: quiz.title,
+          })),
+          materials: [],
         };
       }),
     }));
@@ -302,6 +319,10 @@ const ClassContentManagement = () => {
   const { data: lessonResources = [] } = useGetLessonResourcesQuery(
     resolvedSessionId || undefined,
   );
+  const {
+    data: lessonQuizzes = [],
+    isLoading: isLoadingLessonQuizzes,
+  } = useGetLessonQuizzesQuery(resolvedSessionId || undefined);
 
   const selectContent = (sessionId: string, tab: TabKey, quizId?: string) => {
     setActiveSessionId(sessionId);
@@ -309,14 +330,30 @@ const ClassContentManagement = () => {
 
     if (quizId) {
       setActiveQuizId(quizId);
-      setIsQuizModalOpen(true);
+      setPendingLessonQuizId(quizId);
       return;
     }
 
     if (tab !== "quiz") {
       setActiveQuizId(null);
+      setActiveSnapLessonQuizId(null);
+      setPendingLessonQuizId(null);
     }
   };
+
+  useEffect(() => {
+    if (!pendingLessonQuizId || isLoadingLessonQuizzes) return;
+
+    const matchedQuiz = lessonQuizzes.find(
+      (quiz) => quiz.quizId === pendingLessonQuizId,
+    );
+
+    if (!matchedQuiz?.snapLessonQuizId) return;
+
+    setActiveSnapLessonQuizId(matchedQuiz.snapLessonQuizId);
+    setIsQuizModalOpen(true);
+    setPendingLessonQuizId(null);
+  }, [pendingLessonQuizId, lessonQuizzes, isLoadingLessonQuizzes]);
 
   const handleEnroll = async () => {
     const normalizedCode = enrollCode.trim().toUpperCase();
@@ -451,7 +488,7 @@ const ClassContentManagement = () => {
           <LessonContentTabBar
             activeTab={activeTab}
             materialsCount={lessonResources.length}
-            quizzesCount={activeSession.session.quizzes.length}
+            quizzesCount={lessonQuizzes.length}
             onChange={setActiveTab}
           />
 
@@ -466,19 +503,27 @@ const ClassContentManagement = () => {
                 <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-6 py-12 text-center text-sm text-slate-500">
                   Chọn buổi học để xem bài tập
                 </div>
+              ) : isLoadingLessonQuizzes ? (
+                <div className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-6 py-12 text-sm text-slate-500">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Đang tải bài tập...
+                </div>
               ) : (
                 <LessonQuizList
                   lessonTitle={activeSession.session.title}
-                  quizzes={activeSession.session.quizzes}
+                  quizzes={lessonQuizzes}
                   mode="student"
                   activeQuizId={activeQuizId}
-                  onQuizClick={(quizId) => {
-                    setActiveQuizId(quizId);
+                  onQuizClick={(quiz) => {
+                    if (!quiz.snapLessonQuizId) return;
+                    setActiveQuizId(quiz.quizId);
+                    setActiveSnapLessonQuizId(quiz.snapLessonQuizId);
                     setIsQuizModalOpen(true);
                   }}
-                  onResultClick={(quizId) => {
-                    setResultQuizId(quizId);
-                    setActiveQuizId(quizId);
+                  onResultClick={(quiz) => {
+                    if (!quiz.snapLessonQuizId) return;
+                    setResultSnapLessonQuizId(quiz.snapLessonQuizId);
+                    setActiveQuizId(quiz.quizId);
                     setIsResultModalOpen(true);
                   }}
                 />
@@ -536,24 +581,28 @@ const ClassContentManagement = () => {
       </div>
 
       <LessonQuizTakeModal
-        quizId={activeQuizId}
+        lessonQuizId={activeQuizId}
+        snapLessonQuizId={activeSnapLessonQuizId}
         open={isQuizModalOpen}
         onOpenChange={(open) => {
           setIsQuizModalOpen(open);
-          if (!open) setActiveQuizId(null);
+          if (!open) {
+            setActiveQuizId(null);
+            setActiveSnapLessonQuizId(null);
+          }
         }}
-        onViewResult={(quizId) => {
-          setResultQuizId(quizId);
+        onViewResult={(snapLessonQuizId) => {
+          setResultSnapLessonQuizId(snapLessonQuizId);
           setIsResultModalOpen(true);
         }}
       />
 
       <LessonQuizResultModal
-        quizId={resultQuizId}
+        snapLessonQuizId={resultSnapLessonQuizId}
         open={isResultModalOpen}
         onOpenChange={(open) => {
           setIsResultModalOpen(open);
-          if (!open) setResultQuizId(null);
+          if (!open) setResultSnapLessonQuizId(null);
         }}
       />
     </div>

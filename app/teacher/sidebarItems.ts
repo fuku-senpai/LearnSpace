@@ -1,9 +1,19 @@
-import type { LucideIcon } from "lucide-react";
-import { GraduationCap, LayoutDashboard, MonitorPlay, UserRound } from "lucide-react";
-
+import {
+  GraduationCap,
+  KeyRound,
+  LayoutDashboard,
+  LibraryBig,
+  MonitorPlay,
+  UserRound,
+} from "lucide-react";
 import type { DashboardMenuGroup } from "@/components/dashboard/DashboardSidebar";
 
-export type TeacherMenuKey = "overview" | "content" | "profile";
+export type TeacherMenuKey =
+  | "overview"
+  | "content"
+  | "questionBank"
+  | "profile"
+  | "password";
 
 export const teacherMenuGroups: DashboardMenuGroup<TeacherMenuKey>[] = [
   {
@@ -34,6 +44,15 @@ export const teacherMenuGroups: DashboardMenuGroup<TeacherMenuKey>[] = [
         accent: "from-violet-400 to-fuchsia-500",
         activeGlow: "shadow-[0_0_20px_rgba(139,92,246,0.25)]",
       },
+      {
+        key: "questionBank",
+        label: "Kho đề",
+        hint: "ngân hàng câu hỏi",
+        index: "03",
+        icon: LibraryBig,
+        accent: "from-amber-400 to-orange-500",
+        activeGlow: "shadow-[0_0_20px_rgba(251,191,36,0.22)]",
+      },
     ],
   },
   {
@@ -44,10 +63,19 @@ export const teacherMenuGroups: DashboardMenuGroup<TeacherMenuKey>[] = [
         key: "profile",
         label: "Thông tin cá nhân",
         hint: "cập nhật hồ sơ",
-        index: "03",
+        index: "04",
         icon: UserRound,
         accent: "from-fuchsia-400 to-pink-500",
         activeGlow: "shadow-[0_0_20px_rgba(232,121,249,0.22)]",
+      },
+      {
+        key: "password",
+        label: "Đổi mật khẩu",
+        hint: "bảo mật tài khoản",
+        index: "05",
+        icon: KeyRound,
+        accent: "from-emerald-400 to-teal-500",
+        activeGlow: "shadow-[0_0_20px_rgba(52,211,153,0.22)]",
       },
     ],
   },
@@ -56,7 +84,9 @@ export const teacherMenuGroups: DashboardMenuGroup<TeacherMenuKey>[] = [
 export const teacherMenuLabels: Record<TeacherMenuKey, string> = {
   overview: "Tổng quan",
   content: "Video & Tài liệu",
+  questionBank: "Kho đề",
   profile: "Thông tin cá nhân",
+  password: "Đổi mật khẩu",
 };
 
 export const teacherSidebarBranding = {

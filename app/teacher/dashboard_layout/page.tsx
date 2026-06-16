@@ -18,6 +18,8 @@ import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { useLogout } from "@/hooks/useLogout";
 import VideoDocumentManagement from "../video-document/page";
 import TeacherProfilePage from "../profile/page";
+import TeacherChangePasswordPage from "../change-password/page";
+import TeacherQuestionBankPage from "../question-bank/page";
 import {
   teacherMenuGroups,
   teacherMenuLabels,
@@ -297,9 +299,21 @@ const TeacherDashboardContent = () => {
             </div>
           )}
 
+          {activeMenu === "questionBank" && (
+            <div className="relative h-full min-h-0">
+              <TeacherQuestionBankPage />
+            </div>
+          )}
+
           {activeMenu === "profile" && (
             <div className="relative h-full min-h-0">
               <TeacherProfilePage />
+            </div>
+          )}
+
+          {activeMenu === "password" && (
+            <div className="relative h-full min-h-0">
+              <TeacherChangePasswordPage />
             </div>
           )}
         </div>

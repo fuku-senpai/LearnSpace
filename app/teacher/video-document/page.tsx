@@ -25,6 +25,7 @@ import type { LessonQuiz } from "@/app/service/material.service";
 import {LessonContentTabBar,type LessonContentTab} from "@/components/lesson/LessonContentTabBar";
 import { LessonModuleSidebar } from "@/components/lesson/LessonModuleSidebar";
 import { LessonQuizPanel } from "@/components/lesson/LessonQuizPanel";
+import { useGetLessonQuizzesQuery } from "@/app/hooks/lessonQuiz/useGetLessonQuizzes";
 import {getSnapLessonIndicators,mergeLessonIndicators,useLessonSidebarIndicators} from "@/app/hooks/lesson/useLessonSidebarIndicators";
 
 type TabKey = LessonContentTab;
@@ -523,6 +524,9 @@ function VideoDocumentManagementContent() {
   const { data: lessonResources = [] } = useGetLessonResourcesQuery(
     resolvedSessionId || undefined,
   );
+  const { data: lessonQuizzes = [] } = useGetLessonQuizzesQuery(
+    resolvedSessionId || undefined,
+  );
 
   const selectContent = (
     sessionId: string,
@@ -668,7 +672,7 @@ function VideoDocumentManagementContent() {
           <LessonContentTabBar
             activeTab={activeTab}
             materialsCount={lessonResources.length}
-            quizzesCount={activeSession.session.quizzes.length}
+            quizzesCount={lessonQuizzes.length}
             onChange={(tab) => {
               setActiveTab(tab);
               if (tab === "preview") setVideoType("PREVIEW");
@@ -686,7 +690,6 @@ function VideoDocumentManagementContent() {
               <LessonQuizPanel
                 snapLessonId={activeSession.session.id}
                 lessonTitle={activeSession.session.title}
-                quizzes={activeSession.session.quizzes}
                 classroomId={effectiveCourseId}
               />
             ) : (

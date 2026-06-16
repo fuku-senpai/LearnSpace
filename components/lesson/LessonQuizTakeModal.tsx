@@ -42,10 +42,11 @@ import {
 type QuizPhase = "ready" | "taking" | "finished" | "timeout";
 
 type LessonQuizTakeModalProps = {
-  quizId: string | null;
+  lessonQuizId: string | null;
+  snapLessonQuizId: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onViewResult?: (quizId: string) => void;
+  onViewResult?: (snapLessonQuizId: string) => void;
 };
 
 type QuizResult = {
@@ -128,7 +129,8 @@ const getSubmitErrorMessage = (error: unknown) => {
 };
 
 export function LessonQuizTakeModal({
-  quizId,
+  lessonQuizId,
+  snapLessonQuizId,
   open,
   onOpenChange,
   onViewResult,
@@ -139,7 +141,7 @@ export function LessonQuizTakeModal({
     isError,
     error,
     refetch,
-  } = useGetLessonQuizQuery(open ? (quizId ?? undefined) : undefined);
+  } = useGetLessonQuizQuery(open ? (lessonQuizId ?? undefined) : undefined);
 
   const { mutateAsync: submitQuiz, isPending: isSubmitting } =
     useSubmitLessonQuizMutation();
@@ -197,7 +199,7 @@ export function LessonQuizTakeModal({
       requireAllAnswers: boolean,
       submitAnswers: Record<string, string> = answers,
     ) => {
-      if (!quiz || !quizId || isSubmitting || submittedRef.current) return false;
+      if (!quiz || !snapLessonQuizId || isSubmitting || submittedRef.current) return false;
 
       if (requireAllAnswers) {
         const unanswered = quiz.questions.filter(
@@ -214,7 +216,7 @@ export function LessonQuizTakeModal({
 
       try {
         const data = await submitQuiz({
-          quizId,
+          snapLessonQuizId,
           payload: buildSubmitQuizPayload(quiz, submitAnswers),
         });
 
@@ -236,17 +238,17 @@ export function LessonQuizTakeModal({
         return false;
       }
     },
-    [quiz, quizId, isSubmitting, answers, submitQuiz],
+    [quiz, snapLessonQuizId, isSubmitting, answers, submitQuiz],
   );
 
   const submitAbandoned = useCallback(async () => {
-    if (!quiz || !quizId || submittedRef.current) return;
+    if (!quiz || !snapLessonQuizId || submittedRef.current) return;
 
     submittedRef.current = true;
 
     try {
       await submitQuiz({
-        quizId,
+        snapLessonQuizId,
         payload: buildSubmitQuizPayload(quiz, {}),
       });
       toast.info("Đã thoát bài làm. Bài được nộp với điểm 0.");
@@ -254,15 +256,15 @@ export function LessonQuizTakeModal({
       submittedRef.current = false;
       toast.error(getSubmitErrorMessage(submitError));
     }
-  }, [quiz, quizId, submitQuiz]);
+  }, [quiz, snapLessonQuizId, submitQuiz]);
 
   useEffect(() => {
-    if (phase !== "timeout" || !quiz || !quizId || submittedRef.current) {
+    if (phase !== "timeout" || !quiz || !snapLessonQuizId || submittedRef.current) {
       return;
     }
 
     void performSubmit("timeout", false);
-  }, [phase, quiz, quizId, performSubmit]);
+  }, [phase, quiz, snapLessonQuizId, performSubmit]);
 
   const activeQuestion = quiz?.questions[activeQuestionIndex];
   const answeredCount = useMemo(() => {
@@ -290,7 +292,7 @@ export function LessonQuizTakeModal({
 
     if (isSubmitting) return;
 
-    if (phase === "taking" && quiz && quizId) {
+    if (phase === "taking" && quiz && snapLessonQuizId) {
       void submitAbandoned().finally(() => onOpenChange(false));
       return;
     }
@@ -484,7 +486,7 @@ export function LessonQuizTakeModal({
               ) : null}
 
               <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-                {onViewResult && quizId ? (
+                {onViewResult && snapLessonQuizId ? (
                 <Button
                   type="button"
                   variant="outline"
@@ -493,7 +495,7 @@ export function LessonQuizTakeModal({
                     lessonNavyOutlineButton,
                   )}
                     onClick={() => {
-                      onViewResult(quizId);
+                      onViewResult(snapLessonQuizId);
                       onOpenChange(false);
                     }}
                   >

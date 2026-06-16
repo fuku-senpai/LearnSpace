@@ -12,24 +12,15 @@ type ErrorResponse = {
   data?: Record<string, string>;
 };
 
-type CreateLessonQuizVariables = CreateLessonQuizPayload & {
-  classroomId?: string;
-};
-
 export const useCreateLessonQuizMutation = () =>
   useMutation<
     CreateLessonQuizResponse,
     AxiosError<ErrorResponse>,
-    CreateLessonQuizVariables
+    CreateLessonQuizPayload
   >({
     mutationKey: ["createLessonQuiz"],
-    mutationFn: ({ classroomId: _classroomId, ...payload }) =>
-      LessonQuizService.createLessonQuiz(payload),
-    onSuccess: (_data, variables) => {
-      if (variables.classroomId) {
-        queryClient.invalidateQueries({
-          queryKey: ["snap-materials", variables.classroomId],
-        });
-      }
+    mutationFn: (payload) => LessonQuizService.createLessonQuiz(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["question-bank"] });
     },
   });

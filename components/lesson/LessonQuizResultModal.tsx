@@ -13,7 +13,11 @@ import {
 } from "lucide-react";
 import { AxiosError } from "axios";
 import { useGetQuizResultQuery } from "@/app/hooks/lessonQuiz/useGetQuizResult";
-import type { QuizSubmissionResult } from "@/app/service/lessonQuiz.service";
+import {
+  mapAttemptToSubmissionResult,
+  type QuizResultSummary,
+  type QuizSubmissionResult,
+} from "@/app/service/lessonQuiz.service";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -25,7 +29,7 @@ import { cn } from "@/lib/utils";
 import { lessonNavyButton } from "./lessonTheme";
 
 type LessonQuizResultModalProps = {
-  quizId: string | null;
+  snapLessonQuizId: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
@@ -58,6 +62,147 @@ const getErrorMessage = (error: unknown) => {
   }
   return "Không thể tải kết quả. Vui lòng thử lại.";
 };
+
+const formatSubmittedAt = (value?: string) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const getLatestAttemptIndex = (attempts: QuizResultSummary["attempts"]) => {
+  if (attempts.length === 0) return 0;
+  let latestIndex = 0;
+  for (let index = 1; index < attempts.length; index += 1) {
+    if (attempts[index].attemptNo >= attempts[latestIndex].attemptNo) {
+      latestIndex = index;
+    }
+  }
+  return latestIndex;
+};
+
+function AttemptPicker({
+  attempts,
+  activeIndex,
+  onChange,
+}: {
+  attempts: QuizResultSummary["attempts"];
+  activeIndex: number;
+  onChange: (index: number) => void;
+}) {
+  if (attempts.length <= 1) return null;
+
+  return (
+    <div className="border-b border-slate-100 bg-slate-50/50 px-6 py-3">
+      <p className="mb-2 text-[11px] font-medium tracking-wide text-slate-400 uppercase">
+        Các lần làm bài
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {attempts.map((attempt, index) => {
+          const isActive = index === activeIndex;
+          const submittedLabel = formatSubmittedAt(attempt.submittedAt);
+
+          return (
+            <button
+              key={attempt.submissionId}
+              type="button"
+              onClick={() => onChange(index)}
+              className={cn(
+                "cursor-pointer rounded-xl px-3 py-2 text-left text-xs transition ring-1",
+                isActive
+                  ? "bg-blue-900 text-white ring-blue-900 shadow-sm"
+                  : "bg-white text-slate-700 ring-slate-200 hover:ring-slate-300",
+              )}
+            >
+              <span className="font-semibold">Lần {attempt.attemptNo}</span>
+              {submittedLabel ? (
+                <span
+                  className={cn(
+                    "mt-0.5 block",
+                    isActive ? "text-blue-100" : "text-slate-400",
+                  )}
+                >
+                  {submittedLabel}
+                </span>
+              ) : null}
+              {!isPendingResult(attempt.status) ? (
+                <span
+                  className={cn(
+                    "mt-1 block font-medium",
+                    isActive
+                      ? attempt.passed
+                        ? "text-emerald-200"
+                        : "text-amber-200"
+                      : attempt.passed
+                        ? "text-emerald-600"
+                        : "text-amber-600",
+                  )}
+                >
+                  {attempt.score}đ · {attempt.passed ? "Đạt" : "Chưa đạt"}
+                </span>
+              ) : (
+                <span
+                  className={cn(
+                    "mt-1 block",
+                    isActive ? "text-blue-100" : "text-amber-600",
+                  )}
+                >
+                  Chờ chấm
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function QuizResultContent({ summary }: { summary: QuizResultSummary }) {
+  const attempts = [...summary.attempts].sort(
+    (a, b) => a.attemptNo - b.attemptNo,
+  );
+  const latestAttemptIndex = getLatestAttemptIndex(attempts);
+  const [activeAttemptIndex, setActiveAttemptIndex] =
+    useState(latestAttemptIndex);
+
+  const activeAttempt = attempts[activeAttemptIndex];
+
+  if (attempts.length === 0) {
+    return (
+      <div className="px-6 py-16 text-center">
+        <p className="font-medium text-slate-800">Chưa có lần làm bài</p>
+        <p className="mt-1 text-sm text-slate-500">
+          Bạn chưa nộp bài hoặc chưa có kết quả cho bài tập này.
+        </p>
+      </div>
+    );
+  }
+
+  if (!activeAttempt) return null;
+
+  const result = mapAttemptToSubmissionResult(
+    { ...summary, attempts },
+    activeAttempt,
+  );
+
+  return (
+    <>
+      <AttemptPicker
+        attempts={attempts}
+        activeIndex={activeAttemptIndex}
+        onChange={setActiveAttemptIndex}
+      />
+      <ResultBody key={activeAttempt.submissionId} result={result} />
+    </>
+  );
+}
 
 function PendingBanner({
   passScore,
@@ -471,17 +616,26 @@ function ResultBody({ result }: { result: QuizSubmissionResult }) {
 }
 
 export function LessonQuizResultModal({
-  quizId,
+  snapLessonQuizId,
   open,
   onOpenChange,
 }: LessonQuizResultModalProps) {
   const {
-    data: result,
+    data: summary,
     isLoading,
     isError,
     error,
     refetch,
-  } = useGetQuizResultQuery(open ? (quizId ?? undefined) : undefined, open);
+  } = useGetQuizResultQuery(
+    open ? (snapLessonQuizId ?? undefined) : undefined,
+    open,
+  );
+
+  const latestAttempt =
+    summary?.attempts[getLatestAttemptIndex(summary.attempts ?? [])];
+  const isPending = latestAttempt
+    ? isPendingResult(latestAttempt.status)
+    : false;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -493,12 +647,14 @@ export function LessonQuizResultModal({
             </div>
             <div className="min-w-0 flex-1">
               <DialogTitle className="text-lg font-semibold tracking-tight text-slate-900">
-                {result?.quizTitle ?? "Kết quả bài tập"}
+                {summary?.quizTitle ?? "Kết quả bài tập"}
               </DialogTitle>
               <DialogDescription className="mt-0.5 text-sm text-slate-500">
-                {result && isPendingResult(result.status)
-                  ? "Xem lại bài làm đã nộp — đang chờ chấm"
-                  : "Xem lại điểm số và từng câu trả lời"}
+                {summary && summary.attempts.length > 1
+                  ? `${summary.attempts.length} lần làm · chọn lần để xem chi tiết`
+                  : summary && isPending
+                    ? "Xem lại bài làm đã nộp — đang chờ chấm"
+                    : "Xem lại điểm số và từng câu trả lời"}
               </DialogDescription>
             </div>
           </div>
@@ -527,8 +683,8 @@ export function LessonQuizResultModal({
                 Thử lại
               </Button>
             </div>
-          ) : result ? (
-            <ResultBody result={result} />
+          ) : summary ? (
+            <QuizResultContent key={summary.quizId} summary={summary} />
           ) : null}
         </div>
 

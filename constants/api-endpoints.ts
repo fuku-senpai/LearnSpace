@@ -85,7 +85,11 @@ export const TEACHER_API = {
 };
 export const LESSON_QUIZ_API = {
   CREATE: "/lesson-quiz",
+  LIST: "/lesson-quizs",
+  ASSIGN: "/assign",
+  UPDATE_ASSIGN: (snapLessonQuizId: string) => `/assign/${snapLessonQuizId}`,
   GET_BY_ID: (quizId: string) => `/lesson-quiz/${quizId}`,
+  GET_BY_LESSON: (snapLessonId: string) => `/lesson/${snapLessonId}`,
 };
 
 export const VIDEO_API = {

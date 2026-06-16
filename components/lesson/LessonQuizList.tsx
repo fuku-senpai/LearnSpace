@@ -1,10 +1,10 @@
 "use client";
 
-import { ClipboardList, Clock, PlayCircle, Plus, Target } from "lucide-react";
+import { ClipboardList, Clock, Link2, Pencil, PlayCircle, Plus, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import type { LessonQuiz } from "@/app/service/material.service";
+import type { LessonQuizListItem } from "@/app/service/lessonQuiz.service";
 import {
   lessonNavyButton,
   lessonNavyGhostButton,
@@ -13,23 +13,28 @@ import {
 
 type LessonQuizListProps = {
   lessonTitle?: string;
-  quizzes?: LessonQuiz[];
+  quizzes?: LessonQuizListItem[];
   mode?: "teacher" | "student";
   activeQuizId?: string | null;
+  isRefreshing?: boolean;
   onCreateClick?: () => void;
-  onQuizClick?: (quizId: string) => void;
-  onResultClick?: (quizId: string) => void;
+  onAssignClick?: () => void;
+  onEditClick?: (quiz: LessonQuizListItem) => void;
+  onQuizClick?: (quiz: LessonQuizListItem) => void;
+  onResultClick?: (quiz: LessonQuizListItem) => void;
 };
 
 function QuizActions({
-  quizId,
+  quiz,
   onQuizClick,
   onResultClick,
 }: {
-  quizId: string;
-  onQuizClick?: (quizId: string) => void;
-  onResultClick?: (quizId: string) => void;
+  quiz: LessonQuizListItem;
+  onQuizClick?: (quiz: LessonQuizListItem) => void;
+  onResultClick?: (quiz: LessonQuizListItem) => void;
 }) {
+  const canTakeQuiz = Boolean(quiz.snapLessonQuizId);
+
   return (
     <div className="flex shrink-0 items-center gap-1.5">
       {onResultClick ? (
@@ -41,7 +46,8 @@ function QuizActions({
             "h-8 cursor-pointer rounded-lg px-2.5 text-xs",
             lessonNavyGhostButton,
           )}
-          onClick={() => onResultClick(quizId)}
+          disabled={!canTakeQuiz}
+          onClick={() => onResultClick(quiz)}
         >
           Kết quả
         </Button>
@@ -55,7 +61,8 @@ function QuizActions({
             "h-8 cursor-pointer rounded-lg px-2.5 text-xs",
             lessonNavyOutlineButton,
           )}
-          onClick={() => onQuizClick(quizId)}
+          disabled={!canTakeQuiz}
+          onClick={() => onQuizClick(quiz)}
         >
           <PlayCircle className="mr-1 h-3.5 w-3.5" />
           Làm bài
@@ -65,9 +72,21 @@ function QuizActions({
   );
 }
 
-function QuizMeta({ quiz }: { quiz: LessonQuiz }) {
+function QuizMeta({ quiz }: { quiz: LessonQuizListItem }) {
+  const quizTypeLabel =
+    quiz.quizType === "MULTIPLE_CHOICE"
+      ? "Trắc nghiệm"
+      : quiz.quizType === "ESSAY"
+        ? "Tự luận"
+        : null;
+
   return (
-    <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-slate-400">
+    <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-400">
+      {quizTypeLabel ? (
+        <span className="rounded-md bg-slate-100 px-1.5 py-0.5 font-medium text-slate-600">
+          {quizTypeLabel}
+        </span>
+      ) : null}
       {typeof quiz.durationMinutes === "number" ? (
         <span className="inline-flex items-center gap-1">
           <Clock className="h-3 w-3" />
@@ -80,6 +99,12 @@ function QuizMeta({ quiz }: { quiz: LessonQuiz }) {
           Đạt {quiz.passScore}đ
         </span>
       ) : null}
+      {typeof quiz.maxAttempts === "number" ? (
+        <span>{quiz.maxAttempts} lần làm</span>
+      ) : null}
+      {quiz.required === true ? (
+        <span className="font-medium text-amber-600">Bắt buộc</span>
+      ) : null}
     </p>
   );
 }
@@ -90,8 +115,11 @@ export function LessonQuizList({
   mode = "student",
   activeQuizId = null,
   onCreateClick,
+  onAssignClick,
+  onEditClick,
   onQuizClick,
   onResultClick,
+  isRefreshing = false,
 }: LessonQuizListProps) {
   const isTeacher = mode === "teacher";
 
@@ -106,12 +134,29 @@ export function LessonQuizList({
               </div>
               <div>
                 <h3 className="text-base font-semibold text-slate-900">
-                  Trắc nghiệm buổi học
+                  Bài tập buổi học
                 </h3>
                 <p className="mt-0.5 text-sm text-slate-500">{lessonTitle}</p>
               </div>
             </div>
-            {onCreateClick ? (
+            <div className="flex items-center gap-2">
+              {isRefreshing ? (
+                <span className="text-xs text-slate-400">Đang cập nhật...</span>
+              ) : null}
+              {onAssignClick ? (
+              <Button
+                type="button"
+                variant="outline"
+                className={cn(
+                  "h-10 cursor-pointer rounded-xl px-4 shadow-sm",
+                  lessonNavyOutlineButton,
+                )}
+                onClick={onAssignClick}
+              >
+                <Link2 className="mr-2 h-4 w-4" />
+                Gắn đề từ kho
+              </Button>
+            ) : onCreateClick ? (
               <Button
                 type="button"
                 variant="outline"
@@ -125,6 +170,7 @@ export function LessonQuizList({
                 Tạo quiz mới
               </Button>
             ) : null}
+            </div>
           </div>
         </div>
 
@@ -135,12 +181,28 @@ export function LessonQuizList({
                 <ClipboardList className="h-7 w-7" />
               </div>
               <p className="text-base font-medium text-slate-800">
-                Chưa có bài trắc nghiệm
+                Chưa có bài tập
               </p>
               <p className="mt-1 max-w-sm text-sm text-slate-500">
-                Tạo quiz trắc nghiệm hoặc tự luận cho buổi học này
+                {onAssignClick
+                  ? "Gắn đề từ Kho đề vào buổi học này."
+                  : onCreateClick
+                    ? "Tạo quiz trắc nghiệm hoặc tự luận cho buổi học này"
+                    : "Chưa gắn đề nào. Tạo đề tại Kho đề rồi gắn vào buổi học."}
               </p>
-              {onCreateClick ? (
+              {onAssignClick ? (
+                <Button
+                  type="button"
+                  className={cn(
+                    "mt-6 h-10 cursor-pointer rounded-xl px-5 shadow-sm",
+                    lessonNavyButton,
+                  )}
+                  onClick={onAssignClick}
+                >
+                  <Link2 className="mr-2 h-4 w-4" />
+                  Gắn đề từ kho
+                </Button>
+              ) : onCreateClick ? (
                 <Button
                   type="button"
                   className={cn(
@@ -159,11 +221,11 @@ export function LessonQuizList({
               <div className="absolute top-2 bottom-2 left-3 w-px bg-blue-300/80" />
               <div className="space-y-2">
                 <p className="mb-3 text-xs font-medium tracking-wide text-slate-400 uppercase">
-                  {quizzes.length} bài trắc nghiệm
+                  {quizzes.length} bài tập
                 </p>
                 {quizzes.map((quiz, index) => (
                   <article
-                    key={quiz.quizId}
+                    key={quiz.snapLessonQuizId ?? quiz.quizId}
                     className="relative rounded-xl border border-slate-200/90 bg-white p-4 pl-5 shadow-sm transition hover:border-blue-200"
                   >
                     <span className="absolute top-5 -left-5 h-px w-4 bg-blue-300/80" />
@@ -188,6 +250,21 @@ export function LessonQuizList({
                           <QuizMeta quiz={quiz} />
                         </div>
                       </div>
+                      {onEditClick && quiz.snapLessonQuizId ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className={cn(
+                            "h-8 shrink-0 cursor-pointer rounded-lg px-2.5 text-xs",
+                            lessonNavyOutlineButton,
+                          )}
+                          onClick={() => onEditClick(quiz)}
+                        >
+                          <Pencil className="mr-1 h-3.5 w-3.5" />
+                          Sửa
+                        </Button>
+                      ) : null}
                     </div>
                   </article>
                 ))}
@@ -249,7 +326,7 @@ export function LessonQuizList({
 
                 return (
                   <div
-                    key={quiz.quizId}
+                    key={quiz.snapLessonQuizId ?? quiz.quizId}
                     className={cn(
                       "flex items-center gap-3 rounded-md px-2.5 py-2 transition-colors",
                       isActiveQuiz
@@ -267,7 +344,7 @@ export function LessonQuizList({
                       <QuizMeta quiz={quiz} />
                     </div>
                     <QuizActions
-                      quizId={quiz.quizId}
+                      quiz={quiz}
                       onQuizClick={onQuizClick}
                       onResultClick={onResultClick}
                     />
