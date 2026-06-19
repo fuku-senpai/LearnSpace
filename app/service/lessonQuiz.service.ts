@@ -184,6 +184,14 @@ export type QuizSubmissionResult = {
   questions: QuizResultQuestion[];
 };
 
+const normalizeResultQuestions = (
+  questions?: QuizResultQuestion[] | null,
+): QuizResultQuestion[] =>
+  (questions ?? []).map((question) => ({
+    ...question,
+    options: question.options ?? [],
+  }));
+
 export const mapAttemptToSubmissionResult = (
   summary: QuizResultSummary,
   attempt: QuizResultAttempt,
@@ -197,7 +205,7 @@ export const mapAttemptToSubmissionResult = (
   status: attempt.status,
   submittedAt: attempt.submittedAt,
   attemptNo: attempt.attemptNo,
-  questions: attempt.questions,
+  questions: normalizeResultQuestions(attempt.questions),
 });
 
 export type QuizBankItem = {

@@ -35,7 +35,7 @@ type LessonQuizResultModalProps = {
 };
 
 const MODAL_CLASS =
-  "flex max-h-[90vh] w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden rounded-2xl border border-slate-200/60 bg-white p-0 shadow-xl sm:max-w-4xl";
+  "flex h-[min(90dvh,820px)] max-h-[90dvh] w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden rounded-2xl border border-slate-200/60 bg-white p-0 shadow-xl sm:max-w-5xl lg:max-w-6xl max-sm:h-[92dvh] max-sm:max-h-[92dvh]";
 
 const optionLabel = (index: number) => String.fromCharCode(65 + index);
 
@@ -67,12 +67,11 @@ const formatSubmittedAt = (value?: string) => {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleString("vi-VN", {
+
+  return date.toLocaleDateString("vi-VN", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
   });
 };
 
@@ -87,7 +86,7 @@ const getLatestAttemptIndex = (attempts: QuizResultSummary["attempts"]) => {
   return latestIndex;
 };
 
-function AttemptPicker({
+function AttemptPickerSidebar({
   attempts,
   activeIndex,
   onChange,
@@ -96,14 +95,13 @@ function AttemptPicker({
   activeIndex: number;
   onChange: (index: number) => void;
 }) {
-  if (attempts.length <= 1) return null;
-
   return (
-    <div className="border-b border-slate-100 bg-slate-50/50 px-6 py-3">
-      <p className="mb-2 text-[11px] font-medium tracking-wide text-slate-400 uppercase">
-        Các lần làm bài
+    <div className="flex max-h-[min(42%,220px)] min-h-[88px] shrink-0 flex-col overflow-hidden border-b border-slate-200/80 bg-slate-100/40">
+      <p className="shrink-0 px-4 pt-3 pb-2 text-[11px] font-medium tracking-wide text-slate-400 uppercase">
+        Các lần làm ({attempts.length})
       </p>
-      <div className="flex flex-wrap gap-2">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-3">
+        <div className="flex flex-col gap-1.5">
         {attempts.map((attempt, index) => {
           const isActive = index === activeIndex;
           const submittedLabel = formatSubmittedAt(attempt.submittedAt);
@@ -114,7 +112,7 @@ function AttemptPicker({
               type="button"
               onClick={() => onChange(index)}
               className={cn(
-                "cursor-pointer rounded-xl px-3 py-2 text-left text-xs transition ring-1",
+                "w-full cursor-pointer rounded-lg px-3 py-2 text-left text-xs transition ring-1",
                 isActive
                   ? "bg-blue-900 text-white ring-blue-900 shadow-sm"
                   : "bg-white text-slate-700 ring-slate-200 hover:ring-slate-300",
@@ -124,7 +122,7 @@ function AttemptPicker({
               {submittedLabel ? (
                 <span
                   className={cn(
-                    "mt-0.5 block",
+                    "mt-0.5 block truncate",
                     isActive ? "text-blue-100" : "text-slate-400",
                   )}
                 >
@@ -159,6 +157,140 @@ function AttemptPicker({
             </button>
           );
         })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// function AttemptSwitchBar({
+//   attempts,
+//   activeIndex,
+//   onChange,
+// }: {
+//   attempts: QuizResultSummary["attempts"];
+//   activeIndex: number;
+//   onChange: (index: number) => void;
+// }) {
+//   if (attempts.length <= 1) return null;
+
+//   return (
+//     <div className="shrink-0 border-b border-slate-100 bg-slate-50/80 px-4 py-2.5 sm:px-6">
+//       <p className="mb-2 text-[11px] font-medium text-slate-400">
+//         Chọn lần làm bài
+//       </p>
+//       <div className="flex gap-2 overflow-x-auto overscroll-contain pb-0.5">
+//         {attempts.map((attempt, index) => {
+//           const isActive = index === activeIndex;
+//           const submittedLabel = formatSubmittedAt(attempt.submittedAt);
+
+//           return (
+//             <button
+//               key={attempt.submissionId}
+//               type="button"
+//               onClick={() => onChange(index)}
+//               className={cn(
+//                 "shrink-0 cursor-pointer rounded-lg px-3 py-2 text-left text-xs transition ring-1",
+//                 isActive
+//                   ? "bg-blue-900 text-white ring-blue-900 shadow-sm"
+//                   : "bg-white text-slate-700 ring-slate-200 hover:ring-slate-300",
+//               )}
+//             >
+//               <span className="font-semibold">Lần {attempt.attemptNo}</span>
+//               {submittedLabel ? (
+//                 <span
+//                   className={cn(
+//                     "mt-0.5 block whitespace-nowrap",
+//                     isActive ? "text-blue-100" : "text-slate-400",
+//                   )}
+//                 >
+//                   {submittedLabel}
+//                 </span>
+//               ) : null}
+//             </button>
+//           );
+//         })}
+//       </div>
+//     </div>
+//   );
+// }
+
+function QuestionListSidebar({
+  result,
+  activeIndex,
+  onChange,
+  isPending,
+}: {
+  result: QuizSubmissionResult;
+  activeIndex: number;
+  onChange: (index: number) => void;
+  isPending: boolean;
+}) {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <p className="shrink-0 px-4 pt-3 pb-2 text-[11px] font-medium text-slate-400">
+        Danh sách câu ({result.questions.length})
+      </p>
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-3">
+        <div className="flex flex-col gap-1.5">
+          {result.questions.map((question, index) => {
+            const isActive = index === activeIndex;
+            const hasAnswer =
+              Boolean(question.essayAnswer?.trim()) ||
+              Boolean(question.selectedOptionId);
+
+            return (
+              <button
+                key={question.questionId}
+                type="button"
+                onClick={() => onChange(index)}
+                className={cn(
+                  "flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2.5 text-left transition-all",
+                  isActive
+                    ? "bg-blue-900 text-white shadow-sm"
+                    : "bg-white text-slate-700 ring-1 ring-slate-200/80 hover:ring-slate-300",
+                )}
+              >
+                <span
+                  className={cn(
+                    "h-2 w-2 shrink-0 rounded-full",
+                    isPending
+                      ? hasAnswer
+                        ? isActive
+                          ? "bg-blue-200"
+                          : "bg-blue-500"
+                        : "bg-slate-300"
+                      : question.correct
+                        ? isActive
+                          ? "bg-emerald-300"
+                          : "bg-emerald-500"
+                        : isActive
+                          ? "bg-rose-300"
+                          : "bg-rose-400",
+                  )}
+                />
+                <span className="min-w-0 flex-1">
+                  <span
+                    className={cn(
+                      "block text-xs font-semibold",
+                      isActive ? "text-white" : "text-slate-900",
+                    )}
+                  >
+                    Câu {index + 1}
+                  </span>
+                  <span
+                    className={cn(
+                      "mt-0.5 block line-clamp-2 text-[11px] leading-snug",
+                      isActive ? "text-blue-100" : "text-slate-400",
+                    )}
+                  >
+                    {question.questionContent}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -172,8 +304,6 @@ function QuizResultContent({ summary }: { summary: QuizResultSummary }) {
   const [activeAttemptIndex, setActiveAttemptIndex] =
     useState(latestAttemptIndex);
 
-  const activeAttempt = attempts[activeAttemptIndex];
-
   if (attempts.length === 0) {
     return (
       <div className="px-6 py-16 text-center">
@@ -185,57 +315,192 @@ function QuizResultContent({ summary }: { summary: QuizResultSummary }) {
     );
   }
 
-  if (!activeAttempt) return null;
+  const safeAttemptIndex = Math.min(
+    activeAttemptIndex,
+    Math.max(0, attempts.length - 1),
+  );
+  const resolvedAttempt = attempts[safeAttemptIndex] ?? attempts[0];
 
   const result = mapAttemptToSubmissionResult(
     { ...summary, attempts },
-    activeAttempt,
+    resolvedAttempt,
   );
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <AttemptPicker
-        attempts={attempts}
-        activeIndex={activeAttemptIndex}
-        onChange={setActiveAttemptIndex}
-      />
-      <ResultBody key={activeAttempt.submissionId} result={result} />
-    </div>
+    <ResultWorkspace
+      result={result}
+      attempts={attempts}
+      activeAttemptIndex={safeAttemptIndex}
+      onAttemptChange={setActiveAttemptIndex}
+    />
   );
 }
 
-function PendingBanner({
-  passScore,
-  totalCount,
-  submittedCount,
+function ResultWorkspace({
+  result,
+  attempts,
+  activeAttemptIndex,
+  onAttemptChange,
 }: {
-  passScore: number;
-  totalCount: number;
-  submittedCount: number;
+  result: QuizSubmissionResult;
+  attempts: QuizResultSummary["attempts"];
+  activeAttemptIndex: number;
+  onAttemptChange: (index: number) => void;
 }) {
+  const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
+  const isPending = isPendingResult(result.status);
+  const questions = result.questions;
+  const correctCount = questions.filter((q) => q.correct).length;
+  const submittedCount = countSubmittedQuestions(questions);
+
+  const safeQuestionIndex =
+    questions.length === 0
+      ? 0
+      : Math.min(activeQuestionIndex, questions.length - 1);
+  const activeQuestion = questions[safeQuestionIndex];
+
+  const handleAttemptChange = (index: number) => {
+    onAttemptChange(index);
+    setActiveQuestionIndex(0);
+  };
+
   return (
-    <div className="border-b border-amber-100 bg-amber-50/60 px-6 py-4">
-      <div className="flex items-start gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-amber-600 ring-1 ring-amber-200">
-          <Clock className="h-4 w-4" />
-        </div>
-        <div>
-          <p className="text-sm font-semibold text-amber-900">
-            Bài làm đang chờ giáo viên chấm
-          </p>
-          <p className="mt-1 text-sm leading-relaxed text-amber-800/80">
-            Bạn có thể xem lại câu trả lời đã nộp. Điểm số và đáp án đúng/sai
-            sẽ hiển thị sau khi được chấm.
-          </p>
-          <p className="mt-2 text-xs text-amber-700/70">
-            Đã nộp {submittedCount}/{totalCount} câu · Yêu cầu đạt ≥ {passScore}{" "}
-            điểm
-          </p>
+    <div className="grid h-full min-h-0 grid-cols-[minmax(220px,280px)_minmax(0,1fr)] overflow-hidden max-md:grid-cols-1 max-md:grid-rows-[minmax(0,38%)_minmax(0,1fr)]">
+      <aside className="flex min-h-0 flex-col overflow-hidden border-r border-slate-200/80 bg-slate-50/50 max-md:border-r-0 max-md:border-b">
+        <AttemptPickerSidebar
+          attempts={attempts}
+          activeIndex={activeAttemptIndex}
+          onChange={handleAttemptChange}
+        />
+        <QuestionListSidebar
+          key={`${result.submissionId}-${result.attemptNo}`}
+          result={result}
+          activeIndex={safeQuestionIndex}
+          onChange={setActiveQuestionIndex}
+          isPending={isPending}
+        />
+      </aside>
+
+      <div className="grid min-h-0 grid-rows-[auto_auto_minmax(0,1fr)_auto] overflow-hidden bg-white">
+          {/* <AttemptSwitchBar
+            attempts={attempts}
+            activeIndex={activeAttemptIndex}
+            onChange={onAttemptChange}
+          /> */}
+
+        {/* {isPending ? (
+          <PendingBanner
+            passScore={result.passScore}
+            totalCount={questions.length}
+            submittedCount={submittedCount}
+          />
+        ) : ( */}
+          <ScoreStrip
+            score={result.score}
+            passScore={result.passScore}
+            passed={result.passed}
+            correctCount={correctCount}
+            totalCount={questions.length}
+            status={result.status}
+          />
+        {/* )} */}
+
+        <section
+          key={`${result.submissionId}-${result.attemptNo}`}
+          aria-label="Nội dung bài làm"
+          className="min-h-0 overflow-y-auto overscroll-contain px-5 py-4 sm:px-6 sm:py-5"
+        >
+          {activeQuestion ? (
+            <QuestionDetail
+              question={activeQuestion}
+              index={safeQuestionIndex}
+              total={questions.length}
+              isPending={isPending}
+            />
+          ) : (
+            <div className="flex h-full min-h-[120px] items-center justify-center text-center">
+              <p className="text-sm text-slate-500">
+                Không có dữ liệu câu hỏi cho lần làm này.
+              </p>
+            </div>
+          )}
+        </section>
+
+        <div className="flex shrink-0 items-center justify-between gap-3 border-t border-slate-100 bg-white px-5 py-3 sm:px-6">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="cursor-pointer text-slate-500"
+            onClick={() =>
+              setActiveQuestionIndex((i) => Math.max(0, i - 1))
+            }
+            disabled={safeQuestionIndex === 0 || questions.length === 0}
+          >
+            <ChevronLeft className="mr-1 h-4 w-4" />
+            Câu trước
+          </Button>
+          <span className="text-xs text-slate-400 tabular-nums">
+            {questions.length === 0
+              ? "0 / 0"
+              : `${safeQuestionIndex + 1} / ${questions.length}`}
+          </span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="cursor-pointer text-slate-500"
+            onClick={() =>
+              setActiveQuestionIndex((i) =>
+                Math.min(questions.length - 1, i + 1),
+              )
+            }
+            disabled={
+              questions.length === 0 ||
+              safeQuestionIndex >= questions.length - 1
+            }
+          >
+            Câu sau
+            <ChevronRight className="ml-1 h-4 w-4" />
+          </Button>
         </div>
       </div>
     </div>
   );
 }
+
+// function PendingBanner({
+//   passScore,
+//   totalCount,
+//   submittedCount,
+// }: {
+//   passScore: number;
+//   totalCount: number;
+//   submittedCount: number;
+// }) {
+//   return (
+//     <div className="border-b border-amber-100 bg-amber-50/60 px-6 py-4">
+//       <div className="flex items-start gap-3">
+//         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-amber-600 ring-1 ring-amber-200">
+//           <Clock className="h-4 w-4" />
+//         </div>
+//         <div>
+//           <p className="text-sm font-semibold text-amber-900">
+//             Bài làm đang chờ giáo viên chấm
+//           </p>
+//           <p className="mt-1 text-sm leading-relaxed text-amber-800/80">
+//             Bạn có thể xem lại câu trả lời đã nộp. Điểm số và đáp án đúng/sai
+//             sẽ hiển thị sau khi được chấm.
+//           </p>
+//           <p className="mt-2 text-xs text-amber-700/70">
+//             Đã nộp {submittedCount}/{totalCount} câu · Yêu cầu đạt ≥ {passScore}{" "}
+//             điểm
+//           </p>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
 
 function ScoreStrip({
   score,
@@ -388,7 +653,8 @@ function QuestionDetail({
   total: number;
   isPending: boolean;
 }) {
-  const isEssay = question.options.length === 0;
+  const options = question.options ?? [];
+  const isEssay = options.length === 0;
   const hasAnswer =
     Boolean(question.essayAnswer?.trim()) ||
     Boolean(question.selectedOptionId);
@@ -442,7 +708,7 @@ function QuestionDetail({
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
-            {question.options.map((option, optionIndex) => (
+            {options.map((option, optionIndex) => (
               <OptionItem
                 key={option.optionId}
                 label={optionLabel(optionIndex)}
@@ -468,149 +734,6 @@ function countSubmittedQuestions(questions: QuizSubmissionResult["questions"]) {
       Boolean(question.essayAnswer?.trim()) ||
       Boolean(question.selectedOptionId),
   ).length;
-}
-
-function ResultBody({ result }: { result: QuizSubmissionResult }) {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const isPending = isPendingResult(result.status);
-  const correctCount = result.questions.filter((q) => q.correct).length;
-  const submittedCount = countSubmittedQuestions(result.questions);
-  const activeQuestion = result.questions[activeIndex];
-
-  if (!activeQuestion) return null;
-
-  return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      {isPending ? (
-        <PendingBanner
-          passScore={result.passScore}
-          totalCount={result.questions.length}
-          submittedCount={submittedCount}
-        />
-      ) : (
-        <ScoreStrip
-          score={result.score}
-          passScore={result.passScore}
-          passed={result.passed}
-          correctCount={correctCount}
-          totalCount={result.questions.length}
-          status={result.status}
-        />
-      )}
-
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
-        <aside className="flex max-h-40 min-h-0 shrink-0 flex-col border-b border-slate-100 bg-slate-50/40 px-4 py-3 lg:max-h-none lg:w-72 lg:border-r lg:border-b-0 lg:py-4">
-          <p className="mb-2.5 shrink-0 px-1 text-[11px] font-medium text-slate-400">
-            Danh sách câu ({result.questions.length})
-          </p>
-          <div className="flex min-h-0 flex-1 gap-1.5 overflow-x-auto overflow-y-auto overscroll-contain pb-1 lg:flex-col lg:overflow-x-hidden lg:pb-0">
-            {result.questions.map((question, index) => {
-              const isActive = index === activeIndex;
-              const hasAnswer =
-                Boolean(question.essayAnswer?.trim()) ||
-                Boolean(question.selectedOptionId);
-
-              return (
-                <button
-                  key={question.questionId}
-                  type="button"
-                  onClick={() => setActiveIndex(index)}
-                  className={cn(
-                    "flex min-w-[140px] shrink-0 cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-all lg:min-w-0 lg:w-full",
-                    isActive
-                      ? "bg-blue-900 text-white shadow-sm"
-                      : "bg-white text-slate-700 ring-1 ring-slate-200/80 hover:ring-slate-300",
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "h-2 w-2 shrink-0 rounded-full",
-                      isPending
-                        ? hasAnswer
-                          ? isActive
-                            ? "bg-blue-200"
-                            : "bg-blue-500"
-                          : isActive
-                            ? "bg-slate-300"
-                            : "bg-slate-300"
-                        : question.correct
-                          ? isActive
-                            ? "bg-emerald-300"
-                            : "bg-emerald-500"
-                          : isActive
-                            ? "bg-rose-300"
-                            : "bg-rose-400",
-                    )}
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span
-                      className={cn(
-                        "block text-xs font-semibold",
-                        isActive ? "text-white" : "text-slate-900",
-                      )}
-                    >
-                      Câu {index + 1}
-                    </span>
-                    <span
-                      className={cn(
-                        "mt-0.5 block line-clamp-2 text-[11px] leading-snug",
-                        isActive ? "text-blue-100" : "text-slate-400",
-                      )}
-                    >
-                      {question.questionContent}
-                    </span>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </aside>
-
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6">
-            <QuestionDetail
-              question={activeQuestion}
-              index={activeIndex}
-              total={result.questions.length}
-              isPending={isPending}
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="flex shrink-0 items-center justify-between gap-3 border-t border-slate-100 bg-white px-5 py-3 sm:px-6">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="cursor-pointer text-slate-500"
-          onClick={() => setActiveIndex((i) => Math.max(0, i - 1))}
-          disabled={activeIndex === 0}
-        >
-          <ChevronLeft className="mr-1 h-4 w-4" />
-          Câu trước
-        </Button>
-        <span className="text-xs text-slate-400 tabular-nums">
-          {activeIndex + 1} / {result.questions.length}
-        </span>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="cursor-pointer text-slate-500"
-          onClick={() =>
-            setActiveIndex((i) =>
-              Math.min(result.questions.length - 1, i + 1),
-            )
-          }
-          disabled={activeIndex >= result.questions.length - 1}
-        >
-          Câu sau
-          <ChevronRight className="ml-1 h-4 w-4" />
-        </Button>
-      </div>
-    </div>
-  );
 }
 
 export function LessonQuizResultModal({
@@ -658,15 +781,15 @@ export function LessonQuizResultModal({
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-hidden">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           {isLoading ? (
-            <div className="flex items-center justify-center gap-2 py-24 text-sm text-slate-500">
+            <div className="flex flex-1 items-center justify-center gap-2 text-sm text-slate-500">
               <Loader2 className="h-5 w-5 animate-spin text-slate-300" />
               Đang tải...
             </div>
           ) : isError ? (
-            <div className="px-6 py-16 text-center">
-              <AlertCircle className="mx-auto mb-3 h-6 w-6 text-slate-300" />
+            <div className="flex flex-1 flex-col items-center justify-center px-6 py-16 text-center">
+              <AlertCircle className="mb-3 h-6 w-6 text-slate-300" />
               <p className="font-medium text-slate-800">Không thể tải kết quả</p>
               <p className="mt-1 text-sm text-slate-500">
                 {getErrorMessage(error)}
