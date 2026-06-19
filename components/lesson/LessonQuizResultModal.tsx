@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   AlertCircle,
   Check,
@@ -35,7 +35,7 @@ type LessonQuizResultModalProps = {
 };
 
 const MODAL_CLASS =
-  "flex max-h-[90vh] w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden rounded-2xl border border-slate-200/60 bg-white p-0 shadow-xl sm:max-w-3xl";
+  "flex max-h-[90vh] w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden rounded-2xl border border-slate-200/60 bg-white p-0 shadow-xl sm:max-w-4xl";
 
 const optionLabel = (index: number) => String.fromCharCode(65 + index);
 
@@ -193,14 +193,14 @@ function QuizResultContent({ summary }: { summary: QuizResultSummary }) {
   );
 
   return (
-    <>
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <AttemptPicker
         attempts={attempts}
         activeIndex={activeAttemptIndex}
         onChange={setActiveAttemptIndex}
       />
       <ResultBody key={activeAttempt.submissionId} result={result} />
-    </>
+    </div>
   );
 }
 
@@ -394,7 +394,7 @@ function QuestionDetail({
     Boolean(question.selectedOptionId);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div>
       <div className="mb-4 flex items-center justify-between gap-3">
         <p className="text-xs font-medium tracking-wide text-slate-400 uppercase">
           Câu {index + 1} / {total}
@@ -430,17 +430,15 @@ function QuestionDetail({
         {question.questionContent}
       </p>
 
-      <div className="mt-5 min-h-0 flex-1">
+      <div className="mt-5">
         {isEssay ? (
           <div className="rounded-xl bg-slate-50 px-4 py-3.5">
             <p className="text-[11px] font-medium tracking-wide text-slate-400 uppercase">
               Bài làm của bạn
             </p>
-            <div className="mt-2 max-h-56 overflow-y-auto pr-1 sm:max-h-72">
-              <p className="text-sm leading-relaxed whitespace-pre-wrap text-slate-700">
-                {question.essayAnswer?.trim() || "Không có nội dung"}
-              </p>
-            </div>
+            <p className="mt-2 text-sm leading-relaxed whitespace-pre-wrap text-slate-700">
+              {question.essayAnswer?.trim() || "Không có nội dung"}
+            </p>
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
@@ -479,14 +477,10 @@ function ResultBody({ result }: { result: QuizSubmissionResult }) {
   const submittedCount = countSubmittedQuestions(result.questions);
   const activeQuestion = result.questions[activeIndex];
 
-  useEffect(() => {
-    setActiveIndex(0);
-  }, [result.quizId, result.submissionId]);
-
   if (!activeQuestion) return null;
 
   return (
-    <>
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       {isPending ? (
         <PendingBanner
           passScore={result.passScore}
@@ -504,12 +498,12 @@ function ResultBody({ result }: { result: QuizSubmissionResult }) {
         />
       )}
 
-      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        <aside className="shrink-0 border-b border-slate-100 bg-slate-50/40 px-4 py-3 lg:w-56 lg:border-r lg:border-b-0 lg:py-4">
-          <p className="mb-2.5 px-1 text-[11px] font-medium text-slate-400">
-            Danh sách câu
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
+        <aside className="flex max-h-40 min-h-0 shrink-0 flex-col border-b border-slate-100 bg-slate-50/40 px-4 py-3 lg:max-h-none lg:w-72 lg:border-r lg:border-b-0 lg:py-4">
+          <p className="mb-2.5 shrink-0 px-1 text-[11px] font-medium text-slate-400">
+            Danh sách câu ({result.questions.length})
           </p>
-          <div className="flex gap-1.5 overflow-x-auto pb-1 lg:max-h-[min(52vh,420px)] lg:flex-col lg:overflow-y-auto lg:pb-0">
+          <div className="flex min-h-0 flex-1 gap-1.5 overflow-x-auto overflow-y-auto overscroll-contain pb-1 lg:flex-col lg:overflow-x-hidden lg:pb-0">
             {result.questions.map((question, index) => {
               const isActive = index === activeIndex;
               const hasAnswer =
@@ -522,7 +516,7 @@ function ResultBody({ result }: { result: QuizSubmissionResult }) {
                   type="button"
                   onClick={() => setActiveIndex(index)}
                   className={cn(
-                    "flex min-w-[120px] shrink-0 cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-all lg:min-w-0 lg:w-full",
+                    "flex min-w-[140px] shrink-0 cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-all lg:min-w-0 lg:w-full",
                     isActive
                       ? "bg-blue-900 text-white shadow-sm"
                       : "bg-white text-slate-700 ring-1 ring-slate-200/80 hover:ring-slate-300",
@@ -559,7 +553,7 @@ function ResultBody({ result }: { result: QuizSubmissionResult }) {
                     </span>
                     <span
                       className={cn(
-                        "mt-0.5 block truncate text-[11px]",
+                        "mt-0.5 block line-clamp-2 text-[11px] leading-snug",
                         isActive ? "text-blue-100" : "text-slate-400",
                       )}
                     >
@@ -572,17 +566,19 @@ function ResultBody({ result }: { result: QuizSubmissionResult }) {
           </div>
         </aside>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
-          <QuestionDetail
-            question={activeQuestion}
-            index={activeIndex}
-            total={result.questions.length}
-            isPending={isPending}
-          />
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6">
+            <QuestionDetail
+              question={activeQuestion}
+              index={activeIndex}
+              total={result.questions.length}
+              isPending={isPending}
+            />
+          </div>
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-3 border-t border-slate-100 bg-white px-5 py-3 sm:px-6">
+      <div className="flex shrink-0 items-center justify-between gap-3 border-t border-slate-100 bg-white px-5 py-3 sm:px-6">
         <Button
           type="button"
           variant="ghost"
@@ -613,7 +609,7 @@ function ResultBody({ result }: { result: QuizSubmissionResult }) {
           <ChevronRight className="ml-1 h-4 w-4" />
         </Button>
       </div>
-    </>
+    </div>
   );
 }
 
