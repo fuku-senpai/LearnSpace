@@ -27,6 +27,7 @@ import { LessonModuleSidebar } from "@/components/lesson/LessonModuleSidebar";
 import { LessonQuizPanel } from "@/components/lesson/LessonQuizPanel";
 import { useGetLessonQuizzesQuery } from "@/app/hooks/lessonQuiz/useGetLessonQuizzes";
 import {getSnapLessonIndicators,mergeLessonIndicators,useLessonSidebarIndicators} from "@/app/hooks/lesson/useLessonSidebarIndicators";
+import { mergeLessonQuizzes, useLessonSidebarQuizzes } from "@/app/hooks/lesson/useLessonSidebarQuizzes";
 
 type TabKey = LessonContentTab;
 
@@ -463,6 +464,7 @@ function VideoDocumentManagementContent() {
     [modules],
   );
   const lessonIndicators = useLessonSidebarIndicators(lessonIds);
+  const lessonQuizMap = useLessonSidebarQuizzes(lessonIds);
 
   const sidebarModules = useMemo(
     () =>
@@ -477,21 +479,26 @@ function VideoDocumentManagementContent() {
             },
             lessonIndicators[session.id],
           );
+          const snapQuizzes = session.quizzes.map((quiz) => ({
+            quizId: quiz.quizId,
+            title: quiz.title,
+          }));
+          const quizMerged = mergeLessonQuizzes(
+            snapQuizzes,
+            lessonQuizMap[session.id],
+          );
 
           return {
             id: session.id,
             title: session.title,
             lessonOrder: session.lessonOrder,
-            hasQuiz: session.hasQuiz,
-            quizzes: session.quizzes.map((quiz) => ({
-              quizId: quiz.quizId,
-              title: quiz.title,
-            })),
+            hasQuiz: quizMerged.hasQuiz,
+            quizzes: quizMerged.quizzes,
             ...merged,
           };
         }),
       })),
-    [modules, lessonIndicators],
+    [modules, lessonIndicators, lessonQuizMap],
   );
 
   const resolvedSessionId = useMemo(() => {

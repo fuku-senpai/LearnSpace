@@ -21,17 +21,20 @@ type LessonQuizListProps = {
   onAssignClick?: () => void;
   onEditClick?: (quiz: LessonQuizListItem) => void;
   onQuizClick?: (quiz: LessonQuizListItem) => void;
+  onQuizSelect?: (quiz: LessonQuizListItem) => void;
   onResultClick?: (quiz: LessonQuizListItem) => void;
 };
 
-function QuizActions({
+function StudentQuizActions({
   quiz,
   onQuizClick,
   onResultClick,
+  isActive = false,
 }: {
   quiz: LessonQuizListItem;
   onQuizClick?: (quiz: LessonQuizListItem) => void;
   onResultClick?: (quiz: LessonQuizListItem) => void;
+  isActive?: boolean;
 }) {
   const canTakeQuiz = Boolean(quiz.snapLessonQuizId);
 
@@ -44,12 +47,14 @@ function QuizActions({
           size="sm"
           className={cn(
             "h-8 cursor-pointer rounded-lg px-2.5 text-xs",
-            lessonNavyGhostButton,
+            isActive
+              ? "text-white hover:bg-white/15 hover:text-white"
+              : lessonNavyGhostButton,
           )}
           disabled={!canTakeQuiz}
           onClick={() => onResultClick(quiz)}
         >
-          Kết quả
+          Xem kết quả
         </Button>
       ) : null}
       {onQuizClick ? (
@@ -59,7 +64,9 @@ function QuizActions({
           size="sm"
           className={cn(
             "h-8 cursor-pointer rounded-lg px-2.5 text-xs",
-            lessonNavyOutlineButton,
+            isActive
+              ? "border-white/80 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+              : lessonNavyOutlineButton,
           )}
           disabled={!canTakeQuiz}
           onClick={() => onQuizClick(quiz)}
@@ -72,7 +79,13 @@ function QuizActions({
   );
 }
 
-function QuizMeta({ quiz }: { quiz: LessonQuizListItem }) {
+function QuizMeta({
+  quiz,
+  isActive = false,
+}: {
+  quiz: LessonQuizListItem;
+  isActive?: boolean;
+}) {
   const quizTypeLabel =
     quiz.quizType === "MULTIPLE_CHOICE"
       ? "Trắc nghiệm"
@@ -81,9 +94,21 @@ function QuizMeta({ quiz }: { quiz: LessonQuizListItem }) {
         : null;
 
   return (
-    <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-400">
+    <p
+      className={cn(
+        "mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs",
+        isActive ? "text-blue-100" : "text-slate-400",
+      )}
+    >
       {quizTypeLabel ? (
-        <span className="rounded-md bg-slate-100 px-1.5 py-0.5 font-medium text-slate-600">
+        <span
+          className={cn(
+            "rounded-md px-1.5 py-0.5 font-medium",
+            isActive
+              ? "bg-white/15 text-white ring-1 ring-white/25"
+              : "bg-slate-100 text-slate-600",
+          )}
+        >
           {quizTypeLabel}
         </span>
       ) : null}
@@ -103,7 +128,14 @@ function QuizMeta({ quiz }: { quiz: LessonQuizListItem }) {
         <span>{quiz.maxAttempts} lần làm</span>
       ) : null}
       {quiz.required === true ? (
-        <span className="font-medium text-amber-600">Bắt buộc</span>
+        <span
+          className={cn(
+            "font-medium",
+            isActive ? "text-amber-200" : "text-amber-600",
+          )}
+        >
+          Bắt buộc
+        </span>
       ) : null}
     </p>
   );
@@ -118,6 +150,7 @@ export function LessonQuizList({
   onAssignClick,
   onEditClick,
   onQuizClick,
+  onQuizSelect,
   onResultClick,
   isRefreshing = false,
 }: LessonQuizListProps) {
@@ -327,27 +360,49 @@ export function LessonQuizList({
                 return (
                   <div
                     key={quiz.snapLessonQuizId ?? quiz.quizId}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => onQuizSelect?.(quiz)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        onQuizSelect?.(quiz);
+                      }
+                    }}
                     className={cn(
-                      "flex items-center gap-3 rounded-md px-2.5 py-2 transition-colors",
+                      "flex cursor-pointer items-center gap-3 rounded-md px-2.5 py-2 transition-colors",
                       isActiveQuiz
-                        ? "bg-blue-50 ring-1 ring-blue-200/80"
-                        : "hover:bg-slate-50",
+                        ? "bg-blue-900 text-white shadow-sm ring-1 ring-blue-900"
+                        : "text-slate-700 hover:bg-blue-50",
                     )}
                   >
-                    <span className="w-5 shrink-0 text-center text-[11px] font-medium text-slate-400">
+                    <span
+                      className={cn(
+                        "w-5 shrink-0 text-center text-[11px] font-semibold",
+                        isActiveQuiz ? "text-blue-100" : "text-slate-400",
+                      )}
+                    >
                       {index + 1}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-slate-900">
+                      <p
+                        className={cn(
+                          "truncate text-sm font-medium",
+                          isActiveQuiz ? "text-white" : "text-slate-900",
+                        )}
+                      >
                         {quiz.title}
                       </p>
-                      <QuizMeta quiz={quiz} />
+                      <QuizMeta quiz={quiz} isActive={isActiveQuiz} />
                     </div>
-                    <QuizActions
-                      quiz={quiz}
-                      onQuizClick={onQuizClick}
-                      onResultClick={onResultClick}
-                    />
+                    <div onClick={(event) => event.stopPropagation()}>
+                      <StudentQuizActions
+                        quiz={quiz}
+                        isActive={isActiveQuiz}
+                        onQuizClick={onQuizClick}
+                        onResultClick={onResultClick}
+                      />
+                    </div>
                   </div>
                 );
               })}

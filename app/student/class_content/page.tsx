@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ExternalLink,
   FileText,
@@ -39,6 +39,10 @@ import {
   mergeLessonIndicators,
   useLessonSidebarIndicators,
 } from "@/app/hooks/lesson/useLessonSidebarIndicators";
+import {
+  mergeLessonQuizzes,
+  useLessonSidebarQuizzes,
+} from "@/app/hooks/lesson/useLessonSidebarQuizzes";
 
 type TabKey = LessonContentTab;
 
@@ -198,9 +202,6 @@ const ClassContentManagement = () => {
   const [activeSnapLessonQuizId, setActiveSnapLessonQuizId] = useState<
     string | null
   >(null);
-  const [pendingLessonQuizId, setPendingLessonQuizId] = useState<string | null>(
-    null,
-  );
   const [isQuizModalOpen, setIsQuizModalOpen] = useState(false);
   const [resultSnapLessonQuizId, setResultSnapLessonQuizId] = useState<
     string | null
@@ -255,6 +256,7 @@ const ClassContentManagement = () => {
     [modules],
   );
   const lessonIndicators = useLessonSidebarIndicators(lessonIds);
+  const lessonQuizMap = useLessonSidebarQuizzes(lessonIds);
 
   const sidebarModules = useMemo(
     () =>
@@ -269,21 +271,22 @@ const ClassContentManagement = () => {
             },
             lessonIndicators[session.id],
           );
+          const quizMerged = mergeLessonQuizzes(
+            session.quizzes,
+            lessonQuizMap[session.id],
+          );
 
           return {
             id: session.id,
             title: session.title,
             lessonOrder: session.lessonOrder,
-            hasQuiz: session.hasQuiz,
-            quizzes: session.quizzes.map((quiz) => ({
-              quizId: quiz.quizId,
-              title: quiz.title,
-            })),
+            hasQuiz: quizMerged.hasQuiz,
+            quizzes: quizMerged.quizzes,
             ...merged,
           };
         }),
       })),
-    [modules, lessonIndicators],
+    [modules, lessonIndicators, lessonQuizMap],
   );
 
   const resolvedSessionId = useMemo(() => {
@@ -327,33 +330,8 @@ const ClassContentManagement = () => {
   const selectContent = (sessionId: string, tab: TabKey, quizId?: string) => {
     setActiveSessionId(sessionId);
     setActiveTab(tab);
-
-    if (quizId) {
-      setActiveQuizId(quizId);
-      setPendingLessonQuizId(quizId);
-      return;
-    }
-
-    if (tab !== "quiz") {
-      setActiveQuizId(null);
-      setActiveSnapLessonQuizId(null);
-      setPendingLessonQuizId(null);
-    }
+    setActiveQuizId(quizId ?? null);
   };
-
-  useEffect(() => {
-    if (!pendingLessonQuizId || isLoadingLessonQuizzes) return;
-
-    const matchedQuiz = lessonQuizzes.find(
-      (quiz) => quiz.quizId === pendingLessonQuizId,
-    );
-
-    if (!matchedQuiz?.snapLessonQuizId) return;
-
-    setActiveSnapLessonQuizId(matchedQuiz.snapLessonQuizId);
-    setIsQuizModalOpen(true);
-    setPendingLessonQuizId(null);
-  }, [pendingLessonQuizId, lessonQuizzes, isLoadingLessonQuizzes]);
 
   const handleEnroll = async () => {
     const normalizedCode = enrollCode.trim().toUpperCase();
@@ -514,6 +492,7 @@ const ClassContentManagement = () => {
                   quizzes={lessonQuizzes}
                   mode="student"
                   activeQuizId={activeQuizId}
+                  onQuizSelect={(quiz) => setActiveQuizId(quiz.quizId)}
                   onQuizClick={(quiz) => {
                     if (!quiz.snapLessonQuizId) return;
                     setActiveQuizId(quiz.quizId);
@@ -522,8 +501,8 @@ const ClassContentManagement = () => {
                   }}
                   onResultClick={(quiz) => {
                     if (!quiz.snapLessonQuizId) return;
-                    setResultSnapLessonQuizId(quiz.snapLessonQuizId);
                     setActiveQuizId(quiz.quizId);
+                    setResultSnapLessonQuizId(quiz.snapLessonQuizId);
                     setIsResultModalOpen(true);
                   }}
                 />
@@ -586,10 +565,7 @@ const ClassContentManagement = () => {
         open={isQuizModalOpen}
         onOpenChange={(open) => {
           setIsQuizModalOpen(open);
-          if (!open) {
-            setActiveQuizId(null);
-            setActiveSnapLessonQuizId(null);
-          }
+          if (!open) setActiveSnapLessonQuizId(null);
         }}
         onViewResult={(snapLessonQuizId) => {
           setResultSnapLessonQuizId(snapLessonQuizId);

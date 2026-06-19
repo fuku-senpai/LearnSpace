@@ -54,6 +54,10 @@ type LessonModuleSidebarProps = {
   emptyMessage?: string;
 };
 
+function sessionHasQuizzes(session: LessonSidebarSession) {
+  return session.hasQuiz || (session.quizzes?.length ?? 0) > 0;
+}
+
 function getSessionChildren(session: LessonSidebarSession): SessionChildItem[] {
   return (session.quizzes ?? []).map((quiz) => ({
     id: `quiz-${quiz.quizId}`,
@@ -64,26 +68,28 @@ function getSessionChildren(session: LessonSidebarSession): SessionChildItem[] {
 }
 
 function SessionContentIcons({ session }: { session: LessonSidebarSession }) {
+  const hasQuizzes = sessionHasQuizzes(session);
+
   if (
     !session.hasMaterials &&
     !session.hasPreviewVideo &&
     !session.hasReplayVideo &&
-    !session.hasQuiz
+    !hasQuizzes
   ) {
     return null;
   }
 
   return (
-    <div className="flex shrink-0 items-center gap-1 pr-1">
+    <div className="flex shrink-0 items-center gap-1.5 pr-1.5">
       {session.hasMaterials ? (
         <HiMiniDocumentChartBar
-          className="h-4 w-4 text-blue-800"
+          className="h-[18px] w-[18px] text-blue-800"
           aria-label="Có tài liệu"
         />
       ) : null}
       {session.hasPreviewVideo ? (
         <HiVideoCamera
-          className="h-4 w-4 text-amber-600"
+          className="h-[18px] w-[18px] text-amber-600"
           aria-label="Có video xem trước"
         />
       ) : null}
@@ -93,9 +99,9 @@ function SessionContentIcons({ session }: { session: LessonSidebarSession }) {
           aria-label="Có video xem lại"
         />
       ) : null}
-      {session.hasQuiz ? (
+      {hasQuizzes ? (
         <HiClipboardDocumentCheck
-          className="h-4 w-4 text-blue-800"
+          className="h-[18px] w-[18px] text-blue-800"
           aria-label="Có bài tập"
         />
       ) : null}
@@ -200,7 +206,8 @@ export function LessonModuleSidebar({
                   const isExpanded = expandedSessionIds.has(session.id);
                   const orderLabel = session.lessonOrder ?? sessionIndex + 1;
                   const children = getSessionChildren(session);
-                  const hasQuizzes = children.length > 0;
+                  const hasQuizzes = sessionHasQuizzes(session);
+                  const hasQuizChildren = children.length > 0;
 
                   return (
                     <div key={session.id} className="space-y-0.5">
@@ -214,7 +221,7 @@ export function LessonModuleSidebar({
                       >
                         <span className="absolute top-5 -left-3 h-px w-3 bg-blue-300/80" />
 
-                        {hasQuizzes ? (
+                        {hasQuizChildren ? (
                           <button
                             type="button"
                             onClick={() => toggleExpanded(session.id)}
@@ -225,36 +232,38 @@ export function LessonModuleSidebar({
                                 : `Mở quiz buổi ${orderLabel}`
                             }
                             className={cn(
-                              "flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-md text-slate-500 transition hover:bg-blue-100/80 hover:text-blue-900",
+                              "flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-md text-slate-500 transition hover:bg-blue-100/80 hover:text-blue-900",
                               isExpanded && "text-blue-900",
                             )}
                           >
                             <ChevronRight
                               className={cn(
-                                "h-4 w-4 transition-transform duration-200",
+                                "h-3.5 w-3.5 transition-transform duration-200",
                                 isExpanded && "rotate-90",
                               )}
                             />
                           </button>
                         ) : (
-                          <span className="h-9 w-9 shrink-0" aria-hidden />
+                          <span className="h-8 w-8 shrink-0" aria-hidden />
                         )}
 
                         <button
                           type="button"
                           onClick={() => {
                             if (hasQuizzes) {
-                              if (!isExpanded) toggleExpanded(session.id);
+                              if (hasQuizChildren && !isExpanded) {
+                                toggleExpanded(session.id);
+                              }
                               onSelectContent(session.id, "quiz");
                             } else {
                               onSelectContent(session.id, "materials");
                             }
                           }}
-                          className="flex min-h-10 min-w-0 flex-1 cursor-pointer items-center gap-2.5 py-2 pr-2 text-left"
+                          className="flex min-h-9 min-w-0 flex-1 cursor-pointer items-center gap-2 py-1.5 pr-1 text-left"
                         >
                           <span
                             className={cn(
-                              "flex h-6 w-6 shrink-0 items-center justify-center rounded text-[11px] font-semibold",
+                              "flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-semibold",
                               isActiveSession
                                 ? "bg-blue-900 text-white"
                                 : "bg-slate-100 text-slate-600 group-hover:bg-slate-200",
@@ -264,7 +273,7 @@ export function LessonModuleSidebar({
                           </span>
                           <span
                             className={cn(
-                              "min-w-0 flex-1 truncate text-[15px] leading-snug",
+                              "min-w-0 flex-1 truncate text-sm leading-snug",
                               isActiveSession
                                 ? "font-semibold text-blue-950"
                                 : "font-medium text-slate-700",
@@ -276,8 +285,8 @@ export function LessonModuleSidebar({
                         <SessionContentIcons session={session} />
                       </div>
 
-                      {isExpanded && hasQuizzes ? (
-                        <div className="ml-4 space-y-1 border-l border-blue-200/80 py-1 pl-3">
+                      {isExpanded && hasQuizChildren ? (
+                        <div className="ml-3 space-y-0.5 border-l border-blue-200/80 py-0.5 pl-2">
                           {children.map((child) => {
                             const isActiveChild =
                               isActiveSession &&
@@ -296,15 +305,15 @@ export function LessonModuleSidebar({
                                   )
                                 }
                                 className={cn(
-                                  "flex min-h-9 w-full cursor-pointer items-center gap-2 rounded-md px-2.5 py-2 text-left text-[13px] transition",
+                                  "flex min-h-7 w-full cursor-pointer items-center gap-1.5 rounded-md px-2 py-1 text-left text-xs leading-snug transition",
                                   isActiveChild
                                     ? "bg-blue-900 font-semibold text-white shadow-sm"
-                                    : "text-slate-700 hover:bg-blue-50",
+                                    : "text-slate-600 hover:bg-blue-50",
                                 )}
                               >
                                 <HiClipboardDocumentCheck
                                   className={cn(
-                                    "h-3.5 w-3.5 shrink-0",
+                                    "h-3 w-3 shrink-0",
                                     isActiveChild
                                       ? "text-blue-100"
                                       : "text-blue-800",
