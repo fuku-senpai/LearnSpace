@@ -436,9 +436,11 @@ function QuestionDetail({
             <p className="text-[11px] font-medium tracking-wide text-slate-400 uppercase">
               Bài làm của bạn
             </p>
-            <p className="mt-2 text-sm leading-relaxed text-slate-700 whitespace-pre-wrap">
-              {question.essayAnswer?.trim() || "Không có nội dung"}
-            </p>
+            <div className="mt-2 max-h-56 overflow-y-auto pr-1 sm:max-h-72">
+              <p className="text-sm leading-relaxed whitespace-pre-wrap text-slate-700">
+                {question.essayAnswer?.trim() || "Không có nội dung"}
+              </p>
+            </div>
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
