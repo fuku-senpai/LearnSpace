@@ -15,9 +15,28 @@ export type PresignVideoResponse = {
 
 export type PlayVideoItem = {
   id?: string;
+  lessonVideoId?: string;
   title?: string;
   videoType?: VideoType;
   url: string;
+};
+
+export type DeleteVideoPayload = {
+  videoId: string;
+};
+
+export type DeleteVideoResponse = {
+  message?: string;
+};
+
+export type UpdateVideoPayload = {
+  videoId: string;
+  title: string;
+  videoType: VideoType;
+};
+
+export type UpdateVideoResponse = {
+  message?: string;
 };
 
 export const VideoService = {
@@ -58,5 +77,26 @@ export const VideoService = {
     if (Array.isArray(data)) return data;
     if (data && typeof data === "object" && "url" in data) return [data];
     return [];
+  },
+
+  deleteVideo: async ({
+    videoId,
+  }: DeleteVideoPayload): Promise<DeleteVideoResponse> => {
+    const res: AxiosResponse<DeleteVideoResponse> = await axiosClient.delete(
+      `/lessonVideo/${videoId}`,
+    );
+    return res.data;
+  },
+
+  updateVideo: async ({
+    videoId,
+    title,
+    videoType,
+  }: UpdateVideoPayload): Promise<UpdateVideoResponse> => {
+    const res: AxiosResponse<UpdateVideoResponse> = await axiosClient.put(
+      `/lessonVideo/${videoId}`,
+      { title, videoType },
+    );
+    return res.data;
   },
 };

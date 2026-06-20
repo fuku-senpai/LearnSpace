@@ -51,6 +51,10 @@ export type UpdateAssignQuizResponse = {
   message?: string;
 };
 
+export type UnassignQuizResponse = {
+  message?: string;
+};
+
 export type LessonAssignedQuiz = {
   snapLessonQuizId: string;
   lessonQuizId: string;
@@ -347,6 +351,15 @@ export const LessonQuizService = {
     const res: AxiosResponse<UpdateAssignQuizResponse> = await axiosClient.put(
       `/assign/${snapLessonQuizId}`,
       payload,
+    );
+    return res.data;
+  },
+
+  unassignQuiz: async (
+    snapLessonQuizId: string,
+  ): Promise<UnassignQuizResponse> => {
+    const res: AxiosResponse<UnassignQuizResponse> = await axiosClient.delete(
+      `/snapLessonQuiz/${snapLessonQuizId}`,
     );
     return res.data;
   },

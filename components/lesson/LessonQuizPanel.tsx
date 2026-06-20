@@ -2,8 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { useGetLessonQuizzesQuery } from "@/app/hooks/lessonQuiz/useGetLessonQuizzes";
+
 import type { LessonQuizListItem } from "@/app/service/lessonQuiz.service";
 import { LessonQuizList } from "@/components/lesson/LessonQuizList";
 import {
@@ -14,6 +16,17 @@ import {
   EditAssignQuizDialog,
   type EditAssignQuizContext,
 } from "@/components/quiz/EditAssignQuizDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useUnassignQuizMutation } from "@/app/hooks/lessonQuiz/useUnassignQuiz";
 
 type LessonQuizPanelProps = {
   snapLessonId: string;
@@ -31,6 +44,8 @@ export function LessonQuizPanel({
   const [editContext, setEditContext] = useState<EditAssignQuizContext | null>(
     null,
   );
+  const [pendingUnassignQuiz, setPendingUnassignQuiz] =
+    useState<LessonQuizListItem | null>(null);
 
   const {
     data: quizzes = [],
@@ -39,13 +54,13 @@ export function LessonQuizPanel({
     error,
     refetch,
   } = useGetLessonQuizzesQuery(snapLessonId);
+  const { mutateAsync: unassignQuiz, isPending: isUnassigningQuiz } =
+    useUnassignQuizMutation();
 
   const defaultDisplayOrder = useMemo(
     () =>
-      quizzes.reduce(
-        (max, quiz) => Math.max(max, quiz.displayOrder ?? 0),
-        0,
-      ) + 1,
+      quizzes.reduce((max, quiz) => Math.max(max, quiz.displayOrder ?? 0), 0) +
+      1,
     [quizzes],
   );
 
@@ -102,6 +117,24 @@ export function LessonQuizPanel({
     });
   };
 
+  const handleConfirmUnassignQuiz = async () => {
+    if (!pendingUnassignQuiz?.snapLessonQuizId) return;
+
+    try {
+      await unassignQuiz({
+        snapLessonQuizId: pendingUnassignQuiz.snapLessonQuizId,
+        snapLessonId,
+        classroomId,
+      });
+      toast.success("Đã gỡ bài tập khỏi buổi học");
+      setPendingUnassignQuiz(null);
+      refetch();
+    } catch (unassignError) {
+      console.error(unassignError);
+      toast.error("Không thể gỡ bài tập. Vui lòng thử lại.");
+    }
+  };
+
   return (
     <>
       <LessonQuizList
@@ -111,6 +144,7 @@ export function LessonQuizPanel({
         isRefreshing={isFetching && !isLoading}
         onAssignClick={classroomId ? openAssignDialog : undefined}
         onEditClick={openEditDialog}
+        onUnassignClick={(quiz) => setPendingUnassignQuiz(quiz)}
       />
 
       <AssignQuizDialog
@@ -130,6 +164,59 @@ export function LessonQuizPanel({
         context={editContext}
         onSuccess={() => refetch()}
       />
+
+      <AlertDialog
+        open={Boolean(pendingUnassignQuiz)}
+        onOpenChange={(open) => {
+          if (!open && !isUnassigningQuiz) {
+            setPendingUnassignQuiz(null);
+          }
+        }}
+      >
+        <AlertDialogContent className="max-w-sm rounded-2xl border-slate-200">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-base font-semibold text-slate-900">
+              Gỡ bài tập khỏi buổi học?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm text-slate-500">
+              Bạn có chắc muốn gỡ bài tập{" "}
+              <span className="font-medium text-slate-700">
+                {pendingUnassignQuiz?.title || "không tiêu đề"}
+              </span>{" "}
+              khỏi buổi học này? Học sinh sẽ không còn thấy bài tập này trong
+              buổi học.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              className="cursor-pointer rounded-xl"
+              disabled={isUnassigningQuiz}
+            >
+              Hủy
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              className="cursor-pointer rounded-xl"
+              disabled={
+                isUnassigningQuiz || !pendingUnassignQuiz?.snapLessonQuizId
+              }
+              onClick={(event) => {
+                event.preventDefault();
+                void handleConfirmUnassignQuiz();
+              }}
+            >
+              {isUnassigningQuiz ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Đang gỡ...
+                </>
+              ) : (
+                "Gỡ bài tập"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

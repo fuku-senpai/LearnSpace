@@ -1,6 +1,6 @@
 "use client";
 
-import { ClipboardList, Clock, Link2, Pencil, PlayCircle, Plus, Target } from "lucide-react";
+import { ClipboardList, Clock, Link2, Pencil, PlayCircle, Plus, Target, Unlink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -20,6 +20,7 @@ type LessonQuizListProps = {
   onCreateClick?: () => void;
   onAssignClick?: () => void;
   onEditClick?: (quiz: LessonQuizListItem) => void;
+  onUnassignClick?: (quiz: LessonQuizListItem) => void;
   onQuizClick?: (quiz: LessonQuizListItem) => void;
   onQuizSelect?: (quiz: LessonQuizListItem) => void;
   onResultClick?: (quiz: LessonQuizListItem) => void;
@@ -149,6 +150,7 @@ export function LessonQuizList({
   onCreateClick,
   onAssignClick,
   onEditClick,
+  onUnassignClick,
   onQuizClick,
   onQuizSelect,
   onResultClick,
@@ -283,20 +285,37 @@ export function LessonQuizList({
                           <QuizMeta quiz={quiz} />
                         </div>
                       </div>
-                      {onEditClick && quiz.snapLessonQuizId ? (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className={cn(
-                            "h-8 shrink-0 cursor-pointer rounded-lg px-2.5 text-xs",
-                            lessonNavyOutlineButton,
-                          )}
-                          onClick={() => onEditClick(quiz)}
-                        >
-                          <Pencil className="mr-1 h-3.5 w-3.5" />
-                          Sửa
-                        </Button>
+                      {quiz.snapLessonQuizId &&
+                      (onEditClick || onUnassignClick) ? (
+                        <div className="flex shrink-0 items-center gap-1.5">
+                          {onEditClick ? (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className={cn(
+                                "h-8 cursor-pointer rounded-lg px-2.5 text-xs",
+                                lessonNavyOutlineButton,
+                              )}
+                              onClick={() => onEditClick(quiz)}
+                            >
+                              <Pencil className="mr-1 h-3.5 w-3.5" />
+                              Sửa
+                            </Button>
+                          ) : null}
+                          {onUnassignClick ? (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-8 cursor-pointer rounded-lg border-rose-200 px-2.5 text-xs text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                              onClick={() => onUnassignClick(quiz)}
+                            >
+                              <Unlink className="mr-1 h-3.5 w-3.5" />
+                              Gỡ bài
+                            </Button>
+                          ) : null}
+                        </div>
                       ) : null}
                     </div>
                   </article>

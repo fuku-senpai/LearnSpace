@@ -47,10 +47,14 @@ export const Lesson_API = {
 export const LessonResource_API = {
   CREATE: "/lessonResource",
   GET_BY_LESSON: (snapLessonId: string) => `/${snapLessonId}/lessonResources`,
+  UPDATE: (lessonResourceId: string) => `/lessonResource/${lessonResourceId}`,
+  DELETE: (lessonResourceId: string) => `/lessonResource/${lessonResourceId}`,
 };
 
 export const Record_API = {
   CREATE: "/lessonVideo",
+  UPDATE: (lessonVideoId: string) => `/lessonVideo/${lessonVideoId}`,
+  DELETE: (lessonVideoId: string) => `/lessonVideo/${lessonVideoId}`,
 };
 
 export const SCHEDULE_API = {
@@ -88,6 +92,7 @@ export const LESSON_QUIZ_API = {
   LIST: "/lesson-quizs",
   ASSIGN: "/assign",
   UPDATE_ASSIGN: (snapLessonQuizId: string) => `/assign/${snapLessonQuizId}`,
+  UNASSIGN: (snapLessonQuizId: string) => `/snapLessonQuiz/${snapLessonQuizId}`,
   GET_BY_ID: (quizId: string) => `/lesson-quiz/${quizId}`,
   GET_BY_LESSON: (snapLessonId: string) => `/lesson/${snapLessonId}`,
 };

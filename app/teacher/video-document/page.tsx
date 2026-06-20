@@ -5,21 +5,47 @@ import { useSearchParams } from "next/navigation";
 import { FileText, MonitorPlay } from "lucide-react";
 import { useGetTeacherClassrooms } from "@/app/hooks/teacher/useGetTeacherClassrooms";
 import { useGetSnapMaterials } from "@/app/hooks/materials/useGetSnapMaterials";
-import { UploadCloud, Loader2, Film } from "lucide-react";
+import { UploadCloud, Loader2, Film, Trash2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {Select,SelectTrigger,SelectContent,SelectItem, SelectValue} from "@/components/ui/select";
 import { usePresignVideo } from "@/app/hooks/videos/usePresignVideoMutation";
 import { useCreateNewRecord } from "@/app/hooks/records/useCreateNewRecord";
 import { useGetVideoQuery } from "@/app/hooks/videos/useGetVideoQuery";
+import { useDeleteVideoMutation } from "@/app/hooks/videos/useDeleteVideoMutation";
+import { useUpdateVideoMutation } from "@/app/hooks/videos/useUpdateVideoMutation";
 import { queryClient } from "@/app/lib/react-query";
 import { VideoType } from "@/app/service/record.service";
+import type { PlayVideoItem } from "@/app/service/video.service";
 import { useCreateLessonResourceMutation } from "@/app/hooks/lessonResource/useCreateLessonResource";
 import { useGetLessonResourcesQuery } from "@/app/hooks/lessonResource/useGetLessonResources";
+import {
+  useDeleteLessonResourceMutation,
+  useUpdateLessonResourceMutation,
+} from "@/app/hooks/lessonResource/useLessonResourceMutations";
 import { useUploadFile } from "@/app/hooks/lessonResource/useUploadAuto";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import type { LessonResourceItem } from "@/app/service/lessonResource.service";
 import { TeacherClassroom } from "@/app/service/teacher.service";
 import type { LessonQuiz } from "@/app/service/material.service";
 import {LessonContentTabBar,type LessonContentTab} from "@/components/lesson/LessonContentTabBar";
@@ -36,6 +62,15 @@ const getVideoTypeByTab = (tab: TabKey): VideoType | undefined => {
   if (tab === "replay") return "AFTER_LESSON";
   return undefined;
 };
+
+const getLessonVideoId = (video: PlayVideoItem) =>
+  video.lessonVideoId ?? video.id;
+
+const getVideoTabLabel = (tab: TabKey) =>
+  tab === "preview" ? "video xem trước" : "video xem lại";
+
+const getDefaultVideoTypeForTab = (tab: TabKey): VideoType =>
+  tab === "preview" ? "PREVIEW" : "AFTER_LESSON";
 
 type Session = {
   id: string;
@@ -94,9 +129,11 @@ type UploadedMaterialFile = {
 function LessonMaterialsPanel({
   snapLessonId,
   lessonTitle,
+  classroomId,
 }: {
   snapLessonId: string;
   lessonTitle: string;
+  classroomId?: string;
 }) {
   const [title, setTitle] = useState("");
   const [note, setNote] = useState("");
@@ -104,10 +141,20 @@ function LessonMaterialsPanel({
   const [url, setUrl] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedMaterialFile[]>([]);
+  const [editingResource, setEditingResource] =
+    useState<LessonResourceItem | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editNote, setEditNote] = useState("");
+  const [pendingDeleteResource, setPendingDeleteResource] =
+    useState<LessonResourceItem | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const { mutateAsync: createLessonResource, isPending, error } =
     useCreateLessonResourceMutation();
+  const { mutateAsync: updateLessonResource, isPending: isUpdatingResource } =
+    useUpdateLessonResourceMutation();
+  const { mutateAsync: deleteLessonResource, isPending: isDeletingResource } =
+    useDeleteLessonResourceMutation();
   const { upload, isUploading } = useUploadFile("document");
   const { data: resources = [], isLoading: isLoadingResources } =
     useGetLessonResourcesQuery(snapLessonId);
@@ -171,6 +218,61 @@ function LessonMaterialsPanel({
     }
   };
 
+  const openEditResource = (resource: LessonResourceItem) => {
+    setEditingResource(resource);
+    setEditTitle(resource.title);
+    setEditNote(resource.note ?? "");
+  };
+
+  const closeEditResource = () => {
+    if (isUpdatingResource) return;
+    setEditingResource(null);
+    setEditTitle("");
+    setEditNote("");
+  };
+
+  const handleConfirmUpdateResource = async () => {
+    if (!editingResource) return;
+
+    const nextTitle = editTitle.trim();
+    if (!nextTitle) {
+      toast.error("Vui lòng nhập tên tài liệu");
+      return;
+    }
+
+    try {
+      await updateLessonResource({
+        lessonResourceId: editingResource.id,
+        title: nextTitle,
+        note: editNote.trim(),
+        snapLessonId,
+        classroomId,
+      });
+      toast.success("Đã cập nhật tài liệu");
+      closeEditResource();
+    } catch (updateError) {
+      console.error(updateError);
+      toast.error("Không thể cập nhật tài liệu. Vui lòng thử lại.");
+    }
+  };
+
+  const handleConfirmDeleteResource = async () => {
+    if (!pendingDeleteResource) return;
+
+    try {
+      await deleteLessonResource({
+        lessonResourceId: pendingDeleteResource.id,
+        snapLessonId,
+        classroomId,
+      });
+      toast.success("Đã xóa tài liệu");
+      setPendingDeleteResource(null);
+    } catch (deleteError) {
+      console.error(deleteError);
+      toast.error("Không thể xóa tài liệu. Vui lòng thử lại.");
+    }
+  };
+
   if (!snapLessonId) {
     return (
       <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
@@ -180,6 +282,7 @@ function LessonMaterialsPanel({
   }
 
   return (
+    <>
     <div className="grid gap-4 xl:grid-cols-[1fr_1.2fr]">
       <Card className="border-slate-200 shadow-sm">
         <div className="space-y-4 p-4">
@@ -214,6 +317,30 @@ function LessonMaterialsPanel({
                       <span className="mt-2 inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
                         {resource.type}
                       </span>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="cursor-pointer"
+                        disabled={isUpdatingResource}
+                        onClick={() => openEditResource(resource)}
+                      >
+                        <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                        Sửa
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="cursor-pointer border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                        disabled={isDeletingResource}
+                        onClick={() => setPendingDeleteResource(resource)}
+                      >
+                        <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                        Xóa
+                      </Button>
                     </div>
                   </div>
 
@@ -386,6 +513,124 @@ function LessonMaterialsPanel({
         </div>
       </Card>
     </div>
+
+    <Dialog
+      open={Boolean(editingResource)}
+      onOpenChange={(open) => {
+        if (!open) closeEditResource();
+      }}
+    >
+      <DialogContent className="max-w-md rounded-2xl border-slate-200">
+        <DialogHeader>
+          <DialogTitle className="text-base font-semibold text-slate-900">
+            Cập nhật tài liệu
+          </DialogTitle>
+          <DialogDescription className="text-sm text-slate-500">
+            Chỉnh sửa tên và ghi chú của tài liệu.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid gap-4 py-2">
+          <div className="grid gap-2">
+            <label className="text-xs font-medium text-slate-600">
+              Tên tài liệu
+            </label>
+            <Input
+              value={editTitle}
+              onChange={(event) => setEditTitle(event.target.value)}
+              placeholder="Nhập tên tài liệu"
+            />
+          </div>
+          <div className="grid gap-2">
+            <label className="text-xs font-medium text-slate-600">Ghi chú</label>
+            <Textarea
+              value={editNote}
+              onChange={(event) => setEditNote(event.target.value)}
+              placeholder="Nhập ghi chú"
+              className="min-h-24"
+            />
+          </div>
+        </div>
+
+        <DialogFooter className="gap-2 sm:justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            className="cursor-pointer rounded-xl"
+            disabled={isUpdatingResource}
+            onClick={closeEditResource}
+          >
+            Hủy
+          </Button>
+          <Button
+            type="button"
+            className="cursor-pointer rounded-xl"
+            disabled={isUpdatingResource || !editTitle.trim()}
+            onClick={() => void handleConfirmUpdateResource()}
+          >
+            {isUpdatingResource ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Đang lưu...
+              </>
+            ) : (
+              "Lưu thay đổi"
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <AlertDialog
+      open={Boolean(pendingDeleteResource)}
+      onOpenChange={(open) => {
+        if (!open && !isDeletingResource) {
+          setPendingDeleteResource(null);
+        }
+      }}
+    >
+      <AlertDialogContent className="max-w-sm rounded-2xl border-slate-200">
+        <AlertDialogHeader>
+          <AlertDialogTitle className="text-base font-semibold text-slate-900">
+            Xóa tài liệu?
+          </AlertDialogTitle>
+          <AlertDialogDescription className="text-sm text-slate-500">
+            Bạn có chắc muốn xóa tài liệu{" "}
+            <span className="font-medium text-slate-700">
+              {pendingDeleteResource?.title || "không tiêu đề"}
+            </span>
+            ? Hành động này không thể hoàn tác.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel
+            className="cursor-pointer rounded-xl"
+            disabled={isDeletingResource}
+          >
+            Hủy
+          </AlertDialogCancel>
+          <AlertDialogAction
+            variant="destructive"
+            className="cursor-pointer rounded-xl"
+            disabled={isDeletingResource || !pendingDeleteResource}
+            onClick={(event) => {
+              event.preventDefault();
+              void handleConfirmDeleteResource();
+            }}
+          >
+            {isDeletingResource ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Đang xóa...
+              </>
+            ) : (
+              "Xóa tài liệu"
+            )}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
 
@@ -432,6 +677,15 @@ function VideoDocumentManagementContent() {
   } = useGetSnapMaterials(effectiveCourseId);
   const { mutateAsync: getPresign } = usePresignVideo();
   const { mutateAsync: createRecord } = useCreateNewRecord();
+  const { mutateAsync: deleteVideo, isPending: isDeletingVideo } =
+    useDeleteVideoMutation();
+  const { mutateAsync: updateVideo, isPending: isUpdatingVideo } =
+    useUpdateVideoMutation();
+  const [pendingDeleteVideo, setPendingDeleteVideo] =
+    useState<PlayVideoItem | null>(null);
+  const [editingVideo, setEditingVideo] = useState<PlayVideoItem | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editVideoType, setEditVideoType] = useState<VideoType>("AFTER_LESSON");
 
   const modules: Module[] = useMemo(() => {
     if (!Array.isArray(snapMaterials)) return [];
@@ -589,7 +843,7 @@ function VideoDocumentManagementContent() {
       toast.success("Upload video thành công");
       setSelectedVideo(null);
       setVideoTitle("");
-      setVideoType("AFTER_LESSON");
+      setVideoType(getDefaultVideoTypeForTab(activeTab));
       queryClient.invalidateQueries({
         queryKey: ["video", "play", activeSession.session.id, videoType],
       });
@@ -603,6 +857,95 @@ function VideoDocumentManagementContent() {
       setIsUploading(false);
     }
   };
+
+  const handleConfirmDeleteVideo = async () => {
+    if (!pendingDeleteVideo || !activeVideoType) return;
+
+    const videoId = getLessonVideoId(pendingDeleteVideo);
+
+    if (!videoId) {
+      toast.error("Không tìm thấy mã video để xóa");
+      return;
+    }
+
+    if (!activeSession.session.id) {
+      toast.error("Vui lòng chọn buổi học");
+      return;
+    }
+
+    try {
+      await deleteVideo({
+        videoId,
+        snapLessonId: activeSession.session.id,
+        videoType: activeVideoType,
+        classroomId: effectiveCourseId,
+      });
+      toast.success("Đã xóa video");
+      setPendingDeleteVideo(null);
+    } catch (error) {
+      console.error(error);
+      toast.error("Không thể xóa video. Vui lòng thử lại.");
+    }
+  };
+
+  const openEditVideo = (video: PlayVideoItem) => {
+    setEditingVideo(video);
+    setEditTitle(video.title?.trim() ?? "");
+    setEditVideoType(
+      video.videoType ??
+        activeVideoType ??
+        getDefaultVideoTypeForTab(activeTab),
+    );
+  };
+
+  const closeEditVideo = () => {
+    if (isUpdatingVideo) return;
+    setEditingVideo(null);
+    setEditTitle("");
+    setEditVideoType(getDefaultVideoTypeForTab(activeTab));
+  };
+
+  const handleConfirmUpdateVideo = async () => {
+    if (!editingVideo) return;
+
+    const videoId = getLessonVideoId(editingVideo);
+    const title = editTitle.trim();
+
+    if (!videoId) {
+      toast.error("Không tìm thấy mã video để cập nhật");
+      return;
+    }
+
+    if (!title) {
+      toast.error("Vui lòng nhập tiêu đề video");
+      return;
+    }
+
+    if (!activeSession.session.id) {
+      toast.error("Vui lòng chọn buổi học");
+      return;
+    }
+
+    try {
+      await updateVideo({
+        videoId,
+        title,
+        videoType: editVideoType,
+        snapLessonId: activeSession.session.id,
+        previousVideoType:
+          editingVideo.videoType ??
+          activeVideoType ??
+          getDefaultVideoTypeForTab(activeTab),
+        classroomId: effectiveCourseId,
+      });
+      toast.success("Đã cập nhật video");
+      closeEditVideo();
+    } catch (error) {
+      console.error(error);
+      toast.error("Không thể cập nhật video. Vui lòng thử lại.");
+    }
+  };
+
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
       <header className="flex items-center justify-between gap-4 border-b border-slate-200/70 bg-white px-5 py-3">
@@ -692,6 +1035,7 @@ function VideoDocumentManagementContent() {
               <LessonMaterialsPanel
                 snapLessonId={activeSession.session.id}
                 lessonTitle={activeSession.session.title}
+                classroomId={effectiveCourseId}
               />
             ) : activeTab === "quiz" ? (
               <LessonQuizPanel
@@ -735,16 +1079,49 @@ function VideoDocumentManagementContent() {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {playVideos.map((video, index) => (
+                      {playVideos.map((video, index) => {
+                        const lessonVideoId = getLessonVideoId(video);
+
+                        return (
                         <div
-                          key={video.id ?? `${video.url}-${index}`}
+                          key={lessonVideoId ?? `${video.url}-${index}`}
                           className="space-y-2"
                         >
-                          {video.title ? (
-                            <p className="text-sm font-semibold text-slate-900">
-                              {video.title}
-                            </p>
-                          ) : null}
+                          <div className="flex items-start justify-between gap-3">
+                            {video.title ? (
+                              <p className="text-sm font-semibold text-slate-900">
+                                {video.title}
+                              </p>
+                            ) : (
+                              <p className="text-sm font-medium text-slate-500">
+                                Video {index + 1}
+                              </p>
+                            )}
+                            <div className="flex shrink-0 items-center gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="cursor-pointer"
+                                disabled={!lessonVideoId || isUpdatingVideo}
+                                onClick={() => openEditVideo(video)}
+                              >
+                                <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                                Sửa
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="cursor-pointer border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                                disabled={!lessonVideoId || isDeletingVideo}
+                                onClick={() => setPendingDeleteVideo(video)}
+                              >
+                                <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                                Xóa
+                              </Button>
+                            </div>
+                          </div>
                           <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                             <div className="aspect-video bg-black">
                               <video
@@ -758,7 +1135,8 @@ function VideoDocumentManagementContent() {
                             </div>
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
 
@@ -921,6 +1299,137 @@ function VideoDocumentManagementContent() {
           </div>
         </main>
       </div>
+
+      <Dialog
+        open={Boolean(editingVideo)}
+        onOpenChange={(open) => {
+          if (!open) closeEditVideo();
+        }}
+      >
+        <DialogContent className="max-w-md rounded-2xl border-slate-200">
+          <DialogHeader>
+            <DialogTitle className="text-base font-semibold text-slate-900">
+              Cập nhật video
+            </DialogTitle>
+            <DialogDescription className="text-sm text-slate-500">
+              Chỉnh sửa tiêu đề và loại video.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-2">
+            <div className="grid gap-2">
+              <label className="text-xs font-medium text-slate-600">
+                Tiêu đề video
+              </label>
+              <Input
+                value={editTitle}
+                onChange={(event) => setEditTitle(event.target.value)}
+                placeholder="Nhập tiêu đề video"
+              />
+            </div>
+            <div className="grid gap-2">
+              <label className="text-xs font-medium text-slate-600">
+                Loại video
+              </label>
+              <Select
+                value={editVideoType}
+                onValueChange={(value) => setEditVideoType(value as VideoType)}
+              >
+                <SelectTrigger className="cursor-pointer">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PREVIEW">Xem trước (PREVIEW)</SelectItem>
+                  <SelectItem value="AFTER_LESSON">
+                    Xem lại (AFTER_LESSON)
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              className="cursor-pointer rounded-xl"
+              disabled={isUpdatingVideo}
+              onClick={closeEditVideo}
+            >
+              Hủy
+            </Button>
+            <Button
+              type="button"
+              className="cursor-pointer rounded-xl"
+              disabled={isUpdatingVideo || !editTitle.trim()}
+              onClick={() => void handleConfirmUpdateVideo()}
+            >
+              {isUpdatingVideo ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Đang lưu...
+                </>
+              ) : (
+                "Lưu thay đổi"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog
+        open={Boolean(pendingDeleteVideo)}
+        onOpenChange={(open) => {
+          if (!open && !isDeletingVideo) {
+            setPendingDeleteVideo(null);
+          }
+        }}
+      >
+        <AlertDialogContent className="max-w-sm rounded-2xl border-slate-200">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-base font-semibold text-slate-900">
+              Xóa {getVideoTabLabel(activeTab)}?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm text-slate-500">
+              Bạn có chắc muốn xóa video{" "}
+              <span className="font-medium text-slate-700">
+                {pendingDeleteVideo?.title || "không tiêu đề"}
+              </span>
+              ? Hành động này không thể hoàn tác.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              className="cursor-pointer rounded-xl"
+              disabled={isDeletingVideo}
+            >
+              Hủy
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              className="cursor-pointer rounded-xl"
+              disabled={
+                isDeletingVideo ||
+                !pendingDeleteVideo ||
+                !getLessonVideoId(pendingDeleteVideo)
+              }
+              onClick={(event) => {
+                event.preventDefault();
+                void handleConfirmDeleteVideo();
+              }}
+            >
+              {isDeletingVideo ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Đang xóa...
+                </>
+              ) : (
+                "Xóa video"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
