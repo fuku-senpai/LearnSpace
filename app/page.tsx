@@ -7,13 +7,17 @@ import {
   FileText,
   GraduationCap,
   KeyRound,
+  ListChecks,
   Play,
   Sparkles,
   Users,
 } from "lucide-react";
 
+import { LandingHeader } from "@/components/landing/LandingHeader";
+import { LandingQuizSection } from "@/components/landing/LandingQuizSection";
 import { ParticleBackground } from "@/components/particle-background";
 import { Button } from "@/components/ui/button";
+import { landingLoginHref, landingNavLinks } from "@/constants/landing-nav";
 
 export const metadata = {
   title: "Course Learning Platform",
@@ -24,12 +28,12 @@ export const metadata = {
 const featureTags = [
   "Video bài giảng",
   "Tài liệu theo buổi",
-  "Quản lý lớp học",
+  "Quiz trắc nghiệm & tự luận",
 ];
 
 const stats = [
   { label: "Video", value: "24/7", icon: Play },
-  { label: "Tài liệu", value: "Theo buổi", icon: FileText },
+  { label: "Quiz", value: "2 dạng", icon: ClipboardList },
   { label: "Lớp học", value: "1 nơi", icon: Users },
 ];
 
@@ -42,22 +46,22 @@ const roleBranches = [
       {
         icon: Play,
         title: "Upload video",
-        description: "Đăng video bài giảng theo từng buổi học.",
+        description: "Đăng video bài giảng và video xem lại theo buổi.",
       },
       {
         icon: BookOpen,
         title: "Tài liệu",
-        description: "Đính kèm slide, PDF cho mỗi buổi.",
-      },
-      {
-        icon: ClipboardList,
-        title: "Bài tập",
-        description: "Tạo quiz trắc nghiệm hoặc tự luận.",
+        description: "Đính kèm slide, PDF cho mỗi buổi học.",
       },
       {
         icon: Calendar,
         title: "Quản lý lớp",
-        description: "Sắp xếp buổi học và nội dung lớp.",
+        description: "Sắp xếp module, buổi học và nội dung lớp.",
+      },
+      {
+        icon: FileText,
+        title: "Cấu trúc buổi học",
+        description: "Tổ chức nội dung theo cây module — session.",
       },
     ],
   },
@@ -74,17 +78,17 @@ const roleBranches = [
       {
         icon: Play,
         title: "Học video",
-        description: "Xem lại hoặc học trước theo buổi.",
-      },
-      {
-        icon: ClipboardList,
-        title: "Làm bài tập",
-        description: "Làm bài theo dạng cây từng buổi.",
+        description: "Xem bài giảng hoặc video xem lại theo buổi.",
       },
       {
         icon: BookOpen,
-        title: "Xem kết quả",
-        description: "Theo dõi điểm và tiến độ học tập.",
+        title: "Tài liệu buổi học",
+        description: "Tải slide, PDF ngay trong từng session.",
+      },
+      {
+        icon: Calendar,
+        title: "Lộ trình buổi học",
+        description: "Điều hướng nội dung theo sidebar từng buổi.",
       },
     ],
   },
@@ -115,11 +119,66 @@ const bokehOrbs = [
   { left: "90%", top: "50%", size: 180, delay: -3 },
 ];
 
+const orbitRings = [
+  {
+    size: "100%",
+    className: "border-2 border-dashed border-amber-400/35",
+    duration: "24s",
+    reverse: false,
+  },
+  {
+    size: "92%",
+    className: "border border-amber-400/18",
+    duration: "30s",
+    reverse: true,
+  },
+  {
+    size: "84%",
+    className: "border-2 border-amber-400/24",
+    duration: "18s",
+    reverse: true,
+  },
+  {
+    size: "74%",
+    className: "border border-dashed border-white/14",
+    duration: "26s",
+    reverse: false,
+  },
+  {
+    size: "64%",
+    className: "border border-white/10",
+    static: true,
+  },
+  {
+    size: "54%",
+    className: "border border-dashed border-sky-400/18",
+    duration: "20s",
+    reverse: true,
+  },
+  {
+    size: "44%",
+    className: "border border-amber-400/16",
+    duration: "14s",
+    reverse: false,
+  },
+];
+
 const floatingCards = [
   { title: "Video", icon: Play, position: "top-6 left-0", delay: "0s" },
   { title: "Tài liệu", icon: FileText, position: "top-16 right-0", delay: "1s" },
-  { title: "Lịch học", icon: Calendar, position: "bottom-10 left-4", delay: "2s" },
+  { title: "Quiz", icon: ListChecks, position: "bottom-10 left-4", delay: "2s" },
   { title: "Giảng viên", icon: Users, position: "bottom-20 right-2", delay: "3s" },
+];
+
+const footerCapabilities = [
+  { icon: Play, label: "Video bài giảng" },
+  { icon: FileText, label: "Tài liệu theo buổi" },
+  { icon: ListChecks, label: "Quiz trắc nghiệm & tự luận" },
+];
+
+const footerExploreLinks = [
+  ...landingNavLinks,
+  { href: landingLoginHref, label: "Đăng nhập" },
 ];
 
 export default function LandingPage() {
@@ -147,51 +206,13 @@ export default function LandingPage() {
 
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_-10%,rgba(251,191,36,0.08),transparent_55%)]" />
 
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-white/6 bg-[#050505]/80 backdrop-blur-2xl">
-        <div className="relative mx-auto flex h-16 max-w-6xl items-center justify-between px-6 lg:px-8">
-          <Link href="/" className="group flex min-w-0 items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-amber-400 to-amber-500 text-zinc-900 shadow-[0_2px_12px_rgba(251,191,36,0.25)] transition duration-300 group-hover:shadow-[0_4px_18px_rgba(251,191,36,0.35)]">
-              <GraduationCap className="h-[18px] w-[18px]" strokeWidth={2} />
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-[15px] font-semibold tracking-tight text-white">
-                Course Learning
-              </p>
-              <p className="hidden truncate text-[11px] font-medium text-zinc-500 sm:block">
-                Nền tảng học tập trực tuyến
-              </p>
-            </div>
-          </Link>
-
-          <div className="flex shrink-0 items-center gap-2">
-            <a
-              href="#features"
-              className="rounded-lg px-2.5 py-2 text-[13px] font-medium text-zinc-400 transition-colors hover:bg-white/5 hover:text-zinc-100"
-            >
-              Tính năng
-            </a>
-            <Button
-              asChild
-              className="login-btn-gold h-9 rounded-full border-0 px-5 text-[13px] font-semibold text-zinc-900 shadow-none"
-            >
-              <Link href="/login" className="inline-flex items-center gap-1.5">
-                Đăng nhập
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </header>
+      <LandingHeader />
 
       {/* Hero */}
       <section className="relative mx-auto max-w-6xl px-6 pb-20 pt-10 lg:px-8 lg:pb-28 lg:pt-14">
         <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10">
           <div className="space-y-7 motion-safe:animate-[fade-up_700ms_ease-out_both]">
-            <div className="inline-flex items-center gap-2 rounded-full border border-amber-400/25 bg-[#0d0d0d]/80 px-3.5 py-1 text-[11px] font-semibold tracking-[0.16em] text-amber-200/90 uppercase">
-              <span className="size-1.5 animate-pulse rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]" />
-              Học trực tuyến
-            </div>
+       
 
             <div>
               <h2 className="text-3xl font-bold leading-tight text-white sm:text-4xl lg:text-[2.75rem]">
@@ -220,7 +241,7 @@ export default function LandingPage() {
             <div className="flex flex-wrap gap-3">
               <Button
                 asChild
-                className="login-btn-gold h-10 rounded-lg border-0 px-6 text-sm font-bold text-zinc-900"
+                className="login-btn-gold h-10 rounded-3xl border-0 px-6 text-sm font-bold text-zinc-900"
               >
                 <Link href="/login" className="inline-flex items-center gap-2">
                   Bắt đầu ngay
@@ -232,7 +253,7 @@ export default function LandingPage() {
                 variant="ghost"
                 className="h-10 rounded-lg border border-white/10 bg-white/5 px-5 text-sm text-zinc-300 hover:border-amber-400/30 hover:bg-white/10 hover:text-amber-300"
               >
-                <a href="#features">Khám phá</a>
+                <a href="#quiz">Khám phá</a>
               </Button>
             </div>
 
@@ -254,13 +275,26 @@ export default function LandingPage() {
           </div>
 
           <div className="relative flex h-[440px] items-center justify-center motion-safe:animate-[fade-up_700ms_ease-out_both] motion-safe:[animation-delay:120ms] lg:h-[480px]">
-            <div className="pointer-events-none absolute flex h-[300px] w-[300px] items-center justify-center">
-              <div className="orbit-ring absolute h-full w-full rounded-full border border-dashed border-amber-400/15" />
-              <div
-                className="orbit-ring absolute h-[85%] w-[85%] rounded-full border border-sky-400/10"
-                style={{ animationDirection: "reverse", animationDuration: "18s" }}
-              />
-              <div className="absolute h-40 w-40 rounded-full bg-amber-400/10 blur-3xl" />
+            <div className="pointer-events-none absolute flex h-[320px] w-[320px] items-center justify-center lg:h-[340px] lg:w-[340px]">
+              {orbitRings.map((ring, index) => (
+                <div
+                  key={index}
+                  className={`absolute rounded-full ${ring.className} ${
+                    ring.static ? "" : "orbit-ring"
+                  }`}
+                  style={{
+                    width: ring.size,
+                    height: ring.size,
+                    ...(ring.static
+                      ? {}
+                      : {
+                          animationDirection: ring.reverse ? "reverse" : "normal",
+                          animationDuration: ring.duration,
+                        }),
+                  }}
+                />
+              ))}
+              <div className="absolute h-44 w-44 rounded-full bg-amber-400/12 blur-3xl lg:h-48 lg:w-48" />
             </div>
 
             <div
@@ -304,6 +338,8 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <LandingQuizSection />
+
       {/* Features */}
       <section
         id="features"
@@ -317,19 +353,19 @@ export default function LandingPage() {
               Tính năng
             </span>
             <h2 className="mt-4 text-2xl font-bold text-white sm:text-3xl">
-              Hệ thống học tập trực tuyến
+              Video &amp; tài liệu theo buổi học
             </h2>
             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-zinc-500">
-              Hai nhánh vai trò — giáo viên quản lý nội dung, học sinh học tập
-              và làm bài trên cùng một nền tảng.
+              Quản lý nội dung lớp theo module và session — bài tập &amp; quiz
+              xem tại phần phía trên.
             </p>
           </div>
 
           <div className="relative mx-auto max-w-4xl">
             <div className="flex flex-col items-center">
               <div className="flex h-11 items-center gap-2 rounded-full border border-white/10 bg-[#0c0c0c]/90 px-5 text-sm font-semibold text-white">
-                <Sparkles className="h-4 w-4 text-amber-400" />
-                Nền tảng học tập
+                <BookOpen className="h-4 w-4 text-amber-400" />
+                Nội dung lớp học
               </div>
               <div className="h-9 w-px bg-gradient-to-b from-amber-400/55 to-amber-400/25" />
             </div>
@@ -404,13 +440,15 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="relative border-t border-white/8 bg-[#060606]">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-400/35 to-transparent" />
-        <div className="mx-auto max-w-6xl px-6 py-12 lg:px-8">
-          <div className="grid gap-10 md:grid-cols-[1.35fr_0.85fr_1fr] md:items-start">
-            <div>
+      <footer className="relative border-t border-white/8 bg-[#040404]">
+        <div className="absolute inset-x-0 top-0 h-px bg-amber-400/25" />
+
+        <div className="mx-auto max-w-6xl px-6 py-14 lg:px-8 lg:py-16">
+          <div className="grid gap-12 lg:grid-cols-12 lg:gap-10">
+            {/* Brand */}
+            <div className="lg:col-span-5">
               <Link href="/" className="inline-flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-amber-400 to-amber-500 text-zinc-900 shadow-[0_2px_12px_rgba(251,191,36,0.2)]">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-amber-400 to-amber-500 text-zinc-900 shadow-[0_2px_12px_rgba(251,191,36,0.2)]">
                   <GraduationCap className="h-[18px] w-[18px]" strokeWidth={2} />
                 </div>
                 <div>
@@ -422,59 +460,118 @@ export default function LandingPage() {
                   </p>
                 </div>
               </Link>
-              <p className="mt-4 max-w-sm text-sm leading-relaxed text-zinc-500">
-                Hệ thống quản lý lớp học — video bài giảng, tài liệu theo buổi
-                và bài tập trắc nghiệm / tự luận cho học sinh, giáo viên và
-                quản trị viên.
+
+              <p className="mt-5 max-w-sm text-sm leading-relaxed text-zinc-500">
+                Giải pháp quản lý lớp học trực tuyến — tập trung video, tài
+                liệu và đánh giá cho giáo viên, học sinh trên một hệ thống thống
+                nhất.
               </p>
+
+              <div className="mt-6 flex flex-wrap gap-2">
+                {footerCapabilities.map((item) => {
+                  const Icon = item.icon;
+
+                  return (
+                    <span
+                      key={item.label}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-white/8 bg-white/[0.03] px-3 py-1.5 text-[11px] text-zinc-400"
+                    >
+                      <Icon className="h-3 w-3 text-amber-400/80" />
+                      {item.label}
+                    </span>
+                  );
+                })}
+              </div>
             </div>
 
-            <div>
+            {/* Navigation */}
+            <div className="lg:col-span-3">
               <p className="text-[11px] font-semibold tracking-[0.14em] text-zinc-500 uppercase">
-                Liên kết
+                Khám phá
               </p>
-              <ul className="mt-4 space-y-2.5 text-sm">
-                <li>
-                  <a
-                    className="text-zinc-400 transition hover:text-amber-300"
-                    href="#features"
-                  >
-                    Tính năng
-                  </a>
+              <ul className="mt-5 space-y-3">
+                {footerExploreLinks.map((link) => (
+                  <li key={link.href}>
+                    {link.href.startsWith("/") ? (
+                      <Link
+                        href={link.href}
+                        className="group inline-flex items-center gap-2 text-sm text-zinc-400 transition hover:text-amber-300"
+                      >
+                        <span className="h-px w-0 bg-amber-400/60 transition-all group-hover:w-3" />
+                        {link.label}
+                      </Link>
+                    ) : (
+                      <a
+                        href={link.href}
+                        className="group inline-flex items-center gap-2 text-sm text-zinc-400 transition hover:text-amber-300"
+                      >
+                        <span className="h-px w-0 bg-amber-400/60 transition-all group-hover:w-3" />
+                        {link.label}
+                      </a>
+                    )}
+                  </li>
+                ))}
+              </ul>
+
+              <p className="mt-8 text-[11px] font-semibold tracking-[0.14em] text-zinc-500 uppercase">
+                Vai trò
+              </p>
+              <ul className="mt-5 space-y-2.5 text-sm text-zinc-500">
+                <li className="flex items-center gap-2">
+                  <GraduationCap className="h-3.5 w-3.5 text-amber-400/70" />
+                  Giáo viên — quản lý nội dung lớp
                 </li>
-                <li>
-                  <Link
-                    className="text-zinc-400 transition hover:text-amber-300"
-                    href="/login"
-                  >
-                    Đăng nhập
-                  </Link>
+                <li className="flex items-center gap-2">
+                  <Users className="h-3.5 w-3.5 text-sky-400/70" />
+                  Học sinh — học theo buổi &amp; làm bài
                 </li>
               </ul>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-              <p className="text-sm font-semibold text-white">
-                Bắt đầu học ngay
-              </p>
-              <p className="mt-1.5 text-xs leading-relaxed text-zinc-500">
-                Đăng nhập với tài khoản được cấp, nhập mã lớp và vào học.
-              </p>
-              <Button
-                asChild
-                className="login-btn-gold mt-4 h-9 w-full rounded-lg border-0 text-sm font-bold text-zinc-900"
-              >
-                <Link href="/login" className="inline-flex items-center justify-center gap-1.5">
-                  Đăng nhập
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
-              </Button>
+            {/* CTA */}
+            <div className="lg:col-span-4">
+              <div className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 lg:p-7">
+                <p className="text-base font-semibold text-white">
+                  Sẵn sàng bắt đầu?
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-zinc-500">
+                  Đăng nhập bằng tài khoản được cấp, nhập mã lớp và truy cập
+                  nội dung học tập ngay.
+                </p>
+                <Button
+                  asChild
+                  className="login-btn-gold mt-5 h-10 w-full rounded-lg border-0 text-sm font-bold text-zinc-900"
+                >
+                  <Link
+                    href="/login"
+                    className="inline-flex items-center justify-center gap-2"
+                  >
+                    Đăng nhập hệ thống
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+                <p className="mt-4 text-center text-[11px] text-zinc-600">
+                  Dành cho giáo viên, học sinh &amp; quản trị viên
+                </p>
+              </div>
             </div>
           </div>
 
-          <div className="mt-10 flex flex-col gap-2 border-t border-white/8 pt-6 text-xs text-zinc-600 sm:flex-row sm:items-center sm:justify-between">
-            <p>© 2026 Course Learning Platform</p>
-            <p>Video · Tài liệu · Bài tập — một nền tảng</p>
+          {/* Bottom bar */}
+          <div className="mt-12 flex flex-col gap-4 border-t border-white/6 pt-8 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-zinc-600">
+              © {new Date().getFullYear()} Course Learning Platform. All rights
+              reserved.
+            </p>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-zinc-600">
+              <span>Video</span>
+              <span className="hidden h-1 w-1 rounded-full bg-zinc-700 sm:inline" />
+              <span>Tài liệu</span>
+              <span className="hidden h-1 w-1 rounded-full bg-zinc-700 sm:inline" />
+              <span>Quiz</span>
+              <span className="hidden h-1 w-1 rounded-full bg-zinc-700 sm:inline" />
+              <span>Một nền tảng</span>
+            </div>
           </div>
         </div>
       </footer>

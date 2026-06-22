@@ -94,6 +94,10 @@ export const LESSON_QUIZ_API = {
   UPDATE_ASSIGN: (snapLessonQuizId: string) => `/assign/${snapLessonQuizId}`,
   UNASSIGN: (snapLessonQuizId: string) => `/snapLessonQuiz/${snapLessonQuizId}`,
   GET_BY_ID: (quizId: string) => `/lesson-quiz/${quizId}`,
+  CHECK_CODE: (quizId: string) => `/lesson-quiz/checkingLessonQuizCode/${quizId}`,
+  CREATE_VERSION: (lessonQuizId: string) => `/lesson-quiz/${lessonQuizId}/version`,
+  UPDATE_QUESTIONS: (quizId: string) => `/${quizId}/questions`,
+  UPDATE: (lessonQuizId: string) => `/lessonQuiz/${lessonQuizId}`,
   GET_BY_LESSON: (snapLessonId: string) => `/lesson/${snapLessonId}`,
 };
 

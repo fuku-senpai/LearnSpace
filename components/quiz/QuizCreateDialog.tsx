@@ -288,26 +288,26 @@ export function QuizCreateDialog({
         else onOpenChange(true);
       }}
     >
-      <DialogContent className="flex max-h-[92vh] w-[calc(100%-1.5rem)] max-w-[min(96vw,80rem)] flex-col gap-0 overflow-hidden rounded-2xl border-slate-200 p-0 sm:max-w-7xl">
-        <div className="flex items-center gap-4 border-b border-slate-200 bg-linear-to-r from-sky-50/80 via-white to-slate-50 px-6 py-4">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sky-700 text-white shadow-sm">
+      <DialogContent className="fixed inset-0 flex h-dvh max-h-dvh w-full max-w-full translate-none flex-col gap-0 overflow-hidden rounded-none border-slate-200 p-0 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:h-auto sm:max-h-[92vh] sm:w-[calc(100%-1.5rem)] sm:max-w-[min(96vw,80rem)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl lg:max-w-7xl">
+        <div className="flex shrink-0 items-start gap-3 border-b border-slate-200 bg-linear-to-r from-sky-50/80 via-white to-slate-50 px-4 py-3 sm:items-center sm:gap-4 sm:px-6 sm:py-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-700 text-white shadow-sm sm:h-11 sm:w-11 sm:rounded-2xl">
             <FileText className="h-5 w-5" />
           </div>
-          <div className="min-w-0 flex-1">
-            <DialogTitle className="text-lg font-semibold text-slate-900">
+          <div className="min-w-0 flex-1 pr-8 sm:pr-0">
+            <DialogTitle className="text-base font-semibold text-slate-900 sm:text-lg">
               Tạo đề mới
             </DialogTitle>
-            <DialogDescription className="mt-0.5 truncate text-sm text-slate-500">
+            <DialogDescription className="mt-0.5 line-clamp-2 text-sm text-slate-500 sm:truncate">
               {subtitle}
             </DialogDescription>
           </div>
-          <span className="hidden shrink-0 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-medium text-sky-800 sm:inline">
+          <span className="hidden shrink-0 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-medium text-sky-800 md:inline">
             {questions.length} câu hỏi
           </span>
         </div>
 
-        <div className="grid min-h-0 flex-1 lg:grid-cols-[300px_minmax(0,1fr)]">
-          <aside className="space-y-4 border-b border-slate-200 bg-slate-50/50 p-5 lg:border-r lg:border-b-0">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:grid lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)] lg:overflow-hidden xl:grid-cols-[300px_minmax(0,1fr)]">
+          <aside className="shrink-0 space-y-4 border-b border-slate-200 bg-slate-50/50 p-4 sm:p-5 lg:min-h-0 lg:overflow-y-auto lg:border-r lg:border-b-0">
             <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
               Thông tin đề
             </p>
@@ -392,9 +392,9 @@ export function QuizCreateDialog({
             </div>
           </aside>
 
-          <section className="flex min-h-0 flex-col">
-            <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-3">
-              <div>
+          <section className="flex flex-col lg:min-h-0 lg:flex-1 lg:overflow-hidden">
+            <div className="flex shrink-0 flex-col gap-3 border-b border-slate-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+              <div className="min-w-0">
                 <p className="text-sm font-semibold text-slate-900">
                   Soạn câu hỏi
                 </p>
@@ -403,12 +403,15 @@ export function QuizCreateDialog({
                     ? "Nhập câu hỏi và đáp án mẫu"
                     : "Chọn đáp án đúng cho mỗi câu"}
                 </p>
+                <p className="mt-1 text-xs font-medium text-sky-700 md:hidden">
+                  {questions.length} câu hỏi
+                </p>
               </div>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                className="cursor-pointer rounded-lg"
+                className="h-9 w-full shrink-0 cursor-pointer rounded-lg sm:w-auto"
                 onClick={addQuestion}
               >
                 <Plus className="mr-1 h-4 w-4" />
@@ -416,61 +419,108 @@ export function QuizCreateDialog({
               </Button>
             </div>
 
-            <div className="grid min-h-0 flex-1 gap-0 lg:grid-cols-[260px_minmax(0,1fr)]">
-              <div className="max-h-[min(52vh,520px)] space-y-1 overflow-y-auto border-b border-slate-100 bg-slate-50/40 p-3 lg:max-h-none lg:border-r lg:border-b-0">
-                {questions.map((question, questionIndex) => {
-                  const isActive = questionIndex === activeQuestionIndex;
-                  const filled = isQuestionFilled(question, quizType);
+            <div className="flex flex-col lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:grid lg:grid-cols-[260px_minmax(0,1fr)]">
+              <div className="shrink-0 border-b border-slate-100 bg-slate-50/40 lg:max-h-none lg:overflow-y-auto lg:border-r lg:border-b-0">
+                <p className="px-4 pt-3 text-xs font-semibold tracking-wide text-slate-500 uppercase lg:hidden">
+                  Danh sách câu hỏi
+                </p>
+                <div className="flex gap-2 overflow-x-auto px-4 py-3 sm:px-5 [-ms-overflow-style:none] scrollbar-none lg:hidden [&::-webkit-scrollbar]:hidden">
+                  {questions.map((question, questionIndex) => {
+                    const isActive = questionIndex === activeQuestionIndex;
+                    const filled = isQuestionFilled(question, quizType);
 
-                  return (
-                    <button
-                      key={questionIndex}
-                      type="button"
-                      onClick={() => setActiveQuestionIndex(questionIndex)}
-                      className={cn(
-                        "flex w-full cursor-pointer items-start gap-2.5 rounded-xl px-3 py-2.5 text-left transition",
-                        isActive
-                          ? "bg-sky-700 text-white shadow-md"
-                          : "bg-white text-slate-700 ring-1 ring-slate-200/80 hover:ring-sky-200",
-                      )}
-                    >
-                      <span
+                    return (
+                      <button
+                        key={questionIndex}
+                        type="button"
+                        onClick={() => setActiveQuestionIndex(questionIndex)}
                         className={cn(
-                          "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold",
+                          "flex shrink-0 cursor-pointer items-center gap-2 rounded-xl px-3 py-2 text-left transition",
                           isActive
-                            ? "bg-white/20 text-white"
-                            : filled
-                              ? "bg-emerald-100 text-emerald-700"
-                              : "bg-slate-100 text-slate-600",
+                            ? "bg-sky-700 text-white shadow-md"
+                            : "bg-white text-slate-700 ring-1 ring-slate-200/80 hover:ring-sky-200",
                         )}
                       >
-                        {questionIndex + 1}
-                      </span>
-                      <span className="min-w-0 flex-1">
                         <span
                           className={cn(
-                            "block truncate text-sm font-medium",
-                            isActive ? "text-white" : "text-slate-800",
+                            "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold",
+                            isActive
+                              ? "bg-white/20 text-white"
+                              : filled
+                                ? "bg-emerald-100 text-emerald-700"
+                                : "bg-slate-100 text-slate-600",
                           )}
                         >
-                          {getQuestionPreview(question)}
+                          {questionIndex + 1}
                         </span>
                         <span
                           className={cn(
-                            "mt-0.5 block text-xs",
-                            isActive ? "text-sky-100" : "text-slate-500",
+                            "text-xs font-medium",
+                            isActive ? "text-white" : "text-slate-600",
                           )}
                         >
-                          {question.points || "0"} điểm
+                          {question.points || "0"}đ
                         </span>
-                      </span>
-                    </button>
-                  );
-                })}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="hidden space-y-1 p-3 lg:block">
+                  {questions.map((question, questionIndex) => {
+                    const isActive = questionIndex === activeQuestionIndex;
+                    const filled = isQuestionFilled(question, quizType);
+
+                    return (
+                      <button
+                        key={questionIndex}
+                        type="button"
+                        onClick={() => setActiveQuestionIndex(questionIndex)}
+                        className={cn(
+                          "flex w-full cursor-pointer items-start gap-2.5 rounded-xl px-3 py-2.5 text-left transition",
+                          isActive
+                            ? "bg-sky-700 text-white shadow-md"
+                            : "bg-white text-slate-700 ring-1 ring-slate-200/80 hover:ring-sky-200",
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold",
+                            isActive
+                              ? "bg-white/20 text-white"
+                              : filled
+                                ? "bg-emerald-100 text-emerald-700"
+                                : "bg-slate-100 text-slate-600",
+                          )}
+                        >
+                          {questionIndex + 1}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span
+                            className={cn(
+                              "block truncate text-sm font-medium",
+                              isActive ? "text-white" : "text-slate-800",
+                            )}
+                          >
+                            {getQuestionPreview(question)}
+                          </span>
+                          <span
+                            className={cn(
+                              "mt-0.5 block text-xs",
+                              isActive ? "text-sky-100" : "text-slate-500",
+                            )}
+                          >
+                            {question.points || "0"} điểm
+                          </span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {activeQuestion ? (
-                <div className="flex max-h-[min(52vh,520px)] min-h-[320px] flex-col overflow-y-auto p-5 lg:max-h-none">
+                <div className="p-4 sm:p-5 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-y-auto">
                   <div className="mb-4 flex items-center justify-between gap-3">
                     <div>
                       <p className="text-base font-semibold text-slate-900">
@@ -523,7 +573,7 @@ export function QuizCreateDialog({
                   </div>
 
                   <div className="space-y-4">
-                    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_120px]">
+                    <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_120px]">
                       <div className="grid gap-2">
                         <label className="text-xs font-medium text-slate-600">
                           Nội dung câu hỏi
@@ -574,8 +624,8 @@ export function QuizCreateDialog({
                         />
                       </div>
                     ) : (
-                      <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/50 p-4">
-                        <div className="flex items-center justify-between gap-3">
+                      <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/50 p-3 sm:p-4">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                           <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
                             Đáp án — bấm ○ để chọn đúng
                           </p>
@@ -583,7 +633,7 @@ export function QuizCreateDialog({
                             type="button"
                             variant="outline"
                             size="sm"
-                            className="h-8 cursor-pointer bg-white"
+                            className="h-8 w-full cursor-pointer bg-white sm:w-auto"
                             onClick={() => addOption(activeQuestionIndex)}
                           >
                             <Plus className="mr-1 h-3.5 w-3.5" />
@@ -596,7 +646,7 @@ export function QuizCreateDialog({
                             <div
                               key={optionIndex}
                               className={cn(
-                                "flex items-center gap-2 rounded-xl border bg-white p-2.5 transition",
+                                "flex items-start gap-2 rounded-xl border bg-white p-2.5 transition sm:items-center",
                                 option.correct
                                   ? "border-emerald-300 ring-1 ring-emerald-200"
                                   : "border-slate-200",
@@ -611,7 +661,7 @@ export function QuizCreateDialog({
                                     { correct: true },
                                   )
                                 }
-                                className="shrink-0 cursor-pointer"
+                                className="mt-0.5 shrink-0 cursor-pointer sm:mt-0"
                                 aria-label={`Chọn đáp án ${optionIndex + 1} là đúng`}
                               >
                                 <CheckCircle2
@@ -658,16 +708,16 @@ export function QuizCreateDialog({
           </section>
         </div>
 
-        <div className="flex shrink-0 items-center justify-between gap-3 border-t border-slate-200 bg-slate-50/80 px-6 py-4">
-          <p className="text-xs text-slate-500">
+        <div className="flex shrink-0 flex-col gap-3 border-t border-slate-200 bg-slate-50/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
+          <p className="text-center text-xs text-slate-500 sm:text-left">
             {quizType === "MULTIPLE_CHOICE" ? "Trắc nghiệm" : "Tự luận"} ·{" "}
             {durationMinutes} phút · Đạt {passScore} điểm
           </p>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:gap-3">
             <Button
               type="button"
               variant="outline"
-              className="cursor-pointer rounded-xl"
+              className="h-10 w-full cursor-pointer rounded-xl sm:w-auto"
               onClick={closeDialog}
               disabled={isPending}
             >
@@ -676,7 +726,7 @@ export function QuizCreateDialog({
             <Button
               disabled={!canSubmit}
               onClick={handleSubmit}
-              className="h-10 cursor-pointer rounded-xl bg-sky-700 px-6 hover:bg-sky-800"
+              className="h-10 w-full cursor-pointer rounded-xl bg-sky-700 px-6 hover:bg-sky-800 sm:w-auto"
             >
               {isPending ? (
                 <>

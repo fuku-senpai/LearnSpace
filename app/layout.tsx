@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   title: "Course Learning Platform",
   description: "Nền tảng quản lý video bài giảng và học tập trực tuyến",
   icons: {
-    icon: "/icons/systemIcon02.png",
+    icon: "/icons/pIcon03.png",
   },
 };
 

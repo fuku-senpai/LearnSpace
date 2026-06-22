@@ -199,6 +199,7 @@ const ClassContentManagement = () => {
   const [enrollCode, setEnrollCode] = useState("");
   const [enrollMessage, setEnrollMessage] = useState<string | null>(null);
   const [activeQuizId, setActiveQuizId] = useState<string | null>(null);
+  const [activeQuizTitle, setActiveQuizTitle] = useState<string | null>(null);
   const [activeSnapLessonQuizId, setActiveSnapLessonQuizId] = useState<
     string | null
   >(null);
@@ -496,6 +497,7 @@ const ClassContentManagement = () => {
                   onQuizClick={(quiz) => {
                     if (!quiz.snapLessonQuizId) return;
                     setActiveQuizId(quiz.quizId);
+                    setActiveQuizTitle(quiz.title);
                     setActiveSnapLessonQuizId(quiz.snapLessonQuizId);
                     setIsQuizModalOpen(true);
                   }}
@@ -562,10 +564,14 @@ const ClassContentManagement = () => {
       <LessonQuizTakeModal
         lessonQuizId={activeQuizId}
         snapLessonQuizId={activeSnapLessonQuizId}
+        fallbackTitle={activeQuizTitle ?? undefined}
         open={isQuizModalOpen}
         onOpenChange={(open) => {
           setIsQuizModalOpen(open);
-          if (!open) setActiveSnapLessonQuizId(null);
+          if (!open) {
+            setActiveSnapLessonQuizId(null);
+            setActiveQuizTitle(null);
+          }
         }}
         onViewResult={(snapLessonQuizId) => {
           setResultSnapLessonQuizId(snapLessonQuizId);

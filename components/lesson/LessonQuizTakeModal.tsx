@@ -11,14 +11,14 @@ import {
   ClipboardList,
   Clock,
   FileText,
+  KeyRound,
   Loader2,
-  PlayCircle,
-  Target,
   Timer,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AxiosError } from "axios";
 import { useGetLessonQuizQuery } from "@/app/hooks/lessonQuiz/useGetLessonQuiz";
+import { useCheckLessonQuizCodeMutation } from "@/app/hooks/lessonQuiz/useCheckLessonQuizCode";
 import { useSubmitLessonQuizMutation } from "@/app/hooks/lessonQuiz/useSubmitLessonQuiz";
 import {
   buildSubmitQuizPayload,
@@ -26,6 +26,7 @@ import {
   type SubmitQuizResponse,
 } from "@/app/service/lessonQuiz.service";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -34,16 +35,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import {
-  lessonNavyButton,
-  lessonNavyOutlineButton,
-} from "./lessonTheme";
+import { lessonNavyButton, lessonNavyOutlineButton } from "./lessonTheme";
 
 type QuizPhase = "ready" | "taking" | "finished" | "timeout";
 
 type LessonQuizTakeModalProps = {
   lessonQuizId: string | null;
   snapLessonQuizId: string | null;
+  fallbackTitle?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onViewResult?: (snapLessonQuizId: string) => void;
@@ -112,7 +111,7 @@ const resolveResult = (
 const optionLabel = (index: number) => String.fromCharCode(65 + index);
 
 const MODAL_CLASS =
-  "flex max-h-[92vh] w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden rounded-xl border border-slate-200/80 bg-white p-0 shadow-lg sm:max-w-3xl";
+  "fixed inset-0 flex h-dvh max-h-dvh w-full max-w-full translate-none flex-col gap-0 overflow-hidden rounded-none border-slate-200 bg-white p-0 shadow-xl sm:inset-auto sm:top-1/2 sm:left-1/2 sm:h-auto sm:max-h-[92vh] sm:w-[calc(100%-1.5rem)] sm:max-w-[min(96vw,72rem)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl lg:max-w-6xl xl:max-w-7xl";
 
 const getSubmitErrorMessage = (error: unknown) => {
   if (error instanceof AxiosError) {
@@ -128,25 +127,50 @@ const getSubmitErrorMessage = (error: unknown) => {
   return "Không thể nộp bài. Vui lòng thử lại.";
 };
 
+const getCheckCodeErrorMessage = (error: unknown) => {
+  if (error instanceof AxiosError) {
+    const data = error.response?.data;
+    if (data && typeof data === "object" && "message" in data) {
+      const message = data.message;
+      if (typeof message === "string" && message.trim()) {
+        return message;
+      }
+    }
+  }
+
+  return "Mã đề không đúng. Vui lòng thử lại.";
+};
+
 export function LessonQuizTakeModal({
   lessonQuizId,
   snapLessonQuizId,
+  fallbackTitle,
   open,
   onOpenChange,
   onViewResult,
 }: LessonQuizTakeModalProps) {
+  const [codeVerified, setCodeVerified] = useState(false);
+  const [lessonQuizCodeInput, setLessonQuizCodeInput] = useState("");
+  const [codeError, setCodeError] = useState<string | null>(null);
+
   const {
     data: quiz,
     isLoading,
     isError,
     error,
     refetch,
-  } = useGetLessonQuizQuery(open ? (lessonQuizId ?? undefined) : undefined);
+  } = useGetLessonQuizQuery(
+    codeVerified ? (lessonQuizId ?? undefined) : undefined,
+  );
+
+  const { mutateAsync: checkLessonQuizCode, isPending: isCheckingCode } =
+    useCheckLessonQuizCodeMutation();
 
   const { mutateAsync: submitQuiz, isPending: isSubmitting } =
     useSubmitLessonQuizMutation();
 
   const submittedRef = useRef(false);
+  const sessionInitializedRef = useRef(false);
 
   const [phase, setPhase] = useState<QuizPhase>("ready");
   const [secondsLeft, setSecondsLeft] = useState(0);
@@ -155,12 +179,16 @@ export function LessonQuizTakeModal({
   const [result, setResult] = useState<QuizResult | null>(null);
 
   const resetSession = useCallback(() => {
+    setCodeVerified(false);
+    setLessonQuizCodeInput("");
+    setCodeError(null);
     setPhase("ready");
     setSecondsLeft(0);
     setActiveQuestionIndex(0);
     setAnswers({});
     setResult(null);
     submittedRef.current = false;
+    sessionInitializedRef.current = false;
   }, []);
 
   useEffect(() => {
@@ -170,13 +198,37 @@ export function LessonQuizTakeModal({
   }, [open, resetSession]);
 
   useEffect(() => {
-    if (!open || !quiz) return;
-    setPhase("ready");
+    if (!open) return;
+    setCodeVerified(false);
+    setLessonQuizCodeInput("");
+    setCodeError(null);
+    sessionInitializedRef.current = false;
+  }, [open, lessonQuizId]);
+
+  const startTakingSession = useCallback(() => {
+    if (!quiz || quiz.questions.length === 0) return;
+
+    sessionInitializedRef.current = true;
+    submittedRef.current = false;
     setActiveQuestionIndex(0);
     setAnswers({});
     setResult(null);
-    setSecondsLeft(0);
-  }, [open, quiz?.quizId, quiz]);
+    setPhase("taking");
+    setSecondsLeft(Math.max(1, quiz.durationMinutes) * 60);
+  }, [quiz]);
+
+  useEffect(() => {
+    if (!open || !quiz || !codeVerified || sessionInitializedRef.current) return;
+    startTakingSession();
+  }, [
+    open,
+    codeVerified,
+    quiz,
+    quiz?.quizId,
+    quiz?.questions.length,
+    quiz?.durationMinutes,
+    startTakingSession,
+  ]);
 
   useEffect(() => {
     if (!open || !quiz || phase !== "taking") return;
@@ -199,7 +251,8 @@ export function LessonQuizTakeModal({
       requireAllAnswers: boolean,
       submitAnswers: Record<string, string> = answers,
     ) => {
-      if (!quiz || !snapLessonQuizId || isSubmitting || submittedRef.current) return false;
+      if (!quiz || !snapLessonQuizId || isSubmitting || submittedRef.current)
+        return false;
 
       if (requireAllAnswers) {
         const unanswered = quiz.questions.filter(
@@ -259,7 +312,12 @@ export function LessonQuizTakeModal({
   }, [quiz, snapLessonQuizId, submitQuiz]);
 
   useEffect(() => {
-    if (phase !== "timeout" || !quiz || !snapLessonQuizId || submittedRef.current) {
+    if (
+      phase !== "timeout" ||
+      !quiz ||
+      !snapLessonQuizId ||
+      submittedRef.current
+    ) {
       return;
     }
 
@@ -278,19 +336,13 @@ export function LessonQuizTakeModal({
     ? Math.round((answeredCount / Math.max(quiz.questions.length, 1)) * 100)
     : 0;
 
-  const handleStartQuiz = () => {
-    if (!quiz || quiz.questions.length === 0) return;
-    setPhase("taking");
-    setSecondsLeft(Math.max(1, quiz.durationMinutes) * 60);
-  };
-
   const handleClose = (nextOpen: boolean) => {
     if (nextOpen) {
       onOpenChange(true);
       return;
     }
 
-    if (isSubmitting) return;
+    if (isSubmitting || isCheckingCode) return;
 
     if (phase === "taking" && quiz && snapLessonQuizId) {
       void submitAbandoned().finally(() => onOpenChange(false));
@@ -304,40 +356,77 @@ export function LessonQuizTakeModal({
     void performSubmit("finished", true);
   };
 
+  const handleVerifyCode = async () => {
+    const code = lessonQuizCodeInput.trim();
+    if (!code) {
+      setCodeError("Vui lòng nhập mã đề");
+      return;
+    }
+
+    if (!lessonQuizId) {
+      setCodeError("Không xác định được bài quiz");
+      return;
+    }
+
+    setCodeError(null);
+
+    try {
+      await checkLessonQuizCode({
+        quizId: lessonQuizId,
+        lessonQuizCode: code,
+      });
+      sessionInitializedRef.current = false;
+      setCodeVerified(true);
+    } catch (checkError) {
+      setCodeError(getCheckCodeErrorMessage(checkError));
+    }
+  };
+
   const isUrgent = secondsLeft > 0 && secondsLeft <= 60;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className={MODAL_CLASS}>
-        <div className="border-b border-slate-100 bg-slate-50/50 px-6 py-5">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex min-w-0 flex-1 items-start gap-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-slate-700 ring-1 ring-slate-200 shadow-sm">
+        <div className="shrink-0 border-b border-slate-200 bg-linear-to-r from-slate-50 via-white to-slate-50/80 px-4 py-4 sm:px-6 sm:py-5">
+          <div className="flex items-start justify-between gap-3 sm:gap-4">
+            <div className="flex min-w-0 flex-1 items-start gap-3 sm:gap-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-900 text-white shadow-sm sm:h-11 sm:w-11 sm:rounded-2xl">
                 <ClipboardList className="h-5 w-5" />
               </div>
-              <div className="min-w-0 flex-1">
-                <DialogTitle className="truncate text-lg font-semibold text-slate-900">
-                  {phase === "ready" && !quiz
-                    ? "Chuẩn bị làm bài"
-                    : (quiz?.title ?? "Đang tải bài quiz...")}
+              <div className="min-w-0 flex-1 pr-6 sm:pr-0">
+                <DialogTitle className="text-base font-semibold text-slate-900 sm:text-lg">
+                  {!codeVerified
+                    ? "Nhập mã đề"
+                    : isLoading
+                      ? "Đang mở bài làm..."
+                      : (quiz?.title ?? fallbackTitle ?? "Bài quiz")}
                 </DialogTitle>
                 <DialogDescription className="mt-1 line-clamp-2 text-sm text-slate-500">
-                  {phase === "ready" && !quiz
-                    ? "Đang tải thông tin bài quiz..."
-                    : (quiz?.description ?? "Làm bài trắc nghiệm buổi học")}
+                  {!codeVerified
+                    ? "Nhập đúng mã đề để vào làm bài ngay"
+                    : isLoading
+                      ? "Vui lòng đợi trong giây lát"
+                      : (quiz?.description ?? "Làm bài trắc nghiệm buổi học")}
                 </DialogDescription>
               </div>
             </div>
 
             {phase === "taking" && quiz ? (
-              <div
-                className={cn(
-                  "flex shrink-0 items-center gap-2 rounded-lg bg-white px-3.5 py-2 text-sm font-semibold tabular-nums ring-1 ring-slate-200 shadow-sm",
-                  isUrgent ? "text-rose-700 ring-rose-200" : "text-slate-800",
-                )}
-              >
-                <Clock className={cn("h-4 w-4", isUrgent && "animate-pulse")} />
-                {formatTime(secondsLeft)}
+              <div className="flex shrink-0 flex-col items-end gap-2 sm:flex-row sm:items-center">
+                <div
+                  className={cn(
+                    "flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold tabular-nums shadow-sm ring-1",
+                    isUrgent
+                      ? "bg-rose-50 text-rose-700 ring-rose-200"
+                      : "bg-white text-slate-800 ring-slate-200",
+                  )}
+                >
+                  <Clock className={cn("h-4 w-4", isUrgent && "animate-pulse")} />
+                  {formatTime(secondsLeft)}
+                </div>
+                <span className="hidden rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-900 ring-1 ring-blue-100 md:inline">
+                  {answeredCount}/{quiz.questions.length} câu
+                </span>
               </div>
             ) : null}
           </div>
@@ -345,12 +434,10 @@ export function LessonQuizTakeModal({
           {phase === "taking" && quiz ? (
             <div className="mt-4 space-y-2">
               <div className="flex items-center justify-between text-xs font-medium text-slate-500">
-                <span>
-                  Tiến độ {answeredCount}/{quiz.questions.length} câu
-                </span>
-                <span>{progressPercent}%</span>
+                <span>Tiến độ làm bài</span>
+                <span>{progressPercent}% hoàn thành</span>
               </div>
-              <div className="h-1.5 overflow-hidden rounded-full bg-slate-200/80">
+              <div className="h-2 overflow-hidden rounded-full bg-slate-200/80">
                 <div
                   className="h-full rounded-full bg-blue-900 transition-all duration-300"
                   style={{ width: `${progressPercent}%` }}
@@ -360,16 +447,72 @@ export function LessonQuizTakeModal({
           ) : null}
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50/30 px-6 py-5">
-          {isLoading ? (
+        <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50/40 px-4 py-4 sm:px-6 sm:py-5">
+          {!codeVerified ? (
+            <div className="mx-auto flex min-h-[280px] max-w-xl flex-col justify-center py-6 sm:min-h-[320px]">
+              <div className="rounded-2xl border border-amber-200/80 bg-white p-6 shadow-sm sm:p-8">
+                <div className="flex flex-col items-center text-center sm:flex-row sm:items-start sm:text-left">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-amber-50 text-amber-700 ring-1 ring-amber-200">
+                    <KeyRound className="h-6 w-6" />
+                  </div>
+                  <div className="mt-4 sm:mt-0 sm:ml-5">
+                    <h3 className="text-lg font-semibold text-slate-900">
+                      Xác nhận mã đề
+                    </h3>
+                    <p className="mt-1.5 text-sm leading-relaxed text-slate-500">
+                      {fallbackTitle
+                        ? `Nhập mã để vào làm bài "${fallbackTitle}"`
+                        : "Nhập mã đề do giáo viên cung cấp"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-6 space-y-2">
+                  <label
+                    htmlFor="lesson-quiz-code"
+                    className="text-xs font-semibold tracking-wide text-slate-600 uppercase"
+                  >
+                    Mã đề
+                  </label>
+                  <Input
+                    id="lesson-quiz-code"
+                    className="h-12 rounded-xl border-slate-200 bg-slate-50/50 text-center font-mono text-base tracking-[0.2em] uppercase sm:text-left"
+                    placeholder="LQ-XXXXXX"
+                    value={lessonQuizCodeInput}
+                    onChange={(e) => {
+                      setLessonQuizCodeInput(e.target.value.toUpperCase());
+                      if (codeError) setCodeError(null);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        void handleVerifyCode();
+                      }
+                    }}
+                    autoComplete="off"
+                    autoFocus
+                  />
+                  {codeError ? (
+                    <p className="text-sm text-rose-600">{codeError}</p>
+                  ) : (
+                    <p className="text-xs text-slate-400">
+                      Nhập đúng mã sẽ vào làm bài ngay
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : isLoading ? (
             <div className="flex flex-col items-center justify-center gap-3 py-24 text-sm text-slate-500">
               <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
-              Đang tải bài quiz...
+              Đang mở bài làm...
             </div>
           ) : isError ? (
             <div className="rounded-xl border border-slate-200 bg-white px-6 py-16 text-center shadow-sm">
               <AlertCircle className="mx-auto mb-3 h-6 w-6 text-slate-400" />
-              <p className="font-medium text-slate-900">Không thể tải bài quiz</p>
+              <p className="font-medium text-slate-900">
+                Không thể tải bài quiz
+              </p>
               <p className="mt-1 text-sm text-slate-500">
                 {error instanceof Error ? error.message : "Vui lòng thử lại"}
               </p>
@@ -382,70 +525,21 @@ export function LessonQuizTakeModal({
                 Thử lại
               </Button>
             </div>
-          ) : quiz && phase === "ready" ? (
-            <div className="space-y-5">
-              <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-sm">
-                <h3 className="text-base font-semibold text-slate-900">
-                  Sẵn sàng làm bài?
-                </h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate-500">
-                  Đồng hồ bắt đầu khi bạn nhấn &quot;Bắt đầu&quot;. Hết giờ sẽ
-                  tự động nộp bài.
-                </p>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-xl border border-slate-200/90 bg-white px-4 py-3.5 shadow-sm">
-                  <div className="flex items-center gap-2 text-xs text-slate-400">
-                    <Clock className="h-3.5 w-3.5" />
-                    Thời gian
-                  </div>
-                  <p className="mt-1 text-lg font-semibold text-slate-900">
-                    {quiz.durationMinutes} phút
-                  </p>
-                </div>
-                <div className="rounded-xl border border-slate-200/90 bg-white px-4 py-3.5 shadow-sm">
-                  <div className="flex items-center gap-2 text-xs text-slate-400">
-                    <FileText className="h-3.5 w-3.5" />
-                    Số câu
-                  </div>
-                  <p className="mt-1 text-lg font-semibold text-slate-900">
-                    {quiz.questions.length}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-slate-200/90 bg-white px-4 py-3.5 shadow-sm">
-                  <div className="flex items-center gap-2 text-xs text-slate-400">
-                    <Target className="h-3.5 w-3.5" />
-                    Điểm đạt
-                  </div>
-                  <p className="mt-1 text-lg font-semibold text-slate-900">
-                    ≥ {quiz.passScore}
-                  </p>
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-slate-200/90 bg-white px-5 py-4 shadow-sm">
-                <p className="text-xs font-medium text-slate-400">Lưu ý</p>
-                <ul className="mt-2.5 space-y-2 text-sm text-slate-600">
-                  <li className="flex gap-2">
-                    <span className="text-slate-300">—</span>
-                    Không đóng cửa sổ khi đang làm bài
-                  </li>
-                  <li className="flex gap-2">
-                    <span className="text-slate-300">—</span>
-                    Kiểm tra kỹ trước khi nộp
-                  </li>
-                </ul>
-              </div>
-            </div>
           ) : isSubmitting ? (
             <div className="flex flex-col items-center justify-center gap-3 py-24 text-sm text-slate-500">
               <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
               Đang nộp bài...
             </div>
           ) : quiz && (phase === "finished" || phase === "timeout") ? (
-            <div className="mx-auto max-w-md py-6 text-center">
-              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-white text-slate-500 ring-1 ring-slate-200 shadow-sm">
+            <div className="mx-auto max-w-lg py-6 text-center sm:py-8">
+              <div
+                className={cn(
+                  "mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full shadow-sm ring-1",
+                  result?.passed
+                    ? "bg-emerald-50 text-emerald-600 ring-emerald-200"
+                    : "bg-white text-slate-500 ring-slate-200",
+                )}
+              >
                 <CheckCircle2 className="h-8 w-8" />
               </div>
 
@@ -486,14 +580,24 @@ export function LessonQuizTakeModal({
               ) : null}
 
               <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-                {onViewResult && snapLessonQuizId ? (
                 <Button
                   type="button"
-                  variant="outline"
                   className={cn(
-                    "h-10 cursor-pointer rounded-lg px-6",
-                    lessonNavyOutlineButton,
+                    "h-10 cursor-pointer rounded-lg px-8",
+                    lessonNavyButton,
                   )}
+                  onClick={startTakingSession}
+                >
+                  Làm tiếp
+                </Button>
+                {onViewResult && snapLessonQuizId ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className={cn(
+                      "h-10 cursor-pointer rounded-lg px-6",
+                      lessonNavyOutlineButton,
+                    )}
                     onClick={() => {
                       onViewResult(snapLessonQuizId);
                       onOpenChange(false);
@@ -523,48 +627,48 @@ export function LessonQuizTakeModal({
               </p>
             </div>
           ) : quiz && activeQuestion ? (
-            <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
-              <div className="min-w-0 flex-1 space-y-4">
-                <div className="flex items-center justify-between gap-3">
+            <div className="grid min-h-0 gap-5 xl:grid-cols-[minmax(0,1fr)_300px] xl:items-start">
+              <div className="min-w-0 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-sm font-semibold text-slate-700 ring-1 ring-slate-200 shadow-sm">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-900 text-sm font-bold text-white shadow-sm">
                       {activeQuestionIndex + 1}
                     </span>
                     <div>
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium text-slate-900">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-base font-semibold text-slate-900">
                           Câu {activeQuestionIndex + 1} / {quiz.questions.length}
                         </p>
                         {answers[activeQuestion.questionId]?.trim() ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 ring-1 ring-emerald-200">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200">
                             <Check className="h-3 w-3" />
-                            Đã làm
+                            Đã trả lời
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500 ring-1 ring-slate-200">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-500 ring-1 ring-slate-200">
                             <Circle className="h-2.5 w-2.5" />
-                            Chưa làm
+                            Chưa trả lời
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-slate-400">
+                      <p className="mt-0.5 text-sm text-slate-500">
                         {activeQuestion.points} điểm
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm">
-                  <div className="border-b border-slate-100 bg-slate-50/50 px-5 py-4">
-                    <p className="text-[15px] leading-relaxed font-medium text-slate-900">
+                <div className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm">
+                  <div className="border-b border-slate-100 bg-slate-50/70 px-5 py-5 sm:px-6">
+                    <p className="text-base leading-relaxed font-medium text-slate-900 sm:text-[17px]">
                       {activeQuestion.content}
                     </p>
                   </div>
 
-                  <div className="px-5 py-4">
+                  <div className="px-5 py-5 sm:px-6">
                     {quiz.quizType === "ESSAY" ? (
                       <Textarea
-                        className="min-h-[140px] resize-y rounded-lg border-slate-200 bg-slate-50/30 focus-visible:ring-slate-400"
+                        className="min-h-[180px] resize-y rounded-xl border-slate-200 bg-slate-50/30 text-sm leading-relaxed focus-visible:ring-blue-900/20 sm:min-h-[220px]"
                         placeholder="Viết câu trả lời của bạn..."
                         value={answers[activeQuestion.questionId] ?? ""}
                         onChange={(e) =>
@@ -575,7 +679,7 @@ export function LessonQuizTakeModal({
                         }
                       />
                     ) : (
-                      <div className="space-y-2.5">
+                      <div className="grid gap-3 sm:grid-cols-2">
                         {activeQuestion.options.map((option, optionIndex) => {
                           const isSelected =
                             answers[activeQuestion.questionId] ===
@@ -592,23 +696,23 @@ export function LessonQuizTakeModal({
                                 }))
                               }
                               className={cn(
-                                "flex w-full cursor-pointer items-start gap-3 rounded-lg border px-4 py-3.5 text-left text-sm transition-all",
+                                "flex w-full cursor-pointer items-start gap-3 rounded-xl border px-4 py-4 text-left text-sm transition-all",
                                 isSelected
-                                  ? "border-blue-900 bg-blue-50 shadow-sm"
-                                  : "border-slate-200 bg-white hover:border-blue-200 hover:bg-blue-50/50",
+                                  ? "border-blue-900 bg-blue-50 shadow-md ring-1 ring-blue-900/10"
+                                  : "border-slate-200 bg-white hover:border-blue-200 hover:bg-blue-50/40",
                               )}
                             >
                               <span
                                 className={cn(
-                                  "flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-xs font-semibold",
+                                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold",
                                   isSelected
                                     ? "bg-blue-900 text-white"
-                                    : "bg-slate-100 text-slate-500",
+                                    : "bg-slate-100 text-slate-600",
                                 )}
                               >
                                 {optionLabel(optionIndex)}
                               </span>
-                              <span className="leading-snug text-slate-800">
+                              <span className="pt-0.5 leading-relaxed text-slate-800">
                                 {option.content}
                               </span>
                             </button>
@@ -620,16 +724,16 @@ export function LessonQuizTakeModal({
                 </div>
               </div>
 
-              <div className="w-full shrink-0 rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm lg:w-52">
-                <div className="mb-3 flex items-center justify-between gap-2">
-                  <p className="text-xs font-medium text-slate-400">
-                    Danh sách câu
+              <aside className="w-full shrink-0 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm xl:sticky xl:top-0">
+                <div className="mb-3 flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                  <p className="text-sm font-semibold text-slate-900">
+                    Bảng câu hỏi
                   </p>
-                  <p className="text-[11px] font-medium text-slate-500">
+                  <p className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
                     {answeredCount}/{quiz.questions.length}
                   </p>
                 </div>
-                <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-8 lg:grid-cols-4">
+                <div className="grid grid-cols-5 gap-2 sm:grid-cols-8 xl:grid-cols-5">
                   {quiz.questions.map((question, index) => {
                     const isActive = index === activeQuestionIndex;
                     const isAnswered = Boolean(
@@ -647,7 +751,7 @@ export function LessonQuizTakeModal({
                             : `Câu ${index + 1} - Chưa làm`
                         }
                         className={cn(
-                          "relative flex h-9 cursor-pointer items-center justify-center rounded-lg border text-xs font-semibold transition-colors",
+                          "relative flex h-10 cursor-pointer items-center justify-center rounded-lg border text-xs font-semibold transition-colors",
                           isActive
                             ? "border-blue-900 bg-blue-900 text-white shadow-sm"
                             : isAnswered
@@ -669,84 +773,99 @@ export function LessonQuizTakeModal({
                     );
                   })}
                 </div>
-                <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-slate-100 pt-3 text-[11px] text-slate-500">
-                  <span className="inline-flex items-center gap-1">
-                    <span className="flex h-4 w-4 items-center justify-center rounded border border-emerald-300 bg-emerald-50 text-emerald-700">
-                      <Check className="h-2.5 w-2.5" />
+                <div className="mt-4 flex flex-wrap items-center gap-4 border-t border-slate-100 pt-4 text-xs text-slate-500">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="flex h-5 w-5 items-center justify-center rounded border border-emerald-300 bg-emerald-50 text-emerald-700">
+                      <Check className="h-3 w-3" />
                     </span>
-                    Đã làm
+                    Đã trả lời
                   </span>
-                  <span className="inline-flex items-center gap-1">
-                    <span className="flex h-4 w-4 items-center justify-center rounded border border-dashed border-slate-300 text-slate-400">
-                      <Circle className="h-2 w-2" />
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="flex h-5 w-5 items-center justify-center rounded border border-dashed border-slate-300 text-slate-400">
+                      <Circle className="h-2.5 w-2.5" />
                     </span>
-                    Chưa làm
+                    Chưa trả lời
                   </span>
                 </div>
-              </div>
+              </aside>
             </div>
           ) : null}
         </div>
 
-        {quiz && phase === "ready" && !isLoading && !isError ? (
-          <div className="flex shrink-0 items-center gap-3 border-t border-slate-100 bg-white px-6 py-4">
+        {!codeVerified ? (
+          <div className="flex shrink-0 items-center gap-3 border-t border-slate-200 bg-slate-50/80 px-4 py-4 sm:px-6">
             <Button
               type="button"
               variant="outline"
-              className="h-10 flex-1 cursor-pointer rounded-lg"
+              className="h-11 flex-1 cursor-pointer rounded-xl border-slate-200 bg-white"
               onClick={() => onOpenChange(false)}
+              disabled={isCheckingCode}
             >
-              Để sau
+              Huỷ
             </Button>
             <Button
               type="button"
-              className={cn("h-10 flex-1 cursor-pointer rounded-lg", lessonNavyButton)}
-              onClick={handleStartQuiz}
-              disabled={quiz.questions.length === 0}
+              className={cn(
+                "h-11 flex-1 cursor-pointer rounded-xl",
+                lessonNavyButton,
+              )}
+              onClick={() => void handleVerifyCode()}
+              disabled={isCheckingCode || !lessonQuizCodeInput.trim()}
             >
-              <PlayCircle className="mr-2 h-4 w-4" />
-              Bắt đầu làm bài
+              {isCheckingCode ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Đang kiểm tra...
+                </>
+              ) : (
+                "Vào làm bài"
+              )}
             </Button>
           </div>
         ) : null}
 
         {quiz && phase === "taking" && !isLoading && !isError ? (
-          <div className="flex shrink-0 items-center justify-between gap-3 border-t border-slate-100 bg-white px-6 py-4">
-            <div className="flex items-center gap-1.5">
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="h-9 w-9 cursor-pointer rounded-lg"
-                onClick={() =>
-                  setActiveQuestionIndex((index) => Math.max(0, index - 1))
-                }
-                disabled={activeQuestionIndex === 0}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="h-9 w-9 cursor-pointer rounded-lg"
-                onClick={() =>
-                  setActiveQuestionIndex((index) =>
-                    Math.min(quiz.questions.length - 1, index + 1),
-                  )
-                }
-                disabled={activeQuestionIndex >= quiz.questions.length - 1}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-              <span className="ml-2 hidden text-xs text-slate-400 sm:inline">
-                <Timer className="mr-1 inline h-3 w-3" />
+          <div className="flex shrink-0 flex-col gap-3 border-t border-slate-200 bg-slate-50/80 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <div className="flex items-center justify-between gap-2 sm:justify-start">
+              <div className="flex items-center gap-1.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-10 w-10 cursor-pointer rounded-xl border-slate-200 bg-white"
+                  onClick={() =>
+                    setActiveQuestionIndex((index) => Math.max(0, index - 1))
+                  }
+                  disabled={activeQuestionIndex === 0}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-10 w-10 cursor-pointer rounded-xl border-slate-200 bg-white"
+                  onClick={() =>
+                    setActiveQuestionIndex((index) =>
+                      Math.min(quiz.questions.length - 1, index + 1),
+                    )
+                  }
+                  disabled={activeQuestionIndex >= quiz.questions.length - 1}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+              <span className="text-sm font-medium text-slate-500 sm:ml-3">
+                <Timer className="mr-1.5 inline h-4 w-4" />
                 {formatTime(secondsLeft)} còn lại
               </span>
             </div>
             <Button
               type="button"
-              className={cn("h-10 cursor-pointer rounded-lg px-6", lessonNavyButton)}
+              className={cn(
+                "h-11 w-full cursor-pointer rounded-xl px-8 sm:w-auto",
+                lessonNavyButton,
+              )}
               onClick={handleSubmit}
               disabled={isSubmitting}
             >

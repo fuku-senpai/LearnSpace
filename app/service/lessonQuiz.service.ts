@@ -8,11 +8,33 @@ export type QuizOptionPayload = {
   correct: boolean;
 };
 
+export type QuizOptionUpdatePayload = {
+  id?: string;
+  content: string;
+  correct: boolean;
+};
+
 export type QuizQuestionPayload = {
   content: string;
   points: number;
   essayAnswer?: string;
   options?: QuizOptionPayload[];
+};
+
+export type QuizQuestionUpdatePayload = {
+  id?: string;
+  content: string;
+  points: number;
+  essayAnswer?: string;
+  options?: QuizOptionUpdatePayload[];
+};
+
+export type UpdateLessonQuizQuestionsPayload = {
+  questions: QuizQuestionUpdatePayload[];
+};
+
+export type UpdateLessonQuizQuestionsResponse = {
+  message?: string;
 };
 
 export type CreateLessonQuizPayload = {
@@ -26,6 +48,36 @@ export type CreateLessonQuizPayload = {
 
 export type CreateLessonQuizResponse = {
   message?: string;
+};
+
+export type UpdateLessonQuizPayload = {
+  title: string;
+  description: string;
+  durationMinutes: number;
+  passScore: number;
+};
+
+export type UpdateLessonQuizResponse = {
+  message?: string;
+};
+
+export type CheckLessonQuizCodePayload = {
+  lessonQuizCode: string;
+};
+
+export type CheckLessonQuizCodeResponse = {
+  message?: string;
+};
+
+export type CreateLessonQuizVersionPayload = {
+  questions: QuizQuestionPayload[];
+};
+
+export type CreateLessonQuizVersionResponse = {
+  message?: string;
+  lessonQuizId?: string;
+  version?: number;
+  lessonQuizCode?: string;
 };
 
 export type AssignQuizPayload = {
@@ -58,6 +110,7 @@ export type UnassignQuizResponse = {
 export type LessonAssignedQuiz = {
   snapLessonQuizId: string;
   lessonQuizId: string;
+  lessonQuizCode?: string;
   title: string;
   description: string;
   quizType: QuizType;
@@ -71,6 +124,7 @@ export type LessonAssignedQuiz = {
 export type LessonQuizListItem = {
   quizId: string;
   snapLessonQuizId?: string;
+  lessonQuizCode?: string;
   title: string;
   description?: string;
   durationMinutes?: number;
@@ -89,6 +143,7 @@ export const mapAssignedQuizzesToListItems = (
     .map((quiz) => ({
       quizId: quiz.lessonQuizId,
       snapLessonQuizId: quiz.snapLessonQuizId,
+      lessonQuizCode: quiz.lessonQuizCode,
       title: quiz.title,
       description: quiz.description,
       durationMinutes: quiz.durationMinutes,
@@ -115,6 +170,8 @@ export type QuizQuestionDetail = {
 
 export type LessonQuizDetail = {
   quizId: string;
+  lessonQuizCode?: string;
+  version?: number;
   title: string;
   description: string;
   durationMinutes: number;
@@ -214,6 +271,8 @@ export const mapAttemptToSubmissionResult = (
 
 export type QuizBankItem = {
   id: string;
+  lessonQuizCode?: string;
+  version?: number;
   title: string;
   description: string;
   durationMinutes: number;
@@ -294,6 +353,49 @@ export const LessonQuizService = {
     const res: AxiosResponse<LessonQuizDetail> = await axiosClient.get(
       `/lesson-quiz/${quizId}`,
     );
+    return res.data;
+  },
+
+  checkLessonQuizCode: async (
+    quizId: string,
+    payload: CheckLessonQuizCodePayload,
+  ): Promise<CheckLessonQuizCodeResponse> => {
+    const res: AxiosResponse<CheckLessonQuizCodeResponse> = await axiosClient.post(
+      `/lesson-quiz/checkingLessonQuizCode/${quizId}`,
+      payload,
+    );
+    return res.data;
+  },
+
+  updateLessonQuiz: async (
+    lessonQuizId: string,
+    payload: UpdateLessonQuizPayload,
+  ): Promise<UpdateLessonQuizResponse> => {
+    const res: AxiosResponse<UpdateLessonQuizResponse> = await axiosClient.put(
+      `/lesson-quiz/${lessonQuizId}`,
+      payload,
+    );
+    return res.data;
+  },
+
+  createLessonQuizVersion: async (
+    lessonQuizId: string,
+    payload: CreateLessonQuizVersionPayload,
+  ): Promise<CreateLessonQuizVersionResponse> => {
+    const res: AxiosResponse<CreateLessonQuizVersionResponse> =
+      await axiosClient.post(
+        `/lesson-quiz/${lessonQuizId}/version`,
+        payload,
+      );
+    return res.data;
+  },
+
+  updateLessonQuizQuestions: async (
+    quizId: string,
+    payload: UpdateLessonQuizQuestionsPayload,
+  ): Promise<UpdateLessonQuizQuestionsResponse> => {
+    const res: AxiosResponse<UpdateLessonQuizQuestionsResponse> =
+      await axiosClient.put(`/lesson-quiz/${quizId}/questions`, payload);
     return res.data;
   },
 
