@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { AxiosError } from "axios";
 
 import { useGetLessonQuizzesQuery } from "@/app/hooks/lessonQuiz/useGetLessonQuizzes";
 
@@ -32,6 +33,17 @@ type LessonQuizPanelProps = {
   snapLessonId: string;
   lessonTitle: string;
   classroomId?: string;
+};
+
+const getUnassignErrorMessage = (error: unknown) => {
+  if (error instanceof AxiosError) {
+    const message = error.response?.data?.message;
+    if (typeof message === "string" && message.trim()) {
+      return message;
+    }
+  }
+
+  return "Không thể gỡ bài tập. Vui lòng thử lại.";
 };
 
 export function LessonQuizPanel({
@@ -131,7 +143,7 @@ export function LessonQuizPanel({
       refetch();
     } catch (unassignError) {
       console.error(unassignError);
-      toast.error("Không thể gỡ bài tập. Vui lòng thử lại.");
+      toast.error(getUnassignErrorMessage(unassignError));
     }
   };
 
