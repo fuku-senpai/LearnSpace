@@ -259,11 +259,31 @@ export type QuizResultOption = {
 export type QuizResultQuestion = {
   questionId: string;
   questionContent: string;
+  /** Maximum points for this question */
   points: number;
+  /** Points awarded after grading (essay) or auto-scoring (MCQ) */
+  gradedPoints?: number | null;
   correct: boolean;
   selectedOptionId: string | null;
   essayAnswer: string | null;
   options: QuizResultOption[];
+};
+
+export const getQuestionEarnedPoints = (question: QuizResultQuestion): number => {
+  if (typeof question.gradedPoints === "number") {
+    return question.gradedPoints;
+  }
+
+  if ((question.options ?? []).length > 0) {
+    return question.correct ? question.points : 0;
+  }
+
+  return 0;
+};
+
+export const formatQuestionScoreLabel = (question: QuizResultQuestion) => {
+  const earned = getQuestionEarnedPoints(question);
+  return `${earned}/${question.points}đ`;
 };
 
 export type QuizResultAttempt = {
@@ -346,6 +366,70 @@ export type QuizBankResponse = {
   size: number;
   totalElements: number;
   totalPages: number;
+};
+
+export type PendingSubmissionAnswer = {
+  answerId: string;
+  questionContent: string;
+  essayAnswer: string;
+  /** Maximum points for this question */
+  maxPoints?: number;
+  /** @deprecated use maxPoints */
+  points?: number;
+  /** Points already graded by teacher, if any */
+  gradedPoints?: number;
+};
+
+export const getAnswerMaxPoints = (answer: PendingSubmissionAnswer) =>
+  typeof answer.maxPoints === "number"
+    ? answer.maxPoints
+    : typeof answer.points === "number"
+      ? answer.points
+      : undefined;
+
+export type PendingQuizSubmission = {
+  submissionId: string;
+  studentName: string;
+  answers: PendingSubmissionAnswer[];
+};
+
+export type GradedSubmissionAnswer = {
+  answerId: string;
+  questionContent: string;
+  maxPoints: number;
+  gradedPoints: number;
+};
+
+export type GradedQuizSubmission = {
+  submissionId: string;
+  studentName: string;
+  totalScore: number;
+  passed: boolean;
+  answers: GradedSubmissionAnswer[];
+};
+
+export const getGradedSubmissionScore = (submission: GradedQuizSubmission) =>
+  submission.totalScore;
+
+const normalizeGradedSubmissions = (
+  submissions: GradedQuizSubmission[] | null | undefined,
+): GradedQuizSubmission[] =>
+  (submissions ?? []).map((submission) => ({
+    ...submission,
+    answers: submission.answers ?? [],
+  }));
+
+export type GradeSubmissionAnswerPayload = {
+  answerId: string;
+  score: number;
+};
+
+export type GradeSubmissionPayload = {
+  answers: GradeSubmissionAnswerPayload[];
+};
+
+export type GradeSubmissionResponse = {
+  message?: string;
 };
 
 type QuizBankApiResponse = {
@@ -525,5 +609,34 @@ export const LessonQuizService = {
       `/lesson/${snapLessonId}`,
     );
     return res.data ?? [];
+  },
+
+  getPendingSubmissions: async (
+    snapLessonQuizId: string,
+  ): Promise<PendingQuizSubmission[]> => {
+    const res: AxiosResponse<PendingQuizSubmission[]> = await axiosClient.get(
+      `/snap-lesson-quizzes/${snapLessonQuizId}/pending`,
+    );
+    return res.data ?? [];
+  },
+
+  getGradedSubmissions: async (
+    snapLessonQuizId: string,
+  ): Promise<GradedQuizSubmission[]> => {
+    const res: AxiosResponse<GradedQuizSubmission[]> = await axiosClient.get(
+      `/snap-lesson-quizzes/${snapLessonQuizId}/graded`,
+    );
+    return normalizeGradedSubmissions(res.data);
+  },
+
+  gradeSubmission: async (
+    submissionId: string,
+    payload: GradeSubmissionPayload,
+  ): Promise<GradeSubmissionResponse> => {
+    const res: AxiosResponse<GradeSubmissionResponse> = await axiosClient.post(
+      `/teacher/submissions/${submissionId}/grade`,
+      payload,
+    );
+    return res.data;
   },
 };

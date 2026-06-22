@@ -28,6 +28,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useUnassignQuizMutation } from "@/app/hooks/lessonQuiz/useUnassignQuiz";
+import { LessonQuizGradeModal } from "@/components/lesson/LessonQuizGradeModal";
 
 type LessonQuizPanelProps = {
   snapLessonId: string;
@@ -58,6 +59,7 @@ export function LessonQuizPanel({
   );
   const [pendingUnassignQuiz, setPendingUnassignQuiz] =
     useState<LessonQuizListItem | null>(null);
+  const [gradeQuiz, setGradeQuiz] = useState<LessonQuizListItem | null>(null);
 
   const {
     data: quizzes = [],
@@ -157,6 +159,7 @@ export function LessonQuizPanel({
         onAssignClick={classroomId ? openAssignDialog : undefined}
         onEditClick={openEditDialog}
         onUnassignClick={(quiz) => setPendingUnassignQuiz(quiz)}
+        onGradeClick={(quiz) => setGradeQuiz(quiz)}
       />
 
       <AssignQuizDialog
@@ -175,6 +178,15 @@ export function LessonQuizPanel({
         }}
         context={editContext}
         onSuccess={() => refetch()}
+      />
+
+      <LessonQuizGradeModal
+        open={Boolean(gradeQuiz?.snapLessonQuizId)}
+        onOpenChange={(open) => {
+          if (!open) setGradeQuiz(null);
+        }}
+        snapLessonQuizId={gradeQuiz?.snapLessonQuizId ?? null}
+        quizTitle={gradeQuiz?.title}
       />
 
       <AlertDialog

@@ -15,6 +15,8 @@ import { AxiosError } from "axios";
 import { useGetQuizResultQuery } from "@/app/hooks/lessonQuiz/useGetQuizResult";
 import {
   mapAttemptToSubmissionResult,
+  formatQuestionScoreLabel,
+  getQuestionEarnedPoints,
   type QuizResultSummary,
   type QuizSubmissionResult,
 } from "@/app/service/lessonQuiz.service";
@@ -40,6 +42,38 @@ const MODAL_CLASS =
 const optionLabel = (index: number) => String.fromCharCode(65 + index);
 
 const isPendingResult = (status?: string) => status === "PENDING";
+
+const isEssayQuestion = (
+  question: QuizSubmissionResult["questions"][number],
+) => (question.options ?? []).length === 0;
+
+const isEssayQuiz = (questions: QuizSubmissionResult["questions"]) =>
+  questions.length > 0 && questions.every(isEssayQuestion);
+
+const getQuestionStatusDotClass = (
+  question: QuizSubmissionResult["questions"][number],
+  isActive: boolean,
+  isPending: boolean,
+  hasAnswer: boolean,
+) => {
+  if (isPending) {
+    if (!hasAnswer) return "bg-slate-300";
+    return isActive ? "bg-blue-200" : "bg-blue-500";
+  }
+
+  const earned = getQuestionEarnedPoints(question);
+  const maxPoints = question.points;
+
+  if (earned >= maxPoints) {
+    return isActive ? "bg-emerald-300" : "bg-emerald-500";
+  }
+
+  if (earned > 0) {
+    return isActive ? "bg-amber-300" : "bg-amber-500";
+  }
+
+  return isActive ? "bg-rose-300" : "bg-rose-400";
+};
 
 const getStatusLabel = (status?: string) => {
   if (status === "GRADED") return "Đã chấm";
@@ -238,6 +272,7 @@ function QuestionListSidebar({
             const hasAnswer =
               Boolean(question.essayAnswer?.trim()) ||
               Boolean(question.selectedOptionId);
+            const essayQuestion = isEssayQuestion(question);
 
             return (
               <button
@@ -254,19 +289,26 @@ function QuestionListSidebar({
                 <span
                   className={cn(
                     "h-2 w-2 shrink-0 rounded-full",
-                    isPending
-                      ? hasAnswer
-                        ? isActive
-                          ? "bg-blue-200"
-                          : "bg-blue-500"
-                        : "bg-slate-300"
-                      : question.correct
-                        ? isActive
-                          ? "bg-emerald-300"
-                          : "bg-emerald-500"
-                        : isActive
-                          ? "bg-rose-300"
-                          : "bg-rose-400",
+                    essayQuestion
+                      ? getQuestionStatusDotClass(
+                          question,
+                          isActive,
+                          isPending,
+                          hasAnswer,
+                        )
+                      : isPending
+                        ? hasAnswer
+                          ? isActive
+                            ? "bg-blue-200"
+                            : "bg-blue-500"
+                          : "bg-slate-300"
+                        : question.correct
+                          ? isActive
+                            ? "bg-emerald-300"
+                            : "bg-emerald-500"
+                          : isActive
+                            ? "bg-rose-300"
+                            : "bg-rose-400",
                   )}
                 />
                 <span className="min-w-0 flex-1">
@@ -350,6 +392,7 @@ function ResultWorkspace({
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
   const isPending = isPendingResult(result.status);
   const questions = result.questions;
+  const essayQuiz = isEssayQuiz(questions);
   const correctCount = questions.filter((q) => q.correct).length;
   const submittedCount = countSubmittedQuestions(questions);
 
@@ -400,8 +443,10 @@ function ResultWorkspace({
             passScore={result.passScore}
             passed={result.passed}
             correctCount={correctCount}
+            submittedCount={submittedCount}
             totalCount={questions.length}
             status={result.status}
+            isEssayQuiz={essayQuiz}
           />
         {/* )} */}
 
@@ -507,15 +552,19 @@ function ScoreStrip({
   passScore,
   passed,
   correctCount,
+  submittedCount,
   totalCount,
   status,
+  isEssayQuiz: essayQuiz,
 }: {
   score: number;
   passScore: number;
   passed: boolean;
   correctCount: number;
+  submittedCount: number;
   totalCount: number;
   status?: string;
+  isEssayQuiz: boolean;
 }) {
   return (
     <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-slate-100 bg-white px-6 py-3.5 text-sm">
@@ -541,10 +590,22 @@ function ScoreStrip({
       <span className="hidden h-4 w-px bg-slate-200 sm:block" />
 
       <span className="text-slate-600">
-        <span className="font-medium text-slate-900 tabular-nums">
-          {correctCount}/{totalCount}
-        </span>{" "}
-        câu đúng
+        {essayQuiz ? (
+          <>
+            Đã nộp{" "}
+            <span className="font-medium text-slate-900 tabular-nums">
+              {submittedCount}/{totalCount}
+            </span>{" "}
+            câu
+          </>
+        ) : (
+          <>
+            <span className="font-medium text-slate-900 tabular-nums">
+              {correctCount}/{totalCount}
+            </span>{" "}
+            câu đúng
+          </>
+        )}
       </span>
 
       {status ? (
@@ -654,7 +715,7 @@ function QuestionDetail({
   isPending: boolean;
 }) {
   const options = question.options ?? [];
-  const isEssay = options.length === 0;
+  const essayQuestion = isEssayQuestion(question);
   const hasAnswer =
     Boolean(question.essayAnswer?.trim()) ||
     Boolean(question.selectedOptionId);
@@ -669,6 +730,12 @@ function QuestionDetail({
           <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
             <Clock className="h-3 w-3" />
             Chờ chấm
+          </span>
+        ) : essayQuestion ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
+            Đã chấm
+            <span className="text-slate-300">·</span>
+            {formatQuestionScoreLabel(question)}
           </span>
         ) : (
           <span
@@ -687,7 +754,7 @@ function QuestionDetail({
             />
             {question.correct ? "Trả lời đúng" : "Trả lời sai"}
             <span className="text-slate-300">·</span>
-            {question.points}đ
+            {formatQuestionScoreLabel(question)}
           </span>
         )}
       </div>
@@ -697,7 +764,7 @@ function QuestionDetail({
       </p>
 
       <div className="mt-5">
-        {isEssay ? (
+        {essayQuestion ? (
           <div className="rounded-xl bg-slate-50 px-4 py-3.5">
             <p className="text-[11px] font-medium tracking-wide text-slate-400 uppercase">
               Bài làm của bạn

@@ -86,6 +86,8 @@ export const TEACHER_API = {
   GET_CLASSROOMS: (teacherId: string) => `/teacher/${teacherId}/classrooms`,
   GET_MY_CLASSROOMS: "/teacher/classrooms",
   GET_SCHEDULE: (teacherId: string) => `/teachers/${teacherId}/schedule`,
+  GRADE_SUBMISSION: (submissionId: string) =>
+    `/teacher/submissions/${submissionId}/grade`,
 };
 export const LESSON_QUIZ_API = {
   CREATE: "/lesson-quiz",
@@ -99,6 +101,10 @@ export const LESSON_QUIZ_API = {
   UPDATE_QUESTIONS: (quizId: string) => `/${quizId}/questions`,
   UPDATE: (lessonQuizId: string) => `/lessonQuiz/${lessonQuizId}`,
   GET_BY_LESSON: (snapLessonId: string) => `/lesson/${snapLessonId}`,
+  PENDING_SUBMISSIONS: (snapLessonQuizId: string) =>
+    `/snap-lesson-quizzes/${snapLessonQuizId}/pending`,
+  GRADED_SUBMISSIONS: (snapLessonQuizId: string) =>
+    `/snap-lesson-quizzes/${snapLessonQuizId}/graded`,
 };
 
 export const VIDEO_API = {

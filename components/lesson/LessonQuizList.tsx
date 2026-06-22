@@ -1,6 +1,6 @@
 "use client";
 
-import { ClipboardList, Clock, Link2, Pencil, PlayCircle, Plus, Target, Unlink } from "lucide-react";
+import { ClipboardList, ClipboardCheck, Clock, Link2, Pencil, PlayCircle, Plus, Target, Unlink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -21,6 +21,7 @@ type LessonQuizListProps = {
   onAssignClick?: () => void;
   onEditClick?: (quiz: LessonQuizListItem) => void;
   onUnassignClick?: (quiz: LessonQuizListItem) => void;
+  onGradeClick?: (quiz: LessonQuizListItem) => void;
   onQuizClick?: (quiz: LessonQuizListItem) => void;
   onQuizSelect?: (quiz: LessonQuizListItem) => void;
   onResultClick?: (quiz: LessonQuizListItem) => void;
@@ -151,6 +152,7 @@ export function LessonQuizList({
   onAssignClick,
   onEditClick,
   onUnassignClick,
+  onGradeClick,
   onQuizClick,
   onQuizSelect,
   onResultClick,
@@ -286,8 +288,23 @@ export function LessonQuizList({
                         </div>
                       </div>
                       {quiz.snapLessonQuizId &&
-                      (onEditClick || onUnassignClick) ? (
+                      (onEditClick || onUnassignClick || onGradeClick) ? (
                         <div className="flex shrink-0 items-center gap-1.5">
+                          {onGradeClick && quiz.quizType === "ESSAY" ? (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className={cn(
+                                "h-8 cursor-pointer rounded-lg px-2.5 text-xs",
+                                lessonNavyOutlineButton,
+                              )}
+                              onClick={() => onGradeClick(quiz)}
+                            >
+                              <ClipboardCheck className="mr-1 h-3.5 w-3.5" />
+                              Chấm bài
+                            </Button>
+                          ) : null}
                           {onEditClick ? (
                             <Button
                               type="button"
