@@ -192,10 +192,62 @@ export type SubmitQuizPayload = {
 
 export type SubmitQuizResponse = {
   message?: string;
+  score?: number;
   earnedPoints?: number;
   totalPoints?: number;
   passScore?: number;
   passed?: boolean;
+};
+
+export const resolveSubmitQuizResult = (
+  quiz: LessonQuizDetail,
+  data: SubmitQuizResponse,
+  answers: Record<string, string>,
+): {
+  earnedPoints: number;
+  totalPoints: number;
+  passed: boolean;
+} => {
+  const totalPoints =
+    typeof data.totalPoints === "number"
+      ? data.totalPoints
+      : quiz.questions.reduce((sum, question) => sum + question.points, 0);
+
+  const earnedPoints =
+    typeof data.earnedPoints === "number"
+      ? data.earnedPoints
+      : typeof data.score === "number"
+        ? data.score
+        : null;
+
+  if (earnedPoints !== null) {
+    return {
+      earnedPoints,
+      totalPoints,
+      passed:
+        typeof data.passed === "boolean"
+          ? data.passed
+          : earnedPoints >= (data.passScore ?? quiz.passScore),
+    };
+  }
+
+  let calculatedEarned = 0;
+
+  quiz.questions.forEach((question) => {
+    if (quiz.quizType === "MULTIPLE_CHOICE") {
+      const selectedOptionId = answers[question.questionId];
+      const correctOption = question.options.find((option) => option.correct);
+      if (selectedOptionId && selectedOptionId === correctOption?.optionId) {
+        calculatedEarned += question.points;
+      }
+    }
+  });
+
+  return {
+    earnedPoints: calculatedEarned,
+    totalPoints,
+    passed: calculatedEarned >= quiz.passScore,
+  };
 };
 
 export type QuizResultOption = {

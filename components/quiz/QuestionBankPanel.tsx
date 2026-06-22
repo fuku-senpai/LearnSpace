@@ -5,11 +5,8 @@ import {
   ChevronLeft,
   ChevronRight,
   CircleDot,
-  Clock,
   Eye,
   FileText,
-  GitBranch,
-  Layers,
   ListTree,
   Loader2,
   Pencil,
@@ -17,7 +14,6 @@ import {
   Plus,
   Search,
   Sparkles,
-  Target,
 } from "lucide-react";
 
 import { useGetQuizBankQuery } from "@/app/hooks/lessonQuiz/useGetQuizBank";
@@ -72,15 +68,7 @@ const filterOptions: { value: QuizTypeFilter; label: string }[] = [
 ];
 
 const desktopRowGridClass =
-  "grid grid-cols-[9rem_minmax(0,1fr)_minmax(8.5rem,10.5rem)_11rem_minmax(12rem,1fr)] items-center gap-x-4 xl:grid-cols-[10rem_minmax(0,1fr)_9.5rem_12rem_minmax(14rem,1fr)] xl:gap-x-6";
-
-function formatQuizVersion(value?: number | null) {
-  if (typeof value !== "number" || !Number.isFinite(value) || value < 1) {
-    return "—";
-  }
-
-  return value > 9999 ? value.toLocaleString("vi-VN") : `v${value}`;
-}
+  "grid grid-cols-[9rem_minmax(0,1fr)_minmax(8.5rem,10.5rem)_minmax(12rem,1fr)] items-center gap-x-4 xl:grid-cols-[10rem_minmax(0,1fr)_9.5rem_minmax(14rem,1fr)] xl:gap-x-6";
 
 function QuizCodeVersionCell({ quiz }: { quiz: QuizBankItem }) {
   return (
@@ -88,57 +76,6 @@ function QuizCodeVersionCell({ quiz }: { quiz: QuizBankItem }) {
       <QuizCodeBadge code={quiz.lessonQuizCode} />
       <QuizVersionBadge version={quiz.version} />
     </div>
-  );
-}
-
-function formatQuizStat(value: number, suffix: string) {
-  if (!Number.isFinite(value) || value < 0) {
-    return `— ${suffix}`;
-  }
-
-  const text = value > 9999 ? value.toLocaleString("vi-VN") : String(value);
-  return `${text} ${suffix}`;
-}
-
-function formatPassScore(value: number) {
-  if (!Number.isFinite(value) || value < 0) {
-    return "—";
-  }
-
-  return value > 9999 ? value.toLocaleString("vi-VN") : String(value);
-}
-
-function QuizRowStats({ quiz }: { quiz: QuizBankItem }) {
-  return (
-    <>
-      <p
-        className="flex min-w-0 items-center gap-1.5 truncate"
-        title={`${quiz.totalQuestions} câu`}
-      >
-        <Layers className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-        <span className="truncate">
-          {formatQuizStat(quiz.totalQuestions, "câu")}
-        </span>
-      </p>
-      <p
-        className="flex min-w-0 items-center gap-1.5 truncate"
-        title={formatQuizStat(quiz.durationMinutes, "phút")}
-      >
-        <Clock className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-        <span className="truncate">
-          {formatQuizStat(quiz.durationMinutes, "phút")}
-        </span>
-      </p>
-      <p
-        className="flex min-w-0 items-center gap-1.5 truncate"
-        title={`Đạt ${quiz.passScore}đ`}
-      >
-        <Target className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-        <span className="truncate">
-          Đạt {formatPassScore(quiz.passScore)}đ
-        </span>
-      </p>
-    </>
   );
 }
 
@@ -274,25 +211,6 @@ function QuizListRow({
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2 text-xs text-slate-500">
-          <span className="inline-flex items-center gap-1.5 rounded-lg bg-violet-50 px-2.5 py-1.5 text-violet-800 ring-1 ring-violet-100">
-            <GitBranch className="h-3.5 w-3.5 shrink-0 text-violet-600" />
-            {formatQuizVersion(quiz.version)}
-          </span>
-          <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1.5">
-            <Layers className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-            {formatQuizStat(quiz.totalQuestions, "câu")}
-          </span>
-          <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1.5">
-            <Clock className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-            {formatQuizStat(quiz.durationMinutes, "phút")}
-          </span>
-          <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1.5">
-            <Target className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-            Đạt {formatPassScore(quiz.passScore)}đ
-          </span>
-        </div>
-
         <div className="flex gap-2 pt-0.5">
           <QuizRowActions
             layout="mobile"
@@ -340,10 +258,6 @@ function QuizListRow({
 
         <div className="min-w-0 self-center">
           <QuizCodeVersionCell quiz={quiz} />
-        </div>
-
-        <div className="min-w-0 space-y-1 text-xs text-slate-500">
-          <QuizRowStats quiz={quiz} />
         </div>
 
         <div className="flex min-w-0 flex-wrap items-center justify-end gap-2 xl:flex-nowrap">
@@ -538,7 +452,7 @@ export function QuestionBankPanel() {
         ) : (
           <div className="w-full bg-white">
             <div className="lg:overflow-x-auto xl:overflow-visible">
-              <div className="lg:min-w-[58rem] xl:min-w-0">
+              <div className="lg:min-w-[46rem] xl:min-w-0">
                 <div
                   className={cn(
                     "hidden border-b border-slate-200 bg-slate-50/80 px-6 py-2.5 text-[11px] font-semibold tracking-wide text-slate-500 uppercase lg:grid xl:px-8",
@@ -553,7 +467,6 @@ export function QuestionBankPanel() {
                       Phiên bản
                     </span>
                   </span>
-                  <span>Thông số</span>
                   <span className="text-right">Thao tác</span>
                 </div>
                 {items.map((quiz) => (

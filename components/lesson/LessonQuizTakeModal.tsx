@@ -22,6 +22,7 @@ import { useCheckLessonQuizCodeMutation } from "@/app/hooks/lessonQuiz/useCheckL
 import { useSubmitLessonQuizMutation } from "@/app/hooks/lessonQuiz/useSubmitLessonQuiz";
 import {
   buildSubmitQuizPayload,
+  resolveSubmitQuizResult,
   type LessonQuizDetail,
   type SubmitQuizResponse,
 } from "@/app/service/lessonQuiz.service";
@@ -60,53 +61,11 @@ const formatTime = (totalSeconds: number) => {
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 };
 
-const calculateResult = (
-  quiz: LessonQuizDetail,
-  answers: Record<string, string>,
-): QuizResult => {
-  let earnedPoints = 0;
-  let totalPoints = 0;
-
-  quiz.questions.forEach((question) => {
-    totalPoints += question.points;
-
-    if (quiz.quizType === "MULTIPLE_CHOICE") {
-      const selectedOptionId = answers[question.questionId];
-      const correctOption = question.options.find((option) => option.correct);
-      if (selectedOptionId && selectedOptionId === correctOption?.optionId) {
-        earnedPoints += question.points;
-      }
-    }
-  });
-
-  return {
-    earnedPoints,
-    totalPoints,
-    passed: earnedPoints >= quiz.passScore,
-  };
-};
-
 const resolveResult = (
   quiz: LessonQuizDetail,
   data: SubmitQuizResponse,
   answers: Record<string, string>,
-): QuizResult => {
-  if (
-    typeof data.earnedPoints === "number" &&
-    typeof data.totalPoints === "number"
-  ) {
-    return {
-      earnedPoints: data.earnedPoints,
-      totalPoints: data.totalPoints,
-      passed:
-        typeof data.passed === "boolean"
-          ? data.passed
-          : data.earnedPoints >= (data.passScore ?? quiz.passScore),
-    };
-  }
-
-  return calculateResult(quiz, answers);
-};
+): QuizResult => resolveSubmitQuizResult(quiz, data, answers);
 
 const optionLabel = (index: number) => String.fromCharCode(65 + index);
 
