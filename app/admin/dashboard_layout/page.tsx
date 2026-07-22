@@ -151,7 +151,7 @@ const DashboardContent = () => {
   const totalMaterials = materialsResponse?.totalElements ?? 0;
 
   return (
-    <div className="flex min-h-screen gap-4 bg-[#f3f5f9] p-4">
+    <div className="flex min-h-screen bg-[#f3f5f9]">
       <DashboardSidebar
         groups={adminMenuGroups}
         activeMenu={activeMenu}
@@ -161,7 +161,7 @@ const DashboardContent = () => {
         branding={adminSidebarBranding}
       />
 
-      <main className="flex min-h-[calc(100vh-2rem)] min-w-0 flex-1 flex-col overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm">
+      <main className="m-4 flex min-h-[calc(100vh-2rem)] min-w-0 flex-1 flex-col overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm">
         {/* <header className="sticky top-0 z-20 border-b border-slate-200/70 bg-white/90 px-6 py-4 backdrop-blur-xl">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>

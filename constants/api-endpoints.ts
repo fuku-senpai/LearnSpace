@@ -28,7 +28,7 @@ export const CLASS_API = {
 };
 
 export const MATERIALS_API = {
- CREATE_MATERIAL: (classroomId: string) => `/${classroomId}/materials`,  
+  CREATE_MATERIAL: (classroomId: string) => `/${classroomId}/materials`,  
   GET_MATERIALS: (classroomId: string) => `/${classroomId}/materials`,
   GET_MATERIAL_DETAIL: (materialId: string) => `/materials/${materialId}`,
   UPDATE_MATERIAL: (materialId: string) => `/materials/${materialId}`,

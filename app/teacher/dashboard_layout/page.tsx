@@ -101,7 +101,7 @@ const TeacherDashboardContent = () => {
   const totalClasses = classrooms.length;
 
   return (
-    <div className="flex min-h-screen gap-4 bg-[#f3f5f9] p-4">
+    <div className="flex min-h-screen bg-[#f3f5f9]">
       <DashboardSidebar
         groups={teacherMenuGroups}
         activeMenu={activeMenu}
@@ -111,7 +111,7 @@ const TeacherDashboardContent = () => {
         branding={teacherSidebarBranding}
       />
 
-      <main className="flex min-h-[calc(100vh-2rem)] min-w-0 flex-1 flex-col overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm">
+      <main className="m-4 flex min-h-[calc(100vh-2rem)] min-w-0 flex-1 flex-col overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm">
        
 
         <div className="relative min-h-0 flex-1 overflow-hidden">

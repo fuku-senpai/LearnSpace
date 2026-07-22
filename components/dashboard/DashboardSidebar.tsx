@@ -49,9 +49,9 @@ export function DashboardSidebar<T extends string>({
   const BrandIcon = branding.icon;
 
   return (
-    <aside className="sticky top-4 hidden h-[calc(100vh-2rem)] w-[290px] shrink-0 flex-col overflow-hidden rounded-3xl border border-white/[0.06] bg-[#0c0e14] shadow-[0_20px_50px_rgba(0,0,0,0.18)] lg:flex">
+    <aside className="sticky top-0 hidden h-screen w-[290px] shrink-0 flex-col overflow-hidden border-r border-white/[0.08] bg-[#0c1e3a] shadow-[4px_0_24px_rgba(0,0,0,0.12)] lg:flex">
       <div
-        className={`pointer-events-none absolute inset-0 rounded-3xl ${branding.radialGradient}`}
+        className={`pointer-events-none absolute inset-0 ${branding.radialGradient}`}
       />
       <div className="pointer-events-none absolute inset-0 opacity-[0.35] bg-[repeating-linear-gradient(-12deg,transparent,transparent_18px,rgba(255,255,255,0.015)_18px,rgba(255,255,255,0.015)_19px)]" />
 
@@ -94,14 +94,14 @@ export function DashboardSidebar<T extends string>({
                     key={item.key}
                     type="button"
                     onClick={() => onMenuChange(item.key)}
-                    className={`group relative flex w-full cursor-pointer items-center gap-3 overflow-hidden rounded-2xl px-2.5 py-2.5 text-left transition-all duration-300 ${
+                    className={`group relative flex w-full cursor-pointer items-center gap-3 overflow-hidden px-2.5 py-2.5 text-left transition-all duration-300 ${
                       isActive
                         ? `bg-white/[0.07] text-white ${item.activeGlow}`
                         : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200"
                     }`}
                   >
                     <span
-                      className={`absolute inset-y-2 left-0 w-1 rounded-r-full bg-gradient-to-b transition-all duration-300 ${
+                      className={`absolute inset-y-2 left-0 w-1 bg-gradient-to-b transition-all duration-300 ${
                         isActive
                           ? `${item.accent} opacity-100`
                           : "from-zinc-600 to-zinc-700 opacity-0 group-hover:opacity-40"
@@ -113,7 +113,7 @@ export function DashboardSidebar<T extends string>({
                     </span>
 
                     <span
-                      className={`flex h-9 w-9 shrink-0 -rotate-3 items-center justify-center rounded-xl border transition-all duration-300 group-hover:rotate-0 ${
+                      className={`flex h-9 w-9 shrink-0 items-center justify-center border transition-all duration-300 ${
                         isActive
                           ? `border-white/10 bg-gradient-to-br ${item.accent} text-white shadow-lg`
                           : "border-white/[0.06] bg-white/[0.03] text-zinc-500 group-hover:border-white/10 group-hover:text-zinc-300"
@@ -148,12 +148,12 @@ export function DashboardSidebar<T extends string>({
         ))}
       </nav>
 
-      <div className="relative mt-auto shrink-0 border-t border-white/[0.06] bg-[#0c0e14] p-4">
+      <div className="relative mt-auto shrink-0 border-t border-white/[0.08] bg-[#0c1e3a] p-4">
         <button
           type="button"
           onClick={onLogout}
           disabled={isLogoutPending}
-          className="flex h-10 w-full cursor-pointer items-center gap-3 rounded-xl px-3 text-sm font-medium text-rose-400 transition hover:bg-rose-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex h-10 w-full cursor-pointer items-center gap-3 px-3 text-sm font-medium text-rose-400 transition hover:bg-rose-500/10 disabled:cursor-not-allowed disabled:opacity-60"
         >
           <LogOut className="h-4 w-4 shrink-0" />
           {isLogoutPending ? "Đang đăng xuất..." : "Đăng xuất"}

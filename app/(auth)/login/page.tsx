@@ -1,7 +1,5 @@
 "use client";
-
 import { useForm } from "react-hook-form";
-
 import { ParticleBackground } from "@/components/particle-background";
 import { Button } from "@/components/ui/button";
 import {
@@ -143,8 +141,6 @@ const LoginPage = () => {
           {/* LEFT — branding */}
           <div className="hidden flex-col justify-center gap-10 lg:flex">
             <div className="space-y-8 motion-safe:animate-[fade-up_700ms_ease-out_both]">
-              
-
               <div className="space-y-2">
                 <h1 className="text-[3.1rem] font-bold leading-[1.06] tracking-tight text-white">
                   Hệ thống học tập
@@ -158,7 +154,6 @@ const LoginPage = () => {
                   Video, tài liệu &amp; quản lý lớp
                 </p>
               </div>
-
 
               <div className="flex max-w-md flex-col gap-3">
                 {featureTags.map((tag, index) => (
@@ -175,8 +170,6 @@ const LoginPage = () => {
                 ))}
               </div>
             </div>
-
-           
           </div>
 
           {/* RIGHT — login card */}
@@ -184,7 +177,6 @@ const LoginPage = () => {
             <div className="float-bob-slow relative w-full">
               <div className="space-y-4 px-6 py-6">
                 <div className="flex items-center gap-3">
-                  
                   <div>
                     <h2 className="text-[17px] font-semibold text-zinc-100">
                       Đăng nhập hệ thống
@@ -196,7 +188,7 @@ const LoginPage = () => {
                 </div>
 
                 <Form {...form}>
-                  <form 
+                  <form
                     onSubmit={(event) => {
                       event.preventDefault();
                       event.stopPropagation();
@@ -261,7 +253,7 @@ const LoginPage = () => {
                         </FormItem>
                       )}
                     />
-
+                  
                     <FormField
                       control={form.control}
                       name="email"
@@ -341,9 +333,7 @@ const LoginPage = () => {
                                 type="button"
                                 onClick={() => setShowPassword((prev) => !prev)}
                                 aria-label={
-                                  showPassword
-                                    ? "Ẩn mật khẩu"
-                                    : "Hiện mật khẩu"
+                                  showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"
                                 }
                                 className="absolute top-1/2 right-3.5 -translate-y-1/2 text-zinc-500 transition hover:text-amber-300"
                               >
@@ -480,11 +470,7 @@ const LoginPage = () => {
                                   const hasNumber = /\d/.test(value);
                                   const hasSpecial = /[^A-Za-z0-9]/.test(value);
 
-                                  if (
-                                    hasUppercase &&
-                                    hasNumber &&
-                                    hasSpecial
-                                  ) {
+                                  if (hasUppercase && hasNumber && hasSpecial) {
                                     return true;
                                   }
 
