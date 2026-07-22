@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
-import { FileText, MonitorPlay } from "lucide-react";
+import { MonitorPlay, FileText } from "lucide-react";
 import { useGetTeacherClassrooms } from "@/app/hooks/teacher/useGetTeacherClassrooms";
 import { useGetSnapMaterials } from "@/app/hooks/materials/useGetSnapMaterials";
 import { UploadCloud, Loader2, Film, Trash2, Pencil } from "lucide-react";

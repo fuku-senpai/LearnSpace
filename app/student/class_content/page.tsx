@@ -2,11 +2,8 @@
 
 import { useMemo, useState } from "react";
 import {
-  ExternalLink,
-  FileText,
   Loader2,
   MonitorPlay,
-  Sparkles,
   UserPlus,
 } from "lucide-react";
 import { useGetMyClassesQuery } from "@/app/hooks/classes/useGetMyClasses";
@@ -30,6 +27,7 @@ import {
   LessonContentTabBar,
   type LessonContentTab,
 } from "@/components/lesson/LessonContentTabBar";
+import { LessonMaterialsList } from "@/components/lesson/LessonMaterialsList";
 import { LessonModuleSidebar } from "@/components/lesson/LessonModuleSidebar";
 import { LessonQuizList } from "@/components/lesson/LessonQuizList";
 import { LessonQuizTakeModal } from "@/components/lesson/LessonQuizTakeModal";
@@ -100,94 +98,6 @@ function findActiveSession(
   }
 
   return emptyActiveSession;
-}
-
-function LessonMaterialsList({
-  snapLessonId,
-  lessonTitle,
-}: {
-  snapLessonId: string;
-  lessonTitle: string;
-}) {
-  const { data: resources = [], isLoading } =
-    useGetLessonResourcesQuery(snapLessonId);
-
-  if (!snapLessonId) {
-    return (
-      <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-6 py-12 text-center text-sm text-slate-500">
-        Chọn buổi học để xem tài liệu
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-6 py-12 text-sm text-slate-500">
-        <Loader2 className="h-4 w-4 animate-spin" />
-        Đang tải tài liệu...
-      </div>
-    );
-  }
-
-  if (resources.length === 0) {
-    return (
-      <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-6 py-12 text-center text-sm text-slate-500">
-        Chưa có tài liệu cho buổi học này
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      <p className="text-xs font-medium tracking-wide text-slate-400 uppercase">
-        Buổi: {lessonTitle}
-      </p>
-      <div className="divide-y divide-slate-200 rounded-2xl border border-slate-200/80">
-        {resources.map((resource) => (
-          <div key={resource.id} className="p-4 sm:p-5">
-            <div className="flex items-start gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 text-violet-600">
-                <FileText className="h-4 w-4" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold text-slate-900">{resource.title}</p>
-                <p className="mt-1 text-sm text-slate-500">
-                  {resource.note || "Không có ghi chú"}
-                </p>
-                <span className="mt-2 inline-flex rounded-full border border-slate-200 px-2.5 py-0.5 text-xs font-medium text-slate-600">
-                  {resource.type}
-                </span>
-              </div>
-            </div>
-
-            {resource.urls?.length > 0 ? (
-              <div className="mt-4 space-y-2 border-t border-slate-100 pt-4">
-                {resource.urls.map((resourceUrl, index) => (
-                  <a
-                    key={index}
-                    href={resourceUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center justify-between gap-3 rounded-xl border border-slate-200/80 px-3 py-2.5 text-sm transition hover:border-violet-200 hover:bg-violet-50/50"
-                  >
-                    <span className="truncate text-slate-700">
-                      {resource.type === "LINK"
-                        ? resourceUrl
-                        : `File ${index + 1}`}
-                    </span>
-                    <span className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-violet-600">
-                      Mở
-                      <ExternalLink className="h-3 w-3" />
-                    </span>
-                  </a>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
 }
 
 const ClassContentManagement = () => {
@@ -320,9 +230,11 @@ const ClassContentManagement = () => {
     shouldFetchPlayUrl ? resolvedSessionId : undefined,
     activeVideoType,
   );
-  const { data: lessonResources = [] } = useGetLessonResourcesQuery(
-    resolvedSessionId || undefined,
-  );
+  const {
+    data: lessonResources = [],
+    isLoading: isLoadingLessonResources,
+    isFetching: isFetchingLessonResources,
+  } = useGetLessonResourcesQuery(resolvedSessionId || undefined);
   const {
     data: lessonQuizzes = [],
     isLoading: isLoadingLessonQuizzes,
@@ -476,6 +388,8 @@ const ClassContentManagement = () => {
               <LessonMaterialsList
                 snapLessonId={activeSession.session.id}
                 lessonTitle={activeSession.session.title}
+                resources={lessonResources}
+                isLoading={isLoadingLessonResources || isFetchingLessonResources}
               />
             ) : activeTab === "quiz" ? (
               !activeSession.session.id ? (
