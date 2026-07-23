@@ -49,7 +49,7 @@ export function DashboardSidebar<T extends string>({
   const BrandIcon = branding.icon;
 
   return (
-    <aside className="sticky top-0 hidden h-screen w-[350px] shrink-0 flex-col overflow-hidden border-r border-white/[0.08] bg-[#020f27] shadow-[4px_0_24px_rgba(0,0,0,0.12)] lg:flex">
+    <aside className="sticky top-0 hidden h-screen w-[300px] shrink-0 flex-col overflow-hidden border-r border-white/[0.08] bg-[#020f27] shadow-[4px_0_24px_rgba(0,0,0,0.12)] lg:flex">
       <div
         className={`pointer-events-none absolute inset-0 ${branding.radialGradient}`}
       />
