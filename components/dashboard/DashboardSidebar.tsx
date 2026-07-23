@@ -49,7 +49,7 @@ export function DashboardSidebar<T extends string>({
   const BrandIcon = branding.icon;
 
   return (
-    <aside className="sticky top-0 hidden h-screen w-[290px] shrink-0 flex-col overflow-hidden border-r border-white/[0.08] bg-[#0c1e3a] shadow-[4px_0_24px_rgba(0,0,0,0.12)] lg:flex">
+    <aside className="sticky top-0 hidden h-screen w-[350px] shrink-0 flex-col overflow-hidden border-r border-white/[0.08] bg-[#020f27] shadow-[4px_0_24px_rgba(0,0,0,0.12)] lg:flex">
       <div
         className={`pointer-events-none absolute inset-0 ${branding.radialGradient}`}
       />
@@ -112,15 +112,13 @@ export function DashboardSidebar<T extends string>({
                       {item.index}
                     </span>
 
-                    <span
-                      className={`flex h-9 w-9 shrink-0 items-center justify-center border transition-all duration-300 ${
+                    <Icon
+                      className={`h-[18px] w-[18px] shrink-0 transition-colors duration-300 ${
                         isActive
-                          ? `border-white/10 bg-gradient-to-br ${item.accent} text-white shadow-lg`
-                          : "border-white/[0.06] bg-white/[0.03] text-zinc-500 group-hover:border-white/10 group-hover:text-zinc-300"
+                          ? "text-sky-300"
+                          : "text-slate-400 group-hover:text-slate-200"
                       }`}
-                    >
-                      <Icon className="h-4 w-4" />
-                    </span>
+                    />
 
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-medium">
